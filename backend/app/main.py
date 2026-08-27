@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+from app.api.router import api_router
 from app.core.config import settings
 
 
@@ -8,24 +9,19 @@ def create_app() -> FastAPI:
         title=settings.app_name,
         version=settings.app_version,
         debug=settings.debug,
-        description="Deterministic financial authority verification infrastructure.",
+        description=(
+            "Deterministic financial authority verification infrastructure."
+        ),
     )
 
     @app.get("/")
-    async def root():
+    async def root() -> dict[str, str]:
         return {
             "name": settings.app_name,
             "version": settings.app_version,
-            "environment": settings.app_env,
         }
 
-    @app.get("/health")
-    async def health():
-        return {"status": "ok"}
-
-    @app.get("/ready")
-    async def ready():
-        return {"status": "ready"}
+    app.include_router(api_router)
 
     return app
 
