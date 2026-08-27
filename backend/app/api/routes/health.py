@@ -1,5 +1,8 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 
+from app.db.session import get_db
 from app.schemas.common import HealthResponse, ReadinessResponse
 
 router = APIRouter(tags=["system"])
@@ -11,5 +14,9 @@ async def health() -> HealthResponse:
 
 
 @router.get("/ready", response_model=ReadinessResponse)
-async def ready() -> ReadinessResponse:
+async def ready(
+    db: Session = Depends(get_db),  # noqa: B008
+) -> ReadinessResponse:
+    db.execute(text("SELECT 1"))
+
     return ReadinessResponse(status="ready")

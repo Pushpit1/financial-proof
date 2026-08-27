@@ -1,0 +1,40 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: financial-proof-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: financial_proof
+      POSTGRES_PASSWORD: financial_proof
+      POSTGRES_DB: financial_proof
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U financial_proof -d financial_proof"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: financial-proof-backend
+    restart: unless-stopped
+    environment:
+      APP_NAME: Financial Proof
+      APP_VERSION: 0.1.0
+      DEBUG: "false"
+      API_HOST: 0.0.0.0
+      API_PORT: 8000
+      DATABASE_URL: postgresql+psycopg://financial_proof:financial_proof@postgres:5432/financial_proof
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
