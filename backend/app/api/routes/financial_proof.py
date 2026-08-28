@@ -214,3 +214,33 @@ async def get_proof(
         )
 
     return _aggregate_response(aggregate)
+
+
+@router.post(
+    "/{proof_id}/evaluate",
+    response_model=FinancialProofAggregateResponse,
+)
+async def evaluate_proof(
+    proof_id: UUID,
+    service: FinancialProofApplicationService = Depends(  # noqa: B008
+        get_financial_proof_service
+    ),
+) -> FinancialProofAggregateResponse:
+    """Evaluate a financial proof and return its complete aggregate."""
+    proof = service.evaluate_proof(proof_id)
+
+    if proof is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Financial proof {proof_id} was not found.",
+        )
+
+    aggregate = service.get_proof_aggregate(proof_id)
+
+    if aggregate is None:
+        raise HTTPException(
+            status_code=500,
+            detail="Evaluated financial proof could not be retrieved.",
+        )
+
+    return _aggregate_response(aggregate)
