@@ -549,3 +549,16 @@ def test_policy_accepts_one_threshold() -> None:
     )
 
     assert policy.minimum_ready_confidence == Decimal("1")
+
+
+def test_policy_rejects_non_decimal_threshold() -> None:
+    try:
+        ProofEvaluationPolicy(
+            minimum_ready_confidence=0.70,
+        )
+    except TypeError as exc:
+        assert str(exc) == "Minimum ready confidence must be a Decimal."
+    else:
+        raise AssertionError(
+            "Expected TypeError for non-Decimal threshold."
+        )

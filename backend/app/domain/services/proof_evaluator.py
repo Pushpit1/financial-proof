@@ -17,6 +17,11 @@ class ProofEvaluationPolicy:
 
     def __post_init__(self) -> None:
         """Validate the ready-confidence threshold."""
+        if not isinstance(self.minimum_ready_confidence, Decimal):
+            raise TypeError(
+                "Minimum ready confidence must be a Decimal."
+            )
+
         if not Decimal("0") <= self.minimum_ready_confidence <= Decimal("1"):
             raise ValueError(
                 "Minimum ready confidence must be between 0 and 1."
@@ -115,4 +120,5 @@ class ProofEvaluator:
             return ProofStatus.NEEDS_REVIEW
 
         return ProofStatus.READY
+
 
