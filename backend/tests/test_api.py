@@ -498,3 +498,44 @@ def test_evaluate_proof_persists_result(client: TestClient) -> None:
 
     assert body["proof"]["status"] == "ready"
     assert body["proof"]["overall_confidence"] == "0.7000"
+
+def test_evaluate_proof_is_idempotent(client: TestClient) -> None:
+    response = client.post(
+        "/proofs",
+        json={
+            "subject": "Applicant",
+            "claims": [
+                {
+                    "claim_type": "income",
+                    "subject": "Monthly income",
+                    "confidence": "0.90",
+                },
+                {
+                    "claim_type": "income",
+                    "subject": "Annual bonus",
+                    "confidence": "0.70",
+                },
+            ],
+        },
+    )
+
+    assert response.status_code == 201
+
+    proof_id = response.json()["proof"]["id"]
+
+    first = client.post(f"/proofs/{proof_id}/evaluate")
+    second = client.post(f"/proofs/{proof_id}/evaluate")
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+
+    first_body = first.json()
+    second_body = second.json()
+
+    assert second_body["proof"]["id"] == first_body["proof"]["id"]
+    assert second_body["proof"]["status"] == first_body["proof"]["status"]
+    assert (
+        second_body["proof"]["overall_confidence"]
+        == first_body["proof"]["overall_confidence"]
+    )
+    assert len(second_body["claims"]) == len(first_body["claims"]) == 2
