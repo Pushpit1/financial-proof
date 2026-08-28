@@ -1,41 +1,40 @@
+"""Financial proof API routes."""
+
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.api.dependencies import get_financial_proof_service
 from app.application.services.financial_proof import (
     FinancialProofApplicationService,
 )
+from app.domain.enums.financial import EvidenceStatus
+from app.domain.models.financial import (
+    Evidence,
+    EvidenceLink,
+    FinancialClaim,
+    FinancialProof,
+)
+from app.domain.value_objects.financial import ConfidenceScore, Money
 from app.schemas.financial_proof import (
+    EvidenceCreateRequest,
+    EvidenceLinkCreateRequest,
     EvidenceLinkResponse,
     EvidenceResponse,
+    FinancialClaimCreateRequest,
     FinancialClaimResponse,
     FinancialProofAggregateResponse,
+    FinancialProofCreateRequest,
     FinancialProofResponse,
 )
 
 router = APIRouter(prefix="/proofs", tags=["financial-proof"])
 
 
-@router.get(
-    "/{proof_id}",
-    response_model=FinancialProofAggregateResponse,
-)
-async def get_proof(
-    proof_id: UUID,
-    service: FinancialProofApplicationService = Depends(
-        get_financial_proof_service
-    ),  # noqa: B008
+def _aggregate_response(
+    aggregate,
 ) -> FinancialProofAggregateResponse:
-    """Return a complete financial proof aggregate."""
-    aggregate = service.get_proof_aggregate(proof_id)
-
-    if aggregate is None:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Financial proof {proof_id} was not found.",
-        )
-
+    """Convert an application aggregate into an API response."""
     proof = aggregate.proof
 
     return FinancialProofAggregateResponse(
@@ -83,3 +82,135 @@ async def get_proof(
         ],
     )
 
+
+def _claim_from_request(
+    request: FinancialClaimCreateRequest,
+) -> FinancialClaim:
+    amount = None
+
+    if request.amount is not None:
+        amount = Money(
+            amount=request.amount,
+            currency=request.currency,
+        )
+
+    kwargs = {
+        "claim_type": request.claim_type,
+        "subject": request.subject,
+        "amount": amount,
+        "verification_status": request.verification_status,
+        "confidence": ConfidenceScore(request.confidence),
+        "confidence_level": request.confidence_level,
+    }
+
+    if request.id is not None:
+        kwargs["id"] = request.id
+
+    return FinancialClaim(**kwargs)
+
+
+def _evidence_from_request(
+    request: EvidenceCreateRequest,
+) -> Evidence:
+    kwargs = {
+        "evidence_type": request.evidence_type,
+        "source_name": request.source_name,
+        "received_at": request.received_at,
+        "status": EvidenceStatus(request.status),
+        "checksum": request.checksum,
+        "source_reference": request.source_reference,
+    }
+
+    if request.id is not None:
+        kwargs["id"] = request.id
+
+    return Evidence(**kwargs)
+
+
+def _link_from_request(
+    request: EvidenceLinkCreateRequest,
+) -> EvidenceLink:
+    kwargs = {
+        "claim_id": request.claim_id,
+        "evidence_id": request.evidence_id,
+        "verification_status": request.verification_status,
+        "confidence": ConfidenceScore(request.confidence),
+        "explanation": request.explanation,
+    }
+
+    if request.id is not None:
+        kwargs["id"] = request.id
+
+    return EvidenceLink(**kwargs)
+
+
+@router.post(
+    "",
+    response_model=FinancialProofAggregateResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_proof(
+    request: FinancialProofCreateRequest,
+    service: FinancialProofApplicationService = Depends(  # noqa: B008
+        get_financial_proof_service
+    ),
+) -> FinancialProofAggregateResponse:
+    """Create a complete financial proof aggregate."""
+    proof_kwargs = {"subject": request.subject}
+
+    if request.id is not None:
+        proof_kwargs["id"] = request.id
+
+    proof = FinancialProof(**proof_kwargs)
+
+    claims = [
+        _claim_from_request(claim)
+        for claim in request.claims
+    ]
+    evidence = [
+        _evidence_from_request(item)
+        for item in request.evidence
+    ]
+    evidence_links = [
+        _link_from_request(link)
+        for link in request.evidence_links
+    ]
+
+    service.create_proof(
+        proof,
+        claims,
+        evidence,
+        evidence_links,
+    )
+
+    aggregate = service.get_proof_aggregate(proof.id)
+
+    if aggregate is None:
+        raise HTTPException(
+            status_code=500,
+            detail="Created financial proof could not be retrieved.",
+        )
+
+    return _aggregate_response(aggregate)
+
+
+@router.get(
+    "/{proof_id}",
+    response_model=FinancialProofAggregateResponse,
+)
+async def get_proof(
+    proof_id: UUID,
+    service: FinancialProofApplicationService = Depends(  # noqa: B008
+        get_financial_proof_service
+    ),
+) -> FinancialProofAggregateResponse:
+    """Return a complete financial proof aggregate."""
+    aggregate = service.get_proof_aggregate(proof_id)
+
+    if aggregate is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Financial proof {proof_id} was not found.",
+        )
+
+    return _aggregate_response(aggregate)
