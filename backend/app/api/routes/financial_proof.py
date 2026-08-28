@@ -1,5 +1,3 @@
-"""Financial proof API routes."""
-
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -16,10 +14,7 @@ from app.schemas.financial_proof import (
     FinancialProofResponse,
 )
 
-router = APIRouter(
-    prefix="/proofs",
-    tags=["financial-proofs"],
-)
+router = APIRouter(prefix="/proofs", tags=["financial-proof"])
 
 
 @router.get(
@@ -41,61 +36,50 @@ async def get_proof(
             detail=f"Financial proof {proof_id} was not found.",
         )
 
-    claims = [
-        FinancialClaimResponse(
-            id=claim.id,
-            claim_type=claim.claim_type.value,
-            subject=claim.subject,
-            amount=(
-                claim.amount.amount
-                if claim.amount is not None
-                else None
-            ),
-            currency=(
-                claim.amount.currency
-                if claim.amount is not None
-                else None
-            ),
-            verification_status=claim.verification_status.value,
-            confidence=claim.confidence.value,
-            confidence_level=claim.confidence_level.value,
-        )
-        for claim in aggregate.claims
-    ]
-
-    evidence = [
-        EvidenceResponse(
-            id=item.id,
-            evidence_type=item.evidence_type.value,
-            source_name=item.source_name,
-            received_at=item.received_at,
-            status=item.status.value,
-            checksum=item.checksum,
-            source_reference=item.source_reference,
-        )
-        for item in aggregate.evidence
-    ]
-
-    evidence_links = [
-        EvidenceLinkResponse(
-            id=link.id,
-            claim_id=link.claim_id,
-            evidence_id=link.evidence_id,
-            verification_status=link.verification_status.value,
-            confidence=link.confidence.value,
-            explanation=link.explanation,
-        )
-        for link in aggregate.evidence_links
-    ]
+    proof = aggregate.proof
 
     return FinancialProofAggregateResponse(
         proof=FinancialProofResponse(
-            id=aggregate.proof.id,
-            subject=aggregate.proof.subject,
-            status=aggregate.proof.status.value,
-            overall_confidence=aggregate.proof.overall_confidence.value,
+            id=proof.id,
+            subject=proof.subject,
+            status=proof.status.value,
+            overall_confidence=proof.overall_confidence.value,
         ),
-        claims=claims,
-        evidence=evidence,
-        evidence_links=evidence_links,
+        claims=[
+            FinancialClaimResponse(
+                id=claim.id,
+                claim_type=claim.claim_type.value,
+                subject=claim.subject,
+                amount=claim.amount.amount if claim.amount else None,
+                currency=claim.amount.currency if claim.amount else None,
+                verification_status=claim.verification_status.value,
+                confidence=claim.confidence.value,
+                confidence_level=claim.confidence_level.value,
+            )
+            for claim in aggregate.claims
+        ],
+        evidence=[
+            EvidenceResponse(
+                id=evidence.id,
+                evidence_type=evidence.evidence_type.value,
+                source_name=evidence.source_name,
+                received_at=evidence.received_at,
+                status=evidence.status.value,
+                checksum=evidence.checksum,
+                source_reference=evidence.source_reference,
+            )
+            for evidence in aggregate.evidence
+        ],
+        evidence_links=[
+            EvidenceLinkResponse(
+                id=link.id,
+                claim_id=link.claim_id,
+                evidence_id=link.evidence_id,
+                verification_status=link.verification_status.value,
+                confidence=link.confidence.value,
+                explanation=link.explanation,
+            )
+            for link in aggregate.evidence_links
+        ],
     )
+
