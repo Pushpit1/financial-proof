@@ -43,3 +43,57 @@ def test_custom_correlation_id(client: TestClient) -> None:
 
     assert response.status_code == 200
     assert response.headers["X-Correlation-ID"] == correlation_id
+
+def test_get_proof_returns_complete_aggregate(client: TestClient) -> None:
+    from datetime import date
+
+    from app.application.services.financial_proof import (
+        FinancialProofApplicationService,
+    )
+    from app.db.session import get_db
+    from app.db.unit_of_work import FinancialUnitOfWork
+    from app.domain.enums.financial import EvidenceType
+    from app.domain.models.financial import Evidence, FinancialProof
+
+    db = next(get_db())
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(db)
+    )
+
+    proof = FinancialProof(subject="Applicant")
+    evidence = Evidence(
+        evidence_type=EvidenceType.PAYSLIP,
+        source_name="Employer",
+        received_at=date(2026, 8, 28),
+    )
+
+    service.create_proof(
+        proof,
+        [],
+        [evidence],
+        [],
+    )
+
+    response = client.get(f"/proofs/{proof.id}")
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert body["proof"]["id"] == str(proof.id)
+    assert body["proof"]["subject"] == "Applicant"
+    assert body["proof"]["status"] == "draft"
+    assert body["claims"] == []
+    assert len(body["evidence"]) == 1
+    assert body["evidence"][0]["id"] == str(evidence.id)
+
+
+def test_get_proof_returns_404_for_missing_proof(
+    client: TestClient,
+) -> None:
+    from uuid import uuid4
+
+    response = client.get(f"/proofs/{uuid4()}")
+
+    assert response.status_code == 404
+
