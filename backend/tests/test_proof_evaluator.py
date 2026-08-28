@@ -562,3 +562,33 @@ def test_policy_rejects_non_decimal_threshold() -> None:
         raise AssertionError(
             "Expected TypeError for non-Decimal threshold."
         )
+
+def test_default_policy_has_zero_review_threshold() -> None:
+    policy = ProofEvaluationPolicy()
+
+    assert policy.minimum_review_confidence == Decimal("0")
+
+def test_policy_rejects_review_threshold_above_ready() -> None:
+    try:
+        ProofEvaluationPolicy(
+            minimum_review_confidence=Decimal("0.80"),
+            minimum_ready_confidence=Decimal("0.70"),
+        )
+    except ValueError as exc:
+        assert str(exc) == (
+            "Minimum review confidence cannot exceed "
+            "minimum ready confidence."
+        )
+    else:
+        raise AssertionError(
+            "Expected ValueError for invalid policy thresholds."
+        )
+
+def test_policy_accepts_equal_review_and_ready_thresholds() -> None:
+    policy = ProofEvaluationPolicy(
+        minimum_review_confidence=Decimal("0.70"),
+        minimum_ready_confidence=Decimal("0.70"),
+    )
+
+    assert policy.minimum_review_confidence == Decimal("0.70")
+    assert policy.minimum_ready_confidence == Decimal("0.70")

@@ -13,18 +13,43 @@ from app.domain.value_objects.financial import ConfidenceScore
 class ProofEvaluationPolicy:
     """Business rules controlling financial proof evaluation."""
 
+    minimum_review_confidence: Decimal = Decimal("0.00")
     minimum_ready_confidence: Decimal = Decimal("0.70")
 
     def __post_init__(self) -> None:
-        """Validate the ready-confidence threshold."""
+        """Validate evaluation confidence thresholds."""
+        if not isinstance(self.minimum_review_confidence, Decimal):
+            raise TypeError(
+                "Minimum review confidence must be a Decimal."
+            )
+
         if not isinstance(self.minimum_ready_confidence, Decimal):
             raise TypeError(
                 "Minimum ready confidence must be a Decimal."
             )
 
-        if not Decimal("0") <= self.minimum_ready_confidence <= Decimal("1"):
+        if not (
+            Decimal("0")
+            <= self.minimum_review_confidence
+            <= Decimal("1")
+        ):
+            raise ValueError(
+                "Minimum review confidence must be between 0 and 1."
+            )
+
+        if not (
+            Decimal("0")
+            <= self.minimum_ready_confidence
+            <= Decimal("1")
+        ):
             raise ValueError(
                 "Minimum ready confidence must be between 0 and 1."
+            )
+
+        if self.minimum_review_confidence > self.minimum_ready_confidence:
+            raise ValueError(
+                "Minimum review confidence cannot exceed "
+                "minimum ready confidence."
             )
 
 
@@ -120,5 +145,7 @@ class ProofEvaluator:
             return ProofStatus.NEEDS_REVIEW
 
         return ProofStatus.READY
+
+
 
 
