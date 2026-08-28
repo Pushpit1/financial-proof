@@ -124,5 +124,63 @@ def test_settings_accept_zero_and_one_boundaries() -> None:
     assert settings.proof_minimum_review_confidence == Decimal("0")
     assert settings.proof_minimum_ready_confidence == Decimal("1")
     assert settings.proof_minimum_supported_claim_ratio == Decimal("1")
+def test_settings_reject_environment_review_above_ready(monkeypatch) -> None:
+    monkeypatch.setenv(
+        "PROOF_MINIMUM_REVIEW_CONFIDENCE",
+        "0.80",
+    )
+    monkeypatch.setenv(
+        "PROOF_MINIMUM_READY_CONFIDENCE",
+        "0.70",
+    )
 
+    with pytest.raises(
+        ValidationError,
+        match="Proof minimum review confidence cannot exceed "
+        "proof minimum ready confidence",
+    ):
+        Settings()
+
+
+def test_settings_reject_environment_ready_above_one(monkeypatch) -> None:
+    monkeypatch.setenv(
+        "PROOF_MINIMUM_READY_CONFIDENCE",
+        "1.01",
+    )
+
+    with pytest.raises(
+        ValidationError,
+        match="Proof minimum ready confidence must be between 0 and 1",
+    ):
+        Settings()
+
+
+def test_settings_reject_environment_supported_claim_ratio_above_one(
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv(
+        "PROOF_MINIMUM_SUPPORTED_CLAIM_RATIO",
+        "1.01",
+    )
+
+    with pytest.raises(
+        ValidationError,
+        match="Proof minimum supported claim ratio must be between 0 and 1",
+    ):
+        Settings()
+
+
+def test_settings_reject_environment_negative_review_confidence(
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv(
+        "PROOF_MINIMUM_REVIEW_CONFIDENCE",
+        "-0.01",
+    )
+
+    with pytest.raises(
+        ValidationError,
+        match="Proof minimum review confidence must be between 0 and 1",
+    ):
+        Settings()
 
