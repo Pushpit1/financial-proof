@@ -602,6 +602,118 @@ def test_evaluate_proof_respects_configured_ready_confidence(
         assert body["proof"]["overall_confidence"] == "0.9000"
     finally:
         get_settings.cache_clear()
+def test_evaluate_proof_respects_configured_review_confidence(
+    client: TestClient,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv(
+        "PROOF_MINIMUM_READY_CONFIDENCE",
+        "0.95",
+    )
+    monkeypatch.setenv(
+        "PROOF_MINIMUM_REVIEW_CONFIDENCE",
+        "0.80",
+    )
+    monkeypatch.setenv(
+        "PROOF_MINIMUM_SUPPORTED_CLAIM_RATIO",
+        "1.00",
+    )
+
+    get_settings.cache_clear()
+
+    try:
+        create_response = client.post(
+            "/proofs",
+            json={
+                "subject": "Applicant",
+                "claims": [
+                    {
+                        "claim_type": "income",
+                        "subject": "Monthly salary",
+                        "confidence": "0.80",
+                        "verification_status": "verified",
+                    },
+                ],
+            },
+        )
+
+        assert create_response.status_code == 201
+
+        proof_id = create_response.json()["proof"]["id"]
+
+        evaluate_response = client.post(
+            f"/proofs/{proof_id}/evaluate",
+        )
+
+        assert evaluate_response.status_code == 200
+
+        body = evaluate_response.json()
+
+        assert body["proof"]["status"] == "needs_review"
+        assert body["proof"]["overall_confidence"] == "0.8000"
+    finally:
+        get_settings.cache_clear()
+
+
+def test_evaluate_proof_respects_configured_supported_claim_ratio(
+    client: TestClient,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv(
+        "PROOF_MINIMUM_READY_CONFIDENCE",
+        "0.70",
+    )
+    monkeypatch.setenv(
+        "PROOF_MINIMUM_REVIEW_CONFIDENCE",
+        "0.00",
+    )
+    monkeypatch.setenv(
+        "PROOF_MINIMUM_SUPPORTED_CLAIM_RATIO",
+        "1.00",
+    )
+
+    get_settings.cache_clear()
+
+    try:
+        create_response = client.post(
+            "/proofs",
+            json={
+                "subject": "Applicant",
+                "claims": [
+                    {
+                        "claim_type": "income",
+                        "subject": "Monthly salary",
+                        "confidence": "0.90",
+                        "verification_status": "verified",
+                    },
+                    {
+                        "claim_type": "income",
+                        "subject": "Annual bonus",
+                        "confidence": "0.90",
+                        "verification_status": "unverified",
+                    },
+                ],
+            },
+        )
+
+        assert create_response.status_code == 201
+
+        proof_id = create_response.json()["proof"]["id"]
+
+        evaluate_response = client.post(
+            f"/proofs/{proof_id}/evaluate",
+        )
+
+        assert evaluate_response.status_code == 200
+
+        body = evaluate_response.json()
+
+        assert body["proof"]["status"] == "needs_review"
+        assert body["proof"]["overall_confidence"] == "0.9000"
+    finally:
+        get_settings.cache_clear()
+
+
 
 
 
