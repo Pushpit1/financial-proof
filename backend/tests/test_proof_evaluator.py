@@ -5,7 +5,7 @@ from app.domain.enums.financial import (
     ProofStatus,
     VerificationStatus,
 )
-from app.domain.models.financial import FinancialClaim
+from app.domain.models.financial import FinancialClaim, FinancialProof
 from app.domain.services.proof_evaluator import ProofEvaluator
 from app.domain.value_objects.financial import ConfidenceScore
 
@@ -293,3 +293,35 @@ def test_contradiction_wins_over_unverified_claim() -> None:
     result = ProofEvaluator().evaluate(claims)
 
     assert result.status == ProofStatus.INVALID
+
+def test_apply_evaluation_updates_status_and_confidence() -> None:
+    proof = FinancialProof(subject="Applicant")
+
+    evaluation = ProofEvaluator().evaluate(
+        [
+            make_claim("0.90"),
+            make_claim("0.70"),
+        ]
+    )
+
+    proof.apply_evaluation(evaluation)
+
+    assert proof.status == ProofStatus.READY
+    assert proof.overall_confidence.value == Decimal("0.80")
+
+
+def test_apply_evaluation_does_not_change_proof_identity() -> None:
+    proof = FinancialProof(subject="Applicant")
+    proof_id = proof.id
+
+    evaluation = ProofEvaluator().evaluate(
+        [
+            make_claim("0.90"),
+        ]
+    )
+
+    proof.apply_evaluation(evaluation)
+
+    assert proof.id == proof_id
+    assert proof.subject == "Applicant"
+

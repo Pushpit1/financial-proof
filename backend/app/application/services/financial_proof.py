@@ -137,16 +137,22 @@ class FinancialProofApplicationService:
                 for model in claim_models
             ]
 
+            proof = proof_to_domain(proof_model)
+
             evaluation = ProofEvaluator().evaluate(claims)
 
-            proof_model.status = evaluation.status.value
+            proof.apply_evaluation(evaluation)
+
+            updated_model = proof_to_model(proof)
+
+            proof_model.status = updated_model.status
             proof_model.overall_confidence = (
-                evaluation.overall_confidence.value
+                updated_model.overall_confidence
             )
 
             self.unit_of_work.session.flush()
 
-            return proof_to_domain(proof_model)
+            return proof
 
     def get_proof(self, proof_id: UUID) -> FinancialProof | None:
         """Retrieve a proof through the repository boundary."""
@@ -309,6 +315,7 @@ class FinancialProofApplicationService:
             )
 
         return link
+
 
 
 

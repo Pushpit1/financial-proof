@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
+from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from app.domain.enums.financial import (
@@ -11,6 +12,10 @@ from app.domain.enums.financial import (
     ProofStatus,
     VerificationStatus,
 )
+
+if TYPE_CHECKING:
+    from app.domain.services.proof_evaluator import ProofEvaluation
+
 from app.domain.value_objects.financial import (
     ConfidenceScore,
     FinancialPeriod,
@@ -85,3 +90,11 @@ class FinancialProof:
     overall_confidence: ConfidenceScore = field(
         default_factory=lambda: ConfidenceScore(Decimal("0"))
     )
+    def apply_evaluation(
+        self,
+        evaluation: 'ProofEvaluation',
+    ) -> None:
+        """Apply an evaluation result to this proof."""
+        self.status = evaluation.status
+        self.overall_confidence = evaluation.overall_confidence
+
