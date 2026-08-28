@@ -642,3 +642,28 @@ def test_evaluate_proof_uses_injected_evaluator_policy() -> None:
     assert result is not None
     assert result.status == ProofStatus.NEEDS_REVIEW
     assert result.overall_confidence.value == Decimal("0.80")
+
+def test_default_service_uses_default_evaluator_policy() -> None:
+    session = create_session()
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(session)
+    )
+
+    assert service.evaluator.policy.minimum_ready_confidence == Decimal(
+        "0.70"
+    )
+
+def test_service_preserves_injected_evaluator() -> None:
+    session = create_session()
+    evaluator = ProofEvaluator(
+        ProofEvaluationPolicy(
+            minimum_ready_confidence=Decimal("0.90")
+        )
+    )
+
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(session),
+        evaluator=evaluator,
+    )
+
+    assert service.evaluator is evaluator
