@@ -363,11 +363,13 @@ def test_evaluate_proof_returns_ready_for_valid_claims(
                     "claim_type": "income",
                     "subject": "Monthly salary",
                     "confidence": "0.90",
+                    "verification_status": "verified",
                 },
                 {
                     "claim_type": "income",
                     "subject": "Annual bonus",
                     "confidence": "0.70",
+                    "verification_status": "verified",
                 },
             ],
         },
@@ -468,11 +470,13 @@ def test_evaluate_proof_persists_result(client: TestClient) -> None:
                     "claim_type": "income",
                     "subject": "Monthly income",
                     "confidence": "0.60",
+                    "verification_status": "verified",
                 },
                 {
                     "claim_type": "income",
                     "subject": "Annual income",
                     "confidence": "0.80",
+                    "verification_status": "verified",
                 },
             ],
         },
@@ -514,6 +518,7 @@ def test_evaluate_proof_is_idempotent(client: TestClient) -> None:
                     "claim_type": "income",
                     "subject": "Annual bonus",
                     "confidence": "0.70",
+                    "verification_status": "verified",
                 },
             ],
         },
@@ -539,3 +544,5 @@ def test_evaluate_proof_is_idempotent(client: TestClient) -> None:
         == first_body["proof"]["overall_confidence"]
     )
     assert len(second_body["claims"]) == len(first_body["claims"]) == 2
+
+

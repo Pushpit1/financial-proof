@@ -1,6 +1,5 @@
 """Application services for financial proof workflows."""
 
-from decimal import Decimal
 from uuid import UUID
 
 from app.application.dto.financial_proof import FinancialProofAggregate
@@ -16,13 +15,13 @@ from app.db.mappers.financial import (
     proof_to_model,
 )
 from app.db.unit_of_work import FinancialUnitOfWork
-from app.domain.enums.financial import ProofStatus, VerificationStatus
 from app.domain.models.financial import (
     Evidence,
     EvidenceLink,
     FinancialClaim,
     FinancialProof,
 )
+from app.domain.services.proof_evaluator import ProofEvaluator
 
 
 class FinancialProofApplicationService:
@@ -138,32 +137,12 @@ class FinancialProofApplicationService:
                 for model in claim_models
             ]
 
-            if not claims:
-                proof_model.status = ProofStatus.READY.value
-                proof_model.overall_confidence = Decimal("0")
-            else:
-                confidence_values = [
-                    claim.confidence.value
-                    for claim in claims
-                ]
+            evaluation = ProofEvaluator().evaluate(claims)
 
-                overall_confidence = (
-                    sum(confidence_values)
-                    / Decimal(len(confidence_values))
-                )
-
-                has_contradiction = any(
-                    claim.verification_status
-                    == VerificationStatus.CONTRADICTED
-                    for claim in claims
-                )
-
-                proof_model.status = (
-                    ProofStatus.INVALID.value
-                    if has_contradiction
-                    else ProofStatus.READY.value
-                )
-                proof_model.overall_confidence = overall_confidence
+            proof_model.status = evaluation.status.value
+            proof_model.overall_confidence = (
+                evaluation.overall_confidence.value
+            )
 
             self.unit_of_work.session.flush()
 
@@ -330,6 +309,8 @@ class FinancialProofApplicationService:
             )
 
         return link
+
+
 
 
 

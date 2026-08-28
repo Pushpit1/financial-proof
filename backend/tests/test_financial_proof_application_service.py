@@ -48,6 +48,7 @@ def make_claim(subject: str, confidence: str) -> FinancialClaim:
         claim_type=ClaimType.INCOME,
         subject=subject,
         confidence=ConfidenceScore(Decimal(confidence)),
+        verification_status=VerificationStatus.VERIFIED,
     )
 
 
@@ -609,3 +610,4 @@ def test_evaluate_proof_persists_invalid_status() -> None:
 
     assert stored is not None
     assert stored.status == ProofStatus.INVALID.value
+
