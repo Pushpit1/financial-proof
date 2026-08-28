@@ -59,9 +59,13 @@ class ProofEvaluator:
             for claim in claims
         )
 
+        below_confidence_threshold = (
+            overall_confidence < Decimal("0.70")
+        )
+
         if has_contradiction:
             status = ProofStatus.INVALID
-        elif requires_review:
+        elif requires_review or below_confidence_threshold:
             status = ProofStatus.NEEDS_REVIEW
         else:
             status = ProofStatus.READY
@@ -72,3 +76,4 @@ class ProofEvaluator:
                 overall_confidence
             ),
         )
+

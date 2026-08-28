@@ -150,3 +150,40 @@ def test_evaluation_does_not_modify_claims() -> None:
         claim.verification_status
         for claim in claims
     ] == original_statuses
+
+def test_low_confidence_requires_review() -> None:
+    claims = [
+        make_claim("0.60"),
+        make_claim("0.50"),
+    ]
+
+    result = ProofEvaluator().evaluate(claims)
+
+    assert result.status == ProofStatus.NEEDS_REVIEW
+    assert result.overall_confidence.value == Decimal("0.55")
+
+
+def test_confidence_at_threshold_is_ready() -> None:
+    claims = [
+        make_claim("0.70"),
+        make_claim("0.70"),
+    ]
+
+    result = ProofEvaluator().evaluate(claims)
+
+    assert result.status == ProofStatus.READY
+    assert result.overall_confidence.value == Decimal("0.70")
+
+
+def test_low_confidence_does_not_override_contradiction() -> None:
+    claims = [
+        make_claim("0.40"),
+        make_claim(
+            "0.30",
+            VerificationStatus.CONTRADICTED,
+        ),
+    ]
+
+    result = ProofEvaluator().evaluate(claims)
+
+    assert result.status == ProofStatus.INVALID
