@@ -61,3 +61,5 @@ def test_settings_parse_environment_values(monkeypatch) -> None:
     assert settings.proof_minimum_ready_confidence == Decimal("0.85")
     assert settings.proof_minimum_supported_claim_ratio == Decimal("0.90")
 
+
+
