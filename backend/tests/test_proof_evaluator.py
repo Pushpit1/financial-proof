@@ -187,3 +187,109 @@ def test_low_confidence_does_not_override_contradiction() -> None:
     result = ProofEvaluator().evaluate(claims)
 
     assert result.status == ProofStatus.INVALID
+
+def test_mixed_verified_and_unverified_requires_review() -> None:
+    claims = [
+        make_claim(
+            "0.95",
+            VerificationStatus.VERIFIED,
+        ),
+        make_claim(
+            "0.90",
+            VerificationStatus.UNVERIFIED,
+        ),
+    ]
+
+    result = ProofEvaluator().evaluate(claims)
+
+    assert result.status == ProofStatus.NEEDS_REVIEW
+    assert result.overall_confidence.value == Decimal("0.925")
+
+
+def test_mixed_verified_and_partially_supported_requires_review() -> None:
+    claims = [
+        make_claim(
+            "0.95",
+            VerificationStatus.VERIFIED,
+        ),
+        make_claim(
+            "0.85",
+            VerificationStatus.PARTIALLY_SUPPORTED,
+        ),
+    ]
+
+    result = ProofEvaluator().evaluate(claims)
+
+    assert result.status == ProofStatus.NEEDS_REVIEW
+    assert result.overall_confidence.value == Decimal("0.90")
+
+
+def test_supported_claims_with_low_average_require_review() -> None:
+    claims = [
+        make_claim(
+            "0.60",
+            VerificationStatus.SUPPORTED,
+        ),
+        make_claim(
+            "0.50",
+            VerificationStatus.SUPPORTED,
+        ),
+    ]
+
+    result = ProofEvaluator().evaluate(claims)
+
+    assert result.status == ProofStatus.NEEDS_REVIEW
+    assert result.overall_confidence.value == Decimal("0.55")
+
+
+def test_verified_claims_with_high_average_are_ready() -> None:
+    claims = [
+        make_claim(
+            "0.70",
+            VerificationStatus.VERIFIED,
+        ),
+        make_claim(
+            "0.90",
+            VerificationStatus.VERIFIED,
+        ),
+    ]
+
+    result = ProofEvaluator().evaluate(claims)
+
+    assert result.status == ProofStatus.READY
+    assert result.overall_confidence.value == Decimal("0.80")
+
+
+def test_contradiction_wins_over_partial_support() -> None:
+    claims = [
+        make_claim(
+            "0.95",
+            VerificationStatus.PARTIALLY_SUPPORTED,
+        ),
+        make_claim(
+            "0.95",
+            VerificationStatus.CONTRADICTED,
+        ),
+    ]
+
+    result = ProofEvaluator().evaluate(claims)
+
+    assert result.status == ProofStatus.INVALID
+    assert result.overall_confidence.value == Decimal("0.95")
+
+
+def test_contradiction_wins_over_unverified_claim() -> None:
+    claims = [
+        make_claim(
+            "1.00",
+            VerificationStatus.UNVERIFIED,
+        ),
+        make_claim(
+            "1.00",
+            VerificationStatus.CONTRADICTED,
+        ),
+    ]
+
+    result = ProofEvaluator().evaluate(claims)
+
+    assert result.status == ProofStatus.INVALID
