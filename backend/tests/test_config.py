@@ -1,12 +1,19 @@
 from decimal import Decimal
 
+import pytest
+from pydantic import ValidationError
+
 from app.core.config import Settings
 
 
-def test_settings_have_expected_application_defaults() -> None:
-    settings = Settings()
+def test_settings_have_expected_application_defaults(monkeypatch) -> None:
+    monkeypatch.delenv("APP_NAME", raising=False)
+    monkeypatch.delenv("APP_VERSION", raising=False)
+    monkeypatch.delenv("DEBUG", raising=False)
 
-    assert settings.app_name == "Financial Proof"
+    settings = Settings(_env_file=None)
+
+    assert settings.app_name == "Financial Proof API"
     assert settings.app_version == "0.1.0"
     assert settings.debug is True
 
@@ -61,5 +68,61 @@ def test_settings_parse_environment_values(monkeypatch) -> None:
     assert settings.proof_minimum_ready_confidence == Decimal("0.85")
     assert settings.proof_minimum_supported_claim_ratio == Decimal("0.90")
 
+
+
+
+
+
+def test_settings_reject_review_confidence_above_one() -> None:
+    with pytest.raises(
+        ValidationError,
+        match="Proof minimum review confidence must be between 0 and 1",
+    ):
+        Settings(
+            proof_minimum_review_confidence=Decimal("1.01"),
+        )
+
+
+def test_settings_reject_ready_confidence_above_one() -> None:
+    with pytest.raises(
+        ValidationError,
+        match="Proof minimum ready confidence must be between 0 and 1",
+    ):
+        Settings(
+            proof_minimum_ready_confidence=Decimal("1.01"),
+        )
+
+
+def test_settings_reject_supported_claim_ratio_above_one() -> None:
+    with pytest.raises(
+        ValidationError,
+        match="Proof minimum supported claim ratio must be between 0 and 1",
+    ):
+        Settings(
+            proof_minimum_supported_claim_ratio=Decimal("1.01"),
+        )
+
+
+def test_settings_reject_review_confidence_above_ready_confidence() -> None:
+    with pytest.raises(
+        ValidationError,
+        match="cannot exceed",
+    ):
+        Settings(
+            proof_minimum_review_confidence=Decimal("0.80"),
+            proof_minimum_ready_confidence=Decimal("0.70"),
+        )
+
+
+def test_settings_accept_zero_and_one_boundaries() -> None:
+    settings = Settings(
+        proof_minimum_review_confidence=Decimal("0"),
+        proof_minimum_ready_confidence=Decimal("1"),
+        proof_minimum_supported_claim_ratio=Decimal("1"),
+    )
+
+    assert settings.proof_minimum_review_confidence == Decimal("0")
+    assert settings.proof_minimum_ready_confidence == Decimal("1")
+    assert settings.proof_minimum_supported_claim_ratio == Decimal("1")
 
 

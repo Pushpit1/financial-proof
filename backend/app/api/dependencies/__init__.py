@@ -22,6 +22,9 @@ def get_financial_proof_service(
     settings = get_settings()
 
     policy = ProofEvaluationPolicy(
+        minimum_review_confidence=(
+            settings.proof_minimum_review_confidence
+        ),
         minimum_ready_confidence=settings.proof_minimum_ready_confidence,
         minimum_supported_claim_ratio=(
             settings.proof_minimum_supported_claim_ratio
@@ -32,4 +35,5 @@ def get_financial_proof_service(
         FinancialUnitOfWork(db),
         evaluator=ProofEvaluator(policy),
     )
+
 
