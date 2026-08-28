@@ -1,6 +1,63 @@
-from app.core.config import settings
+from decimal import Decimal
+
+from app.core.config import Settings
 
 
-def test_settings_loaded():
+def test_settings_have_expected_application_defaults() -> None:
+    settings = Settings()
+
     assert settings.app_name == "Financial Proof"
     assert settings.app_version == "0.1.0"
+    assert settings.debug is True
+
+
+def test_settings_have_expected_database_defaults() -> None:
+    settings = Settings()
+
+    assert (
+        settings.database_url
+        == "postgresql+psycopg://financial_proof:financial_proof"
+        "@localhost:5433/financial_proof"
+    )
+
+
+def test_settings_have_default_proof_evaluation_policy() -> None:
+    settings = Settings()
+
+    assert settings.proof_minimum_review_confidence == Decimal("0.00")
+    assert settings.proof_minimum_ready_confidence == Decimal("0.70")
+    assert settings.proof_minimum_supported_claim_ratio == Decimal("1.00")
+
+
+def test_settings_accept_custom_proof_evaluation_policy() -> None:
+    settings = Settings(
+        proof_minimum_review_confidence=Decimal("0.10"),
+        proof_minimum_ready_confidence=Decimal("0.80"),
+        proof_minimum_supported_claim_ratio=Decimal("0.75"),
+    )
+
+    assert settings.proof_minimum_review_confidence == Decimal("0.10")
+    assert settings.proof_minimum_ready_confidence == Decimal("0.80")
+    assert settings.proof_minimum_supported_claim_ratio == Decimal("0.75")
+
+
+def test_settings_parse_environment_values(monkeypatch) -> None:
+    monkeypatch.setenv(
+        "PROOF_MINIMUM_REVIEW_CONFIDENCE",
+        "0.20",
+    )
+    monkeypatch.setenv(
+        "PROOF_MINIMUM_READY_CONFIDENCE",
+        "0.85",
+    )
+    monkeypatch.setenv(
+        "PROOF_MINIMUM_SUPPORTED_CLAIM_RATIO",
+        "0.90",
+    )
+
+    settings = Settings()
+
+    assert settings.proof_minimum_review_confidence == Decimal("0.20")
+    assert settings.proof_minimum_ready_confidence == Decimal("0.85")
+    assert settings.proof_minimum_supported_claim_ratio == Decimal("0.90")
+
