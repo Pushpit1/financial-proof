@@ -15,6 +15,7 @@ class ProofEvaluationPolicy:
 
     minimum_review_confidence: Decimal = Decimal("0.00")
     minimum_ready_confidence: Decimal = Decimal("0.70")
+    minimum_supported_claim_ratio: Decimal = Decimal("1.00")
 
     def __post_init__(self) -> None:
         """Validate evaluation confidence thresholds."""
@@ -26,6 +27,14 @@ class ProofEvaluationPolicy:
         if not isinstance(self.minimum_ready_confidence, Decimal):
             raise TypeError(
                 "Minimum ready confidence must be a Decimal."
+            )
+
+        if not isinstance(
+            self.minimum_supported_claim_ratio,
+            Decimal,
+        ):
+            raise TypeError(
+                "Minimum supported claim ratio must be a Decimal."
             )
 
         if not (
@@ -50,6 +59,15 @@ class ProofEvaluationPolicy:
             raise ValueError(
                 "Minimum review confidence cannot exceed "
                 "minimum ready confidence."
+            )
+
+        if not (
+            Decimal("0")
+            <= self.minimum_supported_claim_ratio
+            <= Decimal("1")
+        ):
+            raise ValueError(
+                "Minimum supported claim ratio must be between 0 and 1."
             )
 
 
@@ -111,6 +129,24 @@ class ProofEvaluator:
 
         return ConfidenceScore(average)
 
+    @staticmethod
+    def _calculate_supported_claim_ratio(
+        claims: list[FinancialClaim],
+    ) -> Decimal:
+        """Calculate the ratio of claims with support."""
+        if not claims:
+            return Decimal("1")
+
+        supported_count = sum(
+            claim.verification_status
+            in {
+                VerificationStatus.SUPPORTED,
+                VerificationStatus.VERIFIED,
+            }
+            for claim in claims
+        )
+
+        return Decimal(supported_count) / Decimal(len(claims))
     def _determine_status(
         self,
         claims: list[FinancialClaim],
@@ -150,7 +186,19 @@ class ProofEvaluator:
         ):
             return ProofStatus.NEEDS_REVIEW
 
+        supported_claim_ratio = self._calculate_supported_claim_ratio(
+            claims
+        )
+
+        if (
+            supported_claim_ratio
+            < self.policy.minimum_supported_claim_ratio
+        ):
+            return ProofStatus.NEEDS_REVIEW
+
         return ProofStatus.READY
+
+
 
 
 

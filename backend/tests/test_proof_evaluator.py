@@ -624,3 +624,68 @@ def test_confidence_between_review_and_ready_requires_review() -> None:
     )
 
     assert result.status == ProofStatus.NEEDS_REVIEW
+
+def test_default_policy_requires_all_claims_supported() -> None:
+    policy = ProofEvaluationPolicy()
+
+    assert policy.minimum_supported_claim_ratio == Decimal("1.00")
+
+def test_supported_claim_ratio_can_require_review() -> None:
+    evaluator = ProofEvaluator(
+        ProofEvaluationPolicy(
+            minimum_ready_confidence=Decimal("0.70"),
+            minimum_supported_claim_ratio=Decimal("1.00"),
+        )
+    )
+
+    result = evaluator.evaluate(
+        [
+            make_claim(
+                "0.90",
+                VerificationStatus.SUPPORTED,
+            ),
+            make_claim(
+                "0.90",
+                VerificationStatus.UNVERIFIED,
+            ),
+        ]
+    )
+
+    assert result.status == ProofStatus.NEEDS_REVIEW
+
+def test_supported_claim_ratio_accepts_fully_supported_claims() -> None:
+    evaluator = ProofEvaluator(
+        ProofEvaluationPolicy(
+            minimum_ready_confidence=Decimal("0.70"),
+            minimum_supported_claim_ratio=Decimal("1.00"),
+        )
+    )
+
+    result = evaluator.evaluate(
+        [
+            make_claim(
+                "0.80",
+                VerificationStatus.SUPPORTED,
+            ),
+            make_claim(
+                "0.90",
+                VerificationStatus.VERIFIED,
+            ),
+        ]
+    )
+
+    assert result.status == ProofStatus.READY
+
+def test_policy_rejects_invalid_supported_claim_ratio() -> None:
+    try:
+        ProofEvaluationPolicy(
+            minimum_supported_claim_ratio=Decimal("1.01"),
+        )
+    except ValueError as exc:
+        assert str(exc) == (
+            "Minimum supported claim ratio must be between 0 and 1."
+        )
+    else:
+        raise AssertionError(
+            "Expected ValueError for invalid supported claim ratio."
+        )
