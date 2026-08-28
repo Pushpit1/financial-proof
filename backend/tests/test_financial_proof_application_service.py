@@ -32,6 +32,10 @@ from app.domain.models.financial import (
     FinancialClaim,
     FinancialProof,
 )
+from app.domain.services.proof_evaluator import (
+    ProofEvaluationPolicy,
+    ProofEvaluator,
+)
 from app.domain.value_objects.financial import ConfidenceScore
 
 
@@ -611,3 +615,30 @@ def test_evaluate_proof_persists_invalid_status() -> None:
     assert stored is not None
     assert stored.status == ProofStatus.INVALID.value
 
+
+
+def test_evaluate_proof_uses_injected_evaluator_policy() -> None:
+    session = create_session()
+    evaluator = ProofEvaluator(
+        ProofEvaluationPolicy(
+            minimum_ready_confidence=Decimal("0.90")
+        )
+    )
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(session),
+        evaluator=evaluator,
+    )
+
+    proof = FinancialProof(subject="Applicant")
+    claims = [
+        make_claim("monthly salary", "0.80"),
+        make_claim("annual bonus", "0.80"),
+    ]
+
+    service.create_proof(proof, claims)
+
+    result = service.evaluate_proof(proof.id)
+
+    assert result is not None
+    assert result.status == ProofStatus.NEEDS_REVIEW
+    assert result.overall_confidence.value == Decimal("0.80")

@@ -27,9 +27,13 @@ from app.domain.services.proof_evaluator import ProofEvaluator
 class FinancialProofApplicationService:
     """Coordinate financial proof persistence as an application operation."""
 
-    def __init__(self, unit_of_work: FinancialUnitOfWork) -> None:
+    def __init__(
+        self,
+        unit_of_work: FinancialUnitOfWork,
+        evaluator: ProofEvaluator | None = None,
+    ) -> None:
         self.unit_of_work = unit_of_work
-
+        self.evaluator = evaluator or ProofEvaluator()
     def create_proof(
         self,
         proof: FinancialProof,
@@ -139,7 +143,7 @@ class FinancialProofApplicationService:
 
             proof = proof_to_domain(proof_model)
 
-            evaluation = ProofEvaluator().evaluate(claims)
+            evaluation = self.evaluator.evaluate(claims)
 
             proof.apply_evaluation(evaluation)
 
@@ -315,6 +319,7 @@ class FinancialProofApplicationService:
             )
 
         return link
+
 
 
 
