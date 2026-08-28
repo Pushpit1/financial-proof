@@ -42,6 +42,9 @@ class EvidenceModel(UUIDModel):
         Date,
         nullable=False,
     )
+    proof_id: Mapped[UUID | None] = mapped_column(
+        nullable=True,
+    )
     status: Mapped[str] = mapped_column(
         String(50),
         nullable=False,
@@ -66,6 +69,9 @@ class FinancialClaimModel(UUIDModel):
 
     __tablename__ = "financial_claims"
 
+    proof_id: Mapped[UUID | None] = mapped_column(
+        nullable=True,
+    )
     claim_type: Mapped[str] = mapped_column(
         String(50),
         nullable=False,
