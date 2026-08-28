@@ -140,11 +140,18 @@ class ProofEvaluator:
 
         if (
             overall_confidence.value
+            < self.policy.minimum_review_confidence
+        ):
+            return ProofStatus.NEEDS_REVIEW
+
+        if (
+            overall_confidence.value
             < self.policy.minimum_ready_confidence
         ):
             return ProofStatus.NEEDS_REVIEW
 
         return ProofStatus.READY
+
 
 
 

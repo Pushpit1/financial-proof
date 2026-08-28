@@ -592,3 +592,35 @@ def test_policy_accepts_equal_review_and_ready_thresholds() -> None:
 
     assert policy.minimum_review_confidence == Decimal("0.70")
     assert policy.minimum_ready_confidence == Decimal("0.70")
+
+def test_confidence_below_review_threshold_requires_review() -> None:
+    evaluator = ProofEvaluator(
+        ProofEvaluationPolicy(
+            minimum_review_confidence=Decimal("0.50"),
+            minimum_ready_confidence=Decimal("0.70"),
+        )
+    )
+
+    result = evaluator.evaluate(
+        [
+            make_claim("0.40"),
+        ]
+    )
+
+    assert result.status == ProofStatus.NEEDS_REVIEW
+
+def test_confidence_between_review_and_ready_requires_review() -> None:
+    evaluator = ProofEvaluator(
+        ProofEvaluationPolicy(
+            minimum_review_confidence=Decimal("0.50"),
+            minimum_ready_confidence=Decimal("0.70"),
+        )
+    )
+
+    result = evaluator.evaluate(
+        [
+            make_claim("0.60"),
+        ]
+    )
+
+    assert result.status == ProofStatus.NEEDS_REVIEW
