@@ -457,3 +457,44 @@ def test_evaluate_proof_returns_404_for_missing_proof(
     response = client.post(f"/proofs/{uuid4()}/evaluate")
 
     assert response.status_code == 404
+
+def test_evaluate_proof_persists_result(client: TestClient) -> None:
+    response = client.post(
+        "/proofs",
+        json={
+            "subject": "Applicant",
+            "claims": [
+                {
+                    "claim_type": "income",
+                    "subject": "Monthly income",
+                    "confidence": "0.60",
+                },
+                {
+                    "claim_type": "income",
+                    "subject": "Annual income",
+                    "confidence": "0.80",
+                },
+            ],
+        },
+    )
+
+    assert response.status_code == 201
+
+    proof_id = response.json()["proof"]["id"]
+
+    response = client.post(
+        f"/proofs/{proof_id}/evaluate"
+    )
+
+    assert response.status_code == 200
+
+    response = client.get(
+        f"/proofs/{proof_id}"
+    )
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert body["proof"]["status"] == "ready"
+    assert body["proof"]["overall_confidence"] == "0.7000"
