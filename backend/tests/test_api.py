@@ -350,3 +350,110 @@ def test_create_proof_rejects_invalid_received_date(
     assert response.status_code == 422
 
 
+
+def test_evaluate_proof_returns_ready_for_valid_claims(
+    client: TestClient,
+) -> None:
+    response = client.post(
+        "/proofs",
+        json={
+            "subject": "Applicant",
+            "claims": [
+                {
+                    "claim_type": "income",
+                    "subject": "Monthly salary",
+                    "confidence": "0.90",
+                },
+                {
+                    "claim_type": "income",
+                    "subject": "Annual bonus",
+                    "confidence": "0.70",
+                },
+            ],
+        },
+    )
+
+    assert response.status_code == 201
+
+    proof_id = response.json()["proof"]["id"]
+
+    response = client.post(f"/proofs/{proof_id}/evaluate")
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert body["proof"]["id"] == proof_id
+    assert body["proof"]["status"] == "ready"
+    assert body["proof"]["overall_confidence"] == "0.8000"
+    assert len(body["claims"]) == 2
+
+
+def test_evaluate_proof_returns_ready_for_empty_proof(
+    client: TestClient,
+) -> None:
+    response = client.post(
+        "/proofs",
+        json={"subject": "Applicant"},
+    )
+
+    assert response.status_code == 201
+
+    proof_id = response.json()["proof"]["id"]
+
+    response = client.post(f"/proofs/{proof_id}/evaluate")
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert body["proof"]["status"] == "ready"
+    assert body["proof"]["overall_confidence"] == "0.0000"
+
+
+def test_evaluate_proof_returns_invalid_for_contradicted_claim(
+    client: TestClient,
+) -> None:
+    response = client.post(
+        "/proofs",
+        json={
+            "subject": "Applicant",
+            "claims": [
+                {
+                    "claim_type": "income",
+                    "subject": "Verified income",
+                    "confidence": "0.90",
+                    "verification_status": "verified",
+                },
+                {
+                    "claim_type": "income",
+                    "subject": "Contradicted income",
+                    "confidence": "0.80",
+                    "verification_status": "contradicted",
+                },
+            ],
+        },
+    )
+
+    assert response.status_code == 201
+
+    proof_id = response.json()["proof"]["id"]
+
+    response = client.post(f"/proofs/{proof_id}/evaluate")
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert body["proof"]["status"] == "invalid"
+    assert body["proof"]["overall_confidence"] == "0.8500"
+
+
+def test_evaluate_proof_returns_404_for_missing_proof(
+    client: TestClient,
+) -> None:
+    from uuid import uuid4
+
+    response = client.post(f"/proofs/{uuid4()}/evaluate")
+
+    assert response.status_code == 404
