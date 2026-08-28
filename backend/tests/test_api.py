@@ -1,5 +1,15 @@
+from datetime import date
+
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
+
+from app.application.services.financial_proof import (
+    FinancialProofApplicationService,
+)
+from app.core.config import get_settings
+from app.db.unit_of_work import FinancialUnitOfWork
+from app.domain.enums.financial import EvidenceType
+from app.domain.models.financial import Evidence, FinancialProof
 
 
 def test_root(client: TestClient) -> None:
@@ -49,15 +59,6 @@ def test_get_proof_returns_complete_aggregate(
     client: TestClient,
     db: Session,
 ) -> None:
-    from datetime import date
-
-    from app.application.services.financial_proof import (
-        FinancialProofApplicationService,
-    )
-    from app.db.unit_of_work import FinancialUnitOfWork
-    from app.domain.enums.financial import EvidenceType
-    from app.domain.models.financial import Evidence, FinancialProof
-
     service = FinancialProofApplicationService(
         FinancialUnitOfWork(db)
     )
@@ -544,5 +545,65 @@ def test_evaluate_proof_is_idempotent(client: TestClient) -> None:
         == first_body["proof"]["overall_confidence"]
     )
     assert len(second_body["claims"]) == len(first_body["claims"]) == 2
+def test_evaluate_proof_respects_configured_ready_confidence(
+    client: TestClient,
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv(
+        "PROOF_MINIMUM_READY_CONFIDENCE",
+        "0.95",
+    )
+    monkeypatch.setenv(
+        "PROOF_MINIMUM_REVIEW_CONFIDENCE",
+        "0.00",
+    )
+    monkeypatch.setenv(
+        "PROOF_MINIMUM_SUPPORTED_CLAIM_RATIO",
+        "1.00",
+    )
+
+    get_settings.cache_clear()
+
+    try:
+        create_response = client.post(
+            "/proofs",
+            json={
+                "subject": "Applicant",
+                "claims": [
+                    {
+                        "claim_type": "income",
+                        "subject": "Monthly salary",
+                        "confidence": "0.90",
+                        "verification_status": "verified",
+                    },
+                    {
+                        "claim_type": "income",
+                        "subject": "Annual bonus",
+                        "confidence": "0.90",
+                        "verification_status": "verified",
+                    },
+                ],
+            },
+        )
+
+        assert create_response.status_code == 201
+
+        proof_id = create_response.json()["proof"]["id"]
+
+        evaluate_response = client.post(
+            f"/proofs/{proof_id}/evaluate",
+        )
+
+        assert evaluate_response.status_code == 200
+
+        body = evaluate_response.json()
+
+        assert body["proof"]["status"] == "needs_review"
+        assert body["proof"]["overall_confidence"] == "0.9000"
+    finally:
+        get_settings.cache_clear()
+
+
+
 
 
