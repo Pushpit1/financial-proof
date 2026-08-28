@@ -1,0 +1,100 @@
+"""Tests for financial domain/persistence mappings."""
+
+from datetime import date
+from decimal import Decimal
+
+from app.db.mappers.financial import (
+    claim_to_domain,
+    claim_to_model,
+    evidence_to_domain,
+    evidence_to_model,
+    proof_to_domain,
+    proof_to_model,
+)
+from app.domain.enums.financial import (
+    ClaimType,
+    EvidenceStatus,
+    EvidenceType,
+    ProofStatus,
+    VerificationStatus,
+)
+from app.domain.models.financial import (
+    Evidence,
+    FinancialClaim,
+    FinancialProof,
+)
+from app.domain.value_objects.financial import (
+    ConfidenceScore,
+    Money,
+)
+
+
+def test_evidence_mapping_round_trip() -> None:
+    evidence = Evidence(
+        evidence_type=EvidenceType.BANK_STATEMENT,
+        source_name="Test Bank",
+        received_at=date(2026, 8, 28),
+        status=EvidenceStatus.VERIFIED,
+        checksum="abc123",
+        source_reference="statement-001",
+    )
+
+    model = evidence_to_model(evidence)
+    restored = evidence_to_domain(model)
+
+    assert model.id == evidence.id
+    assert model.evidence_type == "bank_statement"
+    assert restored == evidence
+
+
+def test_claim_mapping_round_trip() -> None:
+    claim = FinancialClaim(
+        claim_type=ClaimType.INCOME,
+        subject="monthly salary",
+        amount=Money(
+            amount=Decimal("80000.00"),
+            currency="INR",
+        ),
+        verification_status=VerificationStatus.SUPPORTED,
+        confidence=ConfidenceScore(Decimal("0.95")),
+    )
+
+    model = claim_to_model(claim)
+    restored = claim_to_domain(model)
+
+    assert model.id == claim.id
+    assert model.amount == Decimal("80000.00")
+    assert model.currency == "INR"
+    assert restored == claim
+
+
+def test_claim_mapping_handles_missing_amount() -> None:
+    claim = FinancialClaim(
+        claim_type=ClaimType.EMPLOYMENT,
+        subject="employed",
+    )
+
+    model = claim_to_model(claim)
+    restored = claim_to_domain(model)
+
+    assert model.amount is None
+    assert model.currency is None
+    assert restored.amount is None
+    assert restored == claim
+
+
+def test_proof_mapping_round_trip() -> None:
+    proof = FinancialProof(
+        subject="Applicant",
+        status=ProofStatus.READY,
+        overall_confidence=ConfidenceScore(
+            Decimal("0.92")
+        ),
+    )
+
+    model = proof_to_model(proof)
+    restored = proof_to_domain(model)
+
+    assert model.id == proof.id
+    assert model.status == "ready"
+    assert restored == proof
