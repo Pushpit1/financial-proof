@@ -184,3 +184,32 @@ def test_settings_reject_environment_negative_review_confidence(
     ):
         Settings()
 
+def test_settings_reject_environment_negative_ready_confidence(
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv(
+        "PROOF_MINIMUM_READY_CONFIDENCE",
+        "-0.01",
+    )
+
+    with pytest.raises(
+        ValidationError,
+        match="Proof minimum ready confidence must be between 0 and 1",
+    ):
+        Settings()
+
+
+def test_settings_reject_environment_negative_supported_claim_ratio(
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv(
+        "PROOF_MINIMUM_SUPPORTED_CLAIM_RATIO",
+        "-0.01",
+    )
+
+    with pytest.raises(
+        ValidationError,
+        match="Proof minimum supported claim ratio must be between 0 and 1",
+    ):
+        Settings()
+
