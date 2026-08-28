@@ -6,7 +6,10 @@ from app.domain.enums.financial import (
     VerificationStatus,
 )
 from app.domain.models.financial import FinancialClaim, FinancialProof
-from app.domain.services.proof_evaluator import ProofEvaluator
+from app.domain.services.proof_evaluator import (
+    ProofEvaluationPolicy,
+    ProofEvaluator,
+)
 from app.domain.value_objects.financial import ConfidenceScore
 
 
@@ -325,3 +328,224 @@ def test_apply_evaluation_does_not_change_proof_identity() -> None:
     assert proof.id == proof_id
     assert proof.subject == "Applicant"
 
+
+def test_supported_and_verified_claims_are_ready() -> None:
+    claims = [
+        make_claim(
+            "0.80",
+            VerificationStatus.SUPPORTED,
+        ),
+        make_claim(
+            "0.90",
+            VerificationStatus.VERIFIED,
+        ),
+    ]
+
+    result = ProofEvaluator().evaluate(claims)
+
+    assert result.status == ProofStatus.READY
+
+
+def test_unverified_claim_takes_review_priority() -> None:
+    claims = [
+        make_claim(
+            "0.90",
+            VerificationStatus.VERIFIED,
+        ),
+        make_claim(
+            "0.80",
+            VerificationStatus.UNVERIFIED,
+        ),
+    ]
+
+    result = ProofEvaluator().evaluate(claims)
+
+    assert result.status == ProofStatus.NEEDS_REVIEW
+
+
+def test_partially_supported_claim_takes_review_priority() -> None:
+    claims = [
+        make_claim(
+            "0.90",
+            VerificationStatus.VERIFIED,
+        ),
+        make_claim(
+            "0.80",
+            VerificationStatus.PARTIALLY_SUPPORTED,
+        ),
+    ]
+
+    result = ProofEvaluator().evaluate(claims)
+
+    assert result.status == ProofStatus.NEEDS_REVIEW
+
+
+def test_contradiction_overrides_review() -> None:
+    claims = [
+        make_claim(
+            "0.90",
+            VerificationStatus.UNVERIFIED,
+        ),
+        make_claim(
+            "0.80",
+            VerificationStatus.PARTIALLY_SUPPORTED,
+        ),
+        make_claim(
+            "0.70",
+            VerificationStatus.CONTRADICTED,
+        ),
+    ]
+
+    result = ProofEvaluator().evaluate(claims)
+
+    assert result.status == ProofStatus.INVALID
+
+
+def test_evaluation_preserves_average_when_status_changes() -> None:
+    claims = [
+        make_claim(
+            "0.90",
+            VerificationStatus.VERIFIED,
+        ),
+        make_claim(
+            "0.60",
+            VerificationStatus.UNVERIFIED,
+        ),
+    ]
+
+    result = ProofEvaluator().evaluate(claims)
+
+    assert result.status == ProofStatus.NEEDS_REVIEW
+    assert result.overall_confidence.value == Decimal("0.75")
+
+
+def test_evaluation_is_deterministic() -> None:
+    claims = [
+        make_claim(
+            "0.90",
+            VerificationStatus.SUPPORTED,
+        ),
+        make_claim(
+            "0.70",
+            VerificationStatus.VERIFIED,
+        ),
+    ]
+
+    evaluator = ProofEvaluator()
+
+    first = evaluator.evaluate(claims)
+    second = evaluator.evaluate(claims)
+
+    assert first == second
+
+def test_default_policy_requires_70_percent_confidence() -> None:
+    policy = ProofEvaluationPolicy()
+
+    assert policy.minimum_ready_confidence == Decimal("0.70")
+
+
+def test_custom_policy_changes_ready_threshold() -> None:
+    evaluator = ProofEvaluator(
+        ProofEvaluationPolicy(
+            minimum_ready_confidence=Decimal("0.80")
+        )
+    )
+
+    result = evaluator.evaluate(
+        [
+            make_claim(
+                "0.75",
+                VerificationStatus.VERIFIED,
+            ),
+            make_claim(
+                "0.75",
+                VerificationStatus.VERIFIED,
+            ),
+        ]
+    )
+
+    assert result.status == ProofStatus.NEEDS_REVIEW
+
+
+def test_custom_policy_allows_higher_confidence() -> None:
+    evaluator = ProofEvaluator(
+        ProofEvaluationPolicy(
+            minimum_ready_confidence=Decimal("0.80")
+        )
+    )
+
+    result = evaluator.evaluate(
+        [
+            make_claim(
+                "0.85",
+                VerificationStatus.VERIFIED,
+            ),
+            make_claim(
+                "0.95",
+                VerificationStatus.VERIFIED,
+            ),
+        ]
+    )
+
+    assert result.status == ProofStatus.READY
+
+
+def test_contradiction_still_overrides_custom_policy() -> None:
+    evaluator = ProofEvaluator(
+        ProofEvaluationPolicy(
+            minimum_ready_confidence=Decimal("0.99")
+        )
+    )
+
+    result = evaluator.evaluate(
+        [
+            make_claim(
+                "1.00",
+                VerificationStatus.CONTRADICTED,
+            ),
+        ]
+    )
+
+    assert result.status == ProofStatus.INVALID
+
+
+def test_policy_rejects_negative_threshold() -> None:
+    try:
+        ProofEvaluationPolicy(
+            minimum_ready_confidence=Decimal("-0.01")
+        )
+    except ValueError as exc:
+        assert str(exc) == (
+            "Minimum ready confidence must be between 0 and 1."
+        )
+    else:
+        raise AssertionError("Expected ValueError")
+
+
+def test_policy_rejects_threshold_above_one() -> None:
+    try:
+        ProofEvaluationPolicy(
+            minimum_ready_confidence=Decimal("1.01")
+        )
+    except ValueError as exc:
+        assert str(exc) == (
+            "Minimum ready confidence must be between 0 and 1."
+        )
+    else:
+        raise AssertionError("Expected ValueError")
+
+
+def test_policy_accepts_zero_threshold() -> None:
+    policy = ProofEvaluationPolicy(
+        minimum_ready_confidence=Decimal("0")
+    )
+
+    assert policy.minimum_ready_confidence == Decimal("0")
+
+
+def test_policy_accepts_one_threshold() -> None:
+    policy = ProofEvaluationPolicy(
+        minimum_ready_confidence=Decimal("1")
+    )
+
+    assert policy.minimum_ready_confidence == Decimal("1")
