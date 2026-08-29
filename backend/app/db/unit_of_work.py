@@ -7,6 +7,7 @@ from app.db.repositories.financial import (
     EvidenceRepository,
     FinancialClaimRepository,
     FinancialProofRepository,
+    ProofEvaluationRepository,
 )
 
 
@@ -19,6 +20,7 @@ class FinancialUnitOfWork:
         self.claims = FinancialClaimRepository(session)
         self.evidence_links = EvidenceLinkRepository(session)
         self.proofs = FinancialProofRepository(session)
+        self.evaluations = ProofEvaluationRepository(session)
 
     def commit(self) -> None:
         """Commit the current transaction."""

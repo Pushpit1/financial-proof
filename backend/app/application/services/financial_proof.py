@@ -11,6 +11,7 @@ from app.db.mappers.financial import (
     evidence_link_to_model,
     evidence_to_domain,
     evidence_to_model,
+    proof_evaluation_to_model,
     proof_to_domain,
     proof_to_model,
 )
@@ -34,6 +35,7 @@ class FinancialProofApplicationService:
     ) -> None:
         self.unit_of_work = unit_of_work
         self.evaluator = evaluator or ProofEvaluator()
+
     def create_proof(
         self,
         proof: FinancialProof,
@@ -121,11 +123,12 @@ class FinancialProofApplicationService:
                 for model in evidence_link_models
             ),
         )
+
     def evaluate_proof(
         self,
         proof_id: UUID,
     ) -> FinancialProof | None:
-        """Evaluate a proof from its claims and persist the result."""
+        """Evaluate a proof and persist both current state and history."""
         with self.unit_of_work:
             proof_model = self.unit_of_work.proofs.get_by_id(proof_id)
 
@@ -157,9 +160,23 @@ class FinancialProofApplicationService:
                 updated_model.evaluation_reasons
             )
 
+            self.unit_of_work.evaluations.add(
+                proof_evaluation_to_model(
+                    evaluation,
+                    proof_id,
+                )
+            )
+
             self.unit_of_work.session.flush()
 
             return proof
+
+    def list_evaluation_history(
+        self,
+        proof_id: UUID,
+    ) -> list:
+        """Return persisted evaluation history for a proof."""
+        return self.unit_of_work.evaluations.list_by_proof(proof_id)
 
     def get_proof(self, proof_id: UUID) -> FinancialProof | None:
         """Retrieve a proof through the repository boundary."""
@@ -322,12 +339,3 @@ class FinancialProofApplicationService:
             )
 
         return link
-
-
-
-
-
-
-
-
-

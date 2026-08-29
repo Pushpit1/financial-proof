@@ -1,5 +1,6 @@
 """Mappings between financial domain objects and persistence models."""
 
+from datetime import datetime
 from uuid import UUID
 
 from app.db.models.financial import (
@@ -7,11 +8,11 @@ from app.db.models.financial import (
     EvidenceModel,
     FinancialClaimModel,
     FinancialProofModel,
+    ProofEvaluationModel,
 )
 from app.domain.enums.financial import (
     ClaimType,
     ConfidenceLevel,
-    EvaluationReason,
     EvidenceStatus,
     EvidenceType,
     ProofStatus,
@@ -23,6 +24,7 @@ from app.domain.models.financial import (
     FinancialClaim,
     FinancialProof,
 )
+from app.domain.services.proof_evaluator import ProofEvaluation
 from app.domain.value_objects.financial import ConfidenceScore, Money
 
 
@@ -150,6 +152,8 @@ def proof_to_model(proof: FinancialProof) -> FinancialProofModel:
 
 def proof_to_domain(model: FinancialProofModel) -> FinancialProof:
     """Convert a persistence FinancialProof model into a domain object."""
+    from app.domain.enums.financial import EvaluationReason
+
     return FinancialProof(
         id=model.id,
         subject=model.subject,
@@ -159,6 +163,24 @@ def proof_to_domain(model: FinancialProofModel) -> FinancialProof:
         ),
         evaluation_reasons=[
             EvaluationReason(reason)
-            for reason in (model.evaluation_reasons or [])
+            for reason in model.evaluation_reasons
         ],
     )
+
+
+def proof_evaluation_to_model(
+    evaluation: ProofEvaluation,
+    proof_id: UUID,
+    evaluated_at: datetime | None = None,
+) -> ProofEvaluationModel:
+    """Convert an evaluation result into an immutable audit record."""
+    return ProofEvaluationModel(
+        proof_id=proof_id,
+        status=evaluation.status.value,
+        overall_confidence=evaluation.overall_confidence.value,
+        evaluation_reasons=[
+            reason.value for reason in evaluation.reasons
+        ],
+        evaluated_at=evaluated_at,
+    )
+
