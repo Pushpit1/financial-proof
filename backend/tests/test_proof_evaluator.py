@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from app.domain.enums.financial import (
     ClaimType,
+    EvaluationReason,
     ProofStatus,
     VerificationStatus,
 )
@@ -689,3 +690,176 @@ def test_policy_rejects_invalid_supported_claim_ratio() -> None:
         raise AssertionError(
             "Expected ValueError for invalid supported claim ratio."
         )
+
+def test_multiple_evaluation_reasons_are_deterministic() -> None:
+    evaluator = ProofEvaluator(
+        ProofEvaluationPolicy(
+            minimum_review_confidence=Decimal("0.60"),
+            minimum_ready_confidence=Decimal("0.80"),
+            minimum_supported_claim_ratio=Decimal("1.00"),
+        )
+    )
+
+    claims = [
+        make_claim(
+            "0.50",
+            VerificationStatus.UNVERIFIED,
+        ),
+        make_claim(
+            "0.50",
+            VerificationStatus.PARTIALLY_SUPPORTED,
+        ),
+    ]
+
+    result = evaluator.evaluate(claims)
+
+    assert result.status == ProofStatus.NEEDS_REVIEW
+    assert result.reasons == (
+        EvaluationReason.UNVERIFIED_CLAIM,
+        EvaluationReason.PARTIALLY_SUPPORTED_CLAIM,
+        EvaluationReason.CONFIDENCE_BELOW_REVIEW_THRESHOLD,
+        EvaluationReason.CONFIDENCE_BELOW_READY_THRESHOLD,
+        EvaluationReason.SUPPORTED_CLAIM_RATIO_BELOW_THRESHOLD,
+    )
+
+
+def test_multiple_evaluation_reasons_are_stable_across_runs() -> None:
+    evaluator = ProofEvaluator(
+        ProofEvaluationPolicy(
+            minimum_review_confidence=Decimal("0.60"),
+            minimum_ready_confidence=Decimal("0.80"),
+            minimum_supported_claim_ratio=Decimal("1.00"),
+        )
+    )
+
+    claims = [
+        make_claim(
+            "0.50",
+            VerificationStatus.UNVERIFIED,
+        ),
+        make_claim(
+            "0.50",
+            VerificationStatus.PARTIALLY_SUPPORTED,
+        ),
+    ]
+
+    results = [
+        evaluator.evaluate(claims)
+        for _ in range(10)
+    ]
+
+    assert all(result == results[0] for result in results)
+
+
+def test_contradiction_produces_only_contradiction_reason() -> None:
+    evaluator = ProofEvaluator(
+        ProofEvaluationPolicy(
+            minimum_review_confidence=Decimal("0.70"),
+            minimum_ready_confidence=Decimal("0.80"),
+            minimum_supported_claim_ratio=Decimal("1.00"),
+        )
+    )
+
+    claims = [
+        make_claim(
+            "0.20",
+            VerificationStatus.UNVERIFIED,
+        ),
+        make_claim(
+            "0.20",
+            VerificationStatus.PARTIALLY_SUPPORTED,
+        ),
+        make_claim(
+            "0.20",
+            VerificationStatus.CONTRADICTED,
+        ),
+    ]
+
+    result = evaluator.evaluate(claims)
+
+    assert result.status == ProofStatus.INVALID
+    assert result.reasons == (
+        EvaluationReason.CONTRADICTED_CLAIM,
+    )
+
+
+def test_success_produces_only_evaluation_passed_reason() -> None:
+    evaluator = ProofEvaluator(
+        ProofEvaluationPolicy(
+            minimum_review_confidence=Decimal("0.70"),
+            minimum_ready_confidence=Decimal("0.80"),
+            minimum_supported_claim_ratio=Decimal("1.00"),
+        )
+    )
+
+    claims = [
+        make_claim(
+            "0.90",
+            VerificationStatus.VERIFIED,
+        ),
+        make_claim(
+            "0.90",
+            VerificationStatus.SUPPORTED,
+        ),
+    ]
+
+    result = evaluator.evaluate(claims)
+
+    assert result.status == ProofStatus.READY
+    assert result.reasons == (
+        EvaluationReason.EVALUATION_PASSED,
+    )
+
+
+def test_empty_proof_produces_only_no_claims_reason() -> None:
+    result = ProofEvaluator().evaluate([])
+
+    assert result.status == ProofStatus.READY
+    assert result.reasons == (
+        EvaluationReason.NO_CLAIMS,
+    )
+
+
+def test_review_threshold_reason_is_distinct_from_ready_threshold_reason() -> None:
+    evaluator = ProofEvaluator(
+        ProofEvaluationPolicy(
+            minimum_review_confidence=Decimal("0.60"),
+            minimum_ready_confidence=Decimal("0.80"),
+            minimum_supported_claim_ratio=Decimal("0.00"),
+        )
+    )
+
+    result = evaluator.evaluate(
+        [
+            make_claim("0.50"),
+        ]
+    )
+
+    assert result.status == ProofStatus.NEEDS_REVIEW
+    assert result.reasons == (
+        EvaluationReason.CONFIDENCE_BELOW_REVIEW_THRESHOLD,
+        EvaluationReason.CONFIDENCE_BELOW_READY_THRESHOLD,
+    )
+
+
+def test_confidence_between_review_and_ready_has_only_ready_reason() -> None:
+    evaluator = ProofEvaluator(
+        ProofEvaluationPolicy(
+            minimum_review_confidence=Decimal("0.50"),
+            minimum_ready_confidence=Decimal("0.80"),
+            minimum_supported_claim_ratio=Decimal("0.00"),
+        )
+    )
+
+    result = evaluator.evaluate(
+        [
+            make_claim("0.60"),
+        ]
+    )
+
+    assert result.status == ProofStatus.NEEDS_REVIEW
+    assert result.reasons == (
+        EvaluationReason.CONFIDENCE_BELOW_READY_THRESHOLD,
+    )
+
+
