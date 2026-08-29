@@ -52,3 +52,20 @@ class ConfidenceLevel(StrEnum):
     MEDIUM = "medium"
     HIGH = "high"
     VERY_HIGH = "very_high"
+
+
+class EvaluationReason(StrEnum):
+    NO_CLAIMS = "no_claims"
+    CONTRADICTED_CLAIM = "contradicted_claim"
+    UNVERIFIED_CLAIM = "unverified_claim"
+    PARTIALLY_SUPPORTED_CLAIM = "partially_supported_claim"
+    CONFIDENCE_BELOW_REVIEW_THRESHOLD = (
+        "confidence_below_review_threshold"
+    )
+    CONFIDENCE_BELOW_READY_THRESHOLD = (
+        "confidence_below_ready_threshold"
+    )
+    SUPPORTED_CLAIM_RATIO_BELOW_THRESHOLD = (
+        "supported_claim_ratio_below_threshold"
+    )
+    EVALUATION_PASSED = "evaluation_passed"

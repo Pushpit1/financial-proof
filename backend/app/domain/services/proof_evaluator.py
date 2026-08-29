@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 
 from app.domain.enums.financial import (
+    EvaluationReason,
     ProofStatus,
     VerificationStatus,
 )
@@ -77,6 +78,7 @@ class ProofEvaluation:
 
     status: ProofStatus
     overall_confidence: ConfidenceScore
+    reasons: tuple[EvaluationReason, ...]
 
 
 class ProofEvaluator:
@@ -92,13 +94,13 @@ class ProofEvaluator:
         self,
         claims: list[FinancialClaim],
     ) -> ProofEvaluation:
-        """Determine proof status and aggregate confidence."""
+        """Determine proof status, confidence, and reasons."""
 
         overall_confidence = self._calculate_overall_confidence(
             claims
         )
 
-        status = self._determine_status(
+        status, reasons = self._determine_status_and_reasons(
             claims,
             overall_confidence,
         )
@@ -106,6 +108,7 @@ class ProofEvaluator:
         return ProofEvaluation(
             status=status,
             overall_confidence=overall_confidence,
+            reasons=reasons,
         )
 
     @staticmethod
@@ -134,6 +137,7 @@ class ProofEvaluator:
         claims: list[FinancialClaim],
     ) -> Decimal:
         """Calculate the ratio of claims with support."""
+
         if not claims:
             return Decimal("1")
 
@@ -147,44 +151,66 @@ class ProofEvaluator:
         )
 
         return Decimal(supported_count) / Decimal(len(claims))
-    def _determine_status(
+
+    def _determine_status_and_reasons(
         self,
         claims: list[FinancialClaim],
         overall_confidence: ConfidenceScore,
-    ) -> ProofStatus:
-        """Determine proof status from domain evaluation rules."""
+    ) -> tuple[
+        ProofStatus,
+        tuple[EvaluationReason, ...],
+    ]:
+        """Determine proof status and deterministic explanations."""
 
         if not claims:
-            return ProofStatus.READY
+            return (
+                ProofStatus.READY,
+                (EvaluationReason.NO_CLAIMS,),
+            )
 
         if any(
             claim.verification_status
             == VerificationStatus.CONTRADICTED
             for claim in claims
         ):
-            return ProofStatus.INVALID
+            return (
+                ProofStatus.INVALID,
+                (EvaluationReason.CONTRADICTED_CLAIM,),
+            )
+
+        reasons: list[EvaluationReason] = []
 
         if any(
             claim.verification_status
-            in {
-                VerificationStatus.UNVERIFIED,
-                VerificationStatus.PARTIALLY_SUPPORTED,
-            }
+            == VerificationStatus.UNVERIFIED
             for claim in claims
         ):
-            return ProofStatus.NEEDS_REVIEW
+            reasons.append(EvaluationReason.UNVERIFIED_CLAIM)
+
+        if any(
+            claim.verification_status
+            == VerificationStatus.PARTIALLY_SUPPORTED
+            for claim in claims
+        ):
+            reasons.append(
+                EvaluationReason.PARTIALLY_SUPPORTED_CLAIM
+            )
 
         if (
             overall_confidence.value
             < self.policy.minimum_review_confidence
         ):
-            return ProofStatus.NEEDS_REVIEW
+            reasons.append(
+                EvaluationReason.CONFIDENCE_BELOW_REVIEW_THRESHOLD
+            )
 
         if (
             overall_confidence.value
             < self.policy.minimum_ready_confidence
         ):
-            return ProofStatus.NEEDS_REVIEW
+            reasons.append(
+                EvaluationReason.CONFIDENCE_BELOW_READY_THRESHOLD
+            )
 
         supported_claim_ratio = self._calculate_supported_claim_ratio(
             claims
@@ -194,13 +220,17 @@ class ProofEvaluator:
             supported_claim_ratio
             < self.policy.minimum_supported_claim_ratio
         ):
-            return ProofStatus.NEEDS_REVIEW
+            reasons.append(
+                EvaluationReason.SUPPORTED_CLAIM_RATIO_BELOW_THRESHOLD
+            )
 
-        return ProofStatus.READY
+        if reasons:
+            return (
+                ProofStatus.NEEDS_REVIEW,
+                tuple(reasons),
+            )
 
-
-
-
-
-
-
+        return (
+            ProofStatus.READY,
+            (EvaluationReason.EVALUATION_PASSED,),
+        )
