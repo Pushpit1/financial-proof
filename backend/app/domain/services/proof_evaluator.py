@@ -1,4 +1,7 @@
-from dataclasses import dataclass
+"""Domain service for evaluating financial proof quality."""
+
+from collections.abc import Sequence
+from dataclasses import dataclass, field
 from decimal import Decimal
 
 from app.domain.enums.financial import (
@@ -12,7 +15,7 @@ from app.domain.value_objects.financial import ConfidenceScore
 
 @dataclass(frozen=True)
 class ProofEvaluationPolicy:
-    """Business rules controlling financial proof evaluation."""
+    """Configuration governing financial proof evaluation."""
 
     minimum_review_confidence: Decimal = Decimal("0.00")
     minimum_ready_confidence: Decimal = Decimal("0.70")
@@ -56,12 +59,6 @@ class ProofEvaluationPolicy:
                 "Minimum ready confidence must be between 0 and 1."
             )
 
-        if self.minimum_review_confidence > self.minimum_ready_confidence:
-            raise ValueError(
-                "Minimum review confidence cannot exceed "
-                "minimum ready confidence."
-            )
-
         if not (
             Decimal("0")
             <= self.minimum_supported_claim_ratio
@@ -71,18 +68,24 @@ class ProofEvaluationPolicy:
                 "Minimum supported claim ratio must be between 0 and 1."
             )
 
+        if self.minimum_review_confidence > self.minimum_ready_confidence:
+            raise ValueError(
+                "Minimum review confidence cannot exceed "
+                "minimum ready confidence."
+            )
+
 
 @dataclass(frozen=True)
 class ProofEvaluation:
-    """Result produced by evaluating financial proof claims."""
+    """Immutable result produced by proof evaluation."""
 
     status: ProofStatus
     overall_confidence: ConfidenceScore
-    reasons: tuple[EvaluationReason, ...]
+    reasons: tuple[EvaluationReason, ...] = field(default_factory=tuple)
 
 
 class ProofEvaluator:
-    """Evaluate financial proof state from domain claims."""
+    """Evaluate a collection of financial claims."""
 
     def __init__(
         self,
@@ -92,90 +95,29 @@ class ProofEvaluator:
 
     def evaluate(
         self,
-        claims: list[FinancialClaim],
+        claims: Sequence[FinancialClaim],
     ) -> ProofEvaluation:
-        """Determine proof status, confidence, and reasons."""
+        """Evaluate claims and return an immutable evaluation result."""
+        if not claims:
+            return ProofEvaluation(
+                status=ProofStatus.READY,
+                overall_confidence=ConfidenceScore(Decimal("0")),
+                reasons=(EvaluationReason.NO_CLAIMS,),
+            )
 
         overall_confidence = self._calculate_overall_confidence(
             claims
         )
-
-        status, reasons = self._determine_status_and_reasons(
-            claims,
-            overall_confidence,
-        )
-
-        return ProofEvaluation(
-            status=status,
-            overall_confidence=overall_confidence,
-            reasons=reasons,
-        )
-
-    @staticmethod
-    def _calculate_overall_confidence(
-        claims: list[FinancialClaim],
-    ) -> ConfidenceScore:
-        """Calculate average claim confidence."""
-
-        if not claims:
-            return ConfidenceScore(Decimal("0"))
-
-        confidence_values = [
-            claim.confidence.value
-            for claim in claims
-        ]
-
-        average = (
-            sum(confidence_values)
-            / Decimal(len(confidence_values))
-        )
-
-        return ConfidenceScore(average)
-
-    @staticmethod
-    def _calculate_supported_claim_ratio(
-        claims: list[FinancialClaim],
-    ) -> Decimal:
-        """Calculate the ratio of claims with support."""
-
-        if not claims:
-            return Decimal("1")
-
-        supported_count = sum(
-            claim.verification_status
-            in {
-                VerificationStatus.SUPPORTED,
-                VerificationStatus.VERIFIED,
-            }
-            for claim in claims
-        )
-
-        return Decimal(supported_count) / Decimal(len(claims))
-
-    def _determine_status_and_reasons(
-        self,
-        claims: list[FinancialClaim],
-        overall_confidence: ConfidenceScore,
-    ) -> tuple[
-        ProofStatus,
-        tuple[EvaluationReason, ...],
-    ]:
-        """Determine proof status and deterministic explanations."""
-
-        if not claims:
-            return (
-                ProofStatus.READY,
-                (EvaluationReason.NO_CLAIMS,),
-            )
 
         if any(
             claim.verification_status
             == VerificationStatus.CONTRADICTED
             for claim in claims
         ):
-            return (
-                ProofStatus.INVALID,
-                (EvaluationReason.CONTRADICTED_CLAIM,),
+            return ProofEvaluation(
+                status=ProofStatus.INVALID,
+                overall_confidence=overall_confidence,
+                reasons=(EvaluationReason.CONTRADICTED_CLAIM,),
             )
 
         reasons: list[EvaluationReason] = []
@@ -224,13 +166,49 @@ class ProofEvaluator:
                 EvaluationReason.SUPPORTED_CLAIM_RATIO_BELOW_THRESHOLD
             )
 
-        if reasons:
-            return (
-                ProofStatus.NEEDS_REVIEW,
-                tuple(reasons),
-            )
+        if not reasons:
+            reasons.append(EvaluationReason.EVALUATION_PASSED)
+            status = ProofStatus.READY
+        elif (
+            EvaluationReason.CONFIDENCE_BELOW_REVIEW_THRESHOLD
+            in reasons
+        ):
+            status = ProofStatus.NEEDS_REVIEW
+        else:
+            status = ProofStatus.NEEDS_REVIEW
 
-        return (
-            ProofStatus.READY,
-            (EvaluationReason.EVALUATION_PASSED,),
+        return ProofEvaluation(
+            status=status,
+            overall_confidence=overall_confidence,
+            reasons=tuple(reasons),
         )
+
+    @staticmethod
+    def _calculate_overall_confidence(
+        claims: Sequence[FinancialClaim],
+    ) -> ConfidenceScore:
+        """Calculate average claim confidence."""
+        total = sum(
+            (claim.confidence.value for claim in claims),
+            Decimal("0"),
+        )
+        average = total / Decimal(len(claims))
+        return ConfidenceScore(average)
+
+    @staticmethod
+    def _calculate_supported_claim_ratio(
+        claims: Sequence[FinancialClaim],
+    ) -> Decimal:
+        """Calculate the ratio of fully supported claims."""
+        supported_count = sum(
+            claim.verification_status
+            in {
+                VerificationStatus.VERIFIED,
+                VerificationStatus.SUPPORTED,
+            }
+            for claim in claims
+        )
+
+        return Decimal(supported_count) / Decimal(len(claims))
+
+
