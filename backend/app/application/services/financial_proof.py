@@ -153,6 +153,9 @@ class FinancialProofApplicationService:
             proof_model.overall_confidence = (
                 updated_model.overall_confidence
             )
+            proof_model.evaluation_reasons = (
+                updated_model.evaluation_reasons
+            )
 
             self.unit_of_work.session.flush()
 
@@ -319,6 +322,7 @@ class FinancialProofApplicationService:
             )
 
         return link
+
 
 
 

@@ -4,7 +4,7 @@ from datetime import date
 from decimal import Decimal
 from uuid import UUID, uuid4
 
-from sqlalchemy import Date, Numeric, String, Text
+from sqlalchemy import JSON, Date, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -162,8 +162,14 @@ class FinancialProofModel(UUIDModel):
         nullable=False,
         default=Decimal("0"),
     )
+    evaluation_reasons: Mapped[list[str]] = mapped_column(
+        JSON,
+        nullable=False,
+        default=list,
+    )
 
     def __init__(self, **kwargs: object) -> None:
         kwargs.setdefault("status", "draft")
         kwargs.setdefault("overall_confidence", Decimal("0"))
+        kwargs.setdefault("evaluation_reasons", [])
         super().__init__(**kwargs)

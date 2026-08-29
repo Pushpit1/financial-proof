@@ -146,6 +146,7 @@ class FinancialProofResponse(BaseModel):
     subject: str
     status: str
     overall_confidence: Decimal
+    evaluation_reasons: list[str] = Field(default_factory=list)
 
 
 class FinancialProofAggregateResponse(BaseModel):

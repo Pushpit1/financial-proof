@@ -77,6 +77,7 @@ def _proof_to_response(proof: FinancialProof) -> FinancialProofResponse:
         subject=proof.subject,
         status=proof.status.value,
         overall_confidence=proof.overall_confidence.value,
+        evaluation_reasons=proof.evaluation_reasons,
     )
 
 
@@ -257,6 +258,7 @@ async def evaluate_proof(
             for link in aggregate.evidence_links
         ],
     )
+
 
 
 

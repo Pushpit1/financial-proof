@@ -7,6 +7,7 @@ from uuid import UUID, uuid4
 from app.domain.enums.financial import (
     ClaimType,
     ConfidenceLevel,
+    EvaluationReason,
     EvidenceStatus,
     EvidenceType,
     ProofStatus,
@@ -25,9 +26,7 @@ from app.domain.value_objects.financial import (
 
 @dataclass
 class Evidence:
-    """
-    A source artifact from which financial facts can be established.
-    """
+    """A source artifact from which financial facts can be established."""
 
     evidence_type: EvidenceType
     source_name: str
@@ -40,9 +39,7 @@ class Evidence:
 
 @dataclass
 class FinancialClaim:
-    """
-    A normalized financial assertion derived from one or more evidence items.
-    """
+    """A normalized financial assertion derived from evidence."""
 
     claim_type: ClaimType
     subject: str
@@ -60,9 +57,7 @@ class FinancialClaim:
 
 @dataclass
 class EvidenceLink:
-    """
-    Links a claim to evidence supporting or contradicting it.
-    """
+    """Links a claim to evidence supporting or contradicting it."""
 
     claim_id: UUID
     evidence_id: UUID
@@ -78,9 +73,7 @@ class EvidenceLink:
 
 @dataclass
 class FinancialProof:
-    """
-    A defensible collection of claims and supporting evidence.
-    """
+    """A defensible collection of claims and supporting evidence."""
 
     subject: str
     id: UUID = field(default_factory=uuid4)
@@ -90,11 +83,13 @@ class FinancialProof:
     overall_confidence: ConfidenceScore = field(
         default_factory=lambda: ConfidenceScore(Decimal("0"))
     )
+    evaluation_reasons: list[EvaluationReason] = field(default_factory=list)
+
     def apply_evaluation(
         self,
-        evaluation: 'ProofEvaluation',
+        evaluation: "ProofEvaluation",
     ) -> None:
         """Apply an evaluation result to this proof."""
         self.status = evaluation.status
         self.overall_confidence = evaluation.overall_confidence
-
+        self.evaluation_reasons = list(evaluation.reasons)

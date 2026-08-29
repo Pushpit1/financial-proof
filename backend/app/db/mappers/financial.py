@@ -11,6 +11,7 @@ from app.db.models.financial import (
 from app.domain.enums.financial import (
     ClaimType,
     ConfidenceLevel,
+    EvaluationReason,
     EvidenceStatus,
     EvidenceType,
     ProofStatus,
@@ -141,6 +142,9 @@ def proof_to_model(proof: FinancialProof) -> FinancialProofModel:
         subject=proof.subject,
         status=proof.status.value,
         overall_confidence=proof.overall_confidence.value,
+        evaluation_reasons=[
+            reason.value for reason in proof.evaluation_reasons
+        ],
     )
 
 
@@ -153,4 +157,8 @@ def proof_to_domain(model: FinancialProofModel) -> FinancialProof:
         overall_confidence=ConfidenceScore(
             model.overall_confidence
         ),
+        evaluation_reasons=[
+            EvaluationReason(reason)
+            for reason in (model.evaluation_reasons or [])
+        ],
     )

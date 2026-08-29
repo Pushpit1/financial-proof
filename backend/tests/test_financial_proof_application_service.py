@@ -22,6 +22,7 @@ from app.db.models.financial import (
 from app.db.unit_of_work import FinancialUnitOfWork
 from app.domain.enums.financial import (
     ClaimType,
+    EvaluationReason,
     EvidenceType,
     ProofStatus,
     VerificationStatus,
@@ -58,7 +59,9 @@ def make_claim(subject: str, confidence: str) -> FinancialClaim:
 
 def test_create_proof_persists_proof_and_claims() -> None:
     session = create_session()
-    service = FinancialProofApplicationService(FinancialUnitOfWork(session))
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(session)
+    )
 
     proof = FinancialProof(subject="Applicant")
     claims = [
@@ -75,7 +78,9 @@ def test_create_proof_persists_proof_and_claims() -> None:
 
 def test_create_proof_preserves_claim_values() -> None:
     session = create_session()
-    service = FinancialProofApplicationService(FinancialUnitOfWork(session))
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(session)
+    )
 
     proof = FinancialProof(subject="Applicant")
     claim = make_claim("monthly salary", "0.95")
@@ -93,7 +98,9 @@ def test_create_proof_preserves_claim_values() -> None:
 
 def test_create_proof_can_persist_empty_claim_list() -> None:
     session = create_session()
-    service = FinancialProofApplicationService(FinancialUnitOfWork(session))
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(session)
+    )
 
     proof = FinancialProof(subject="Applicant")
 
@@ -105,7 +112,9 @@ def test_create_proof_can_persist_empty_claim_list() -> None:
 
 def test_get_proof_returns_existing_proof() -> None:
     session = create_session()
-    service = FinancialProofApplicationService(FinancialUnitOfWork(session))
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(session)
+    )
 
     proof = FinancialProof(subject="Applicant")
     service.create_proof(proof, [])
@@ -115,14 +124,18 @@ def test_get_proof_returns_existing_proof() -> None:
 
 def test_get_proof_returns_none_for_missing_proof() -> None:
     session = create_session()
-    service = FinancialProofApplicationService(FinancialUnitOfWork(session))
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(session)
+    )
 
     assert service.get_proof(uuid4()) is None
 
 
 def test_list_proofs_returns_proofs_for_subject() -> None:
     session = create_session()
-    service = FinancialProofApplicationService(FinancialUnitOfWork(session))
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(session)
+    )
 
     applicant = FinancialProof(subject="Applicant")
     other = FinancialProof(subject="Other Applicant")
@@ -138,7 +151,9 @@ def test_list_proofs_returns_proofs_for_subject() -> None:
 
 def test_get_claim_returns_existing_claim() -> None:
     session = create_session()
-    service = FinancialProofApplicationService(FinancialUnitOfWork(session))
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(session)
+    )
 
     proof = FinancialProof(subject="Applicant")
     claim = make_claim("monthly salary", "0.90")
@@ -150,14 +165,18 @@ def test_get_claim_returns_existing_claim() -> None:
 
 def test_get_claim_returns_none_for_missing_claim() -> None:
     session = create_session()
-    service = FinancialProofApplicationService(FinancialUnitOfWork(session))
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(session)
+    )
 
     assert service.get_claim(uuid4()) is None
 
 
 def test_list_claims_returns_claims_matching_claim_subject() -> None:
     session = create_session()
-    service = FinancialProofApplicationService(FinancialUnitOfWork(session))
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(session)
+    )
 
     proof = FinancialProof(subject="Applicant")
     claims = [
@@ -171,12 +190,17 @@ def test_list_claims_returns_claims_matching_claim_subject() -> None:
     result = service.list_claims("monthly salary")
 
     assert len(result) == 2
-    assert all(claim.subject == "monthly salary" for claim in result)
+    assert all(
+        claim.subject == "monthly salary"
+        for claim in result
+    )
 
 
 def test_list_claims_excludes_other_claim_subjects() -> None:
     session = create_session()
-    service = FinancialProofApplicationService(FinancialUnitOfWork(session))
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(session)
+    )
 
     proof = FinancialProof(subject="Applicant")
     service.create_proof(
@@ -194,7 +218,9 @@ def test_list_claims_excludes_other_claim_subjects() -> None:
 
 def test_list_proof_claims_returns_claims_for_proof() -> None:
     session = create_session()
-    service = FinancialProofApplicationService(FinancialUnitOfWork(session))
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(session)
+    )
 
     proof = FinancialProof(subject="Applicant")
     claims = [
@@ -214,7 +240,9 @@ def test_list_proof_claims_returns_claims_for_proof() -> None:
 
 def test_list_proof_claims_excludes_other_proofs() -> None:
     session = create_session()
-    service = FinancialProofApplicationService(FinancialUnitOfWork(session))
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(session)
+    )
 
     applicant = FinancialProof(subject="Applicant")
     other = FinancialProof(subject="Other Applicant")
@@ -233,7 +261,9 @@ def test_list_proof_claims_excludes_other_proofs() -> None:
 
 def test_add_claims_to_existing_proof() -> None:
     session = create_session()
-    service = FinancialProofApplicationService(FinancialUnitOfWork(session))
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(session)
+    )
 
     proof = FinancialProof(subject="Applicant")
     service.create_proof(proof, [])
@@ -251,7 +281,9 @@ def test_add_claims_to_existing_proof() -> None:
 
 def test_add_claims_rejects_missing_proof() -> None:
     session = create_session()
-    service = FinancialProofApplicationService(FinancialUnitOfWork(session))
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(session)
+    )
 
     with pytest.raises(NotFoundError):
         service.add_claims(
@@ -264,7 +296,9 @@ def test_add_claims_rejects_missing_proof() -> None:
 
 def test_create_proof_persists_complete_proof_graph() -> None:
     session = create_session()
-    service = FinancialProofApplicationService(FinancialUnitOfWork(session))
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(session)
+    )
 
     proof = FinancialProof(subject="Applicant")
     claims = [
@@ -298,7 +332,12 @@ def test_create_proof_persists_complete_proof_graph() -> None:
         ),
     ]
 
-    result = service.create_proof(proof, claims, evidence, links)
+    result = service.create_proof(
+        proof,
+        claims,
+        evidence,
+        links,
+    )
 
     assert result == proof
     assert session.get(FinancialProofModel, proof.id) is not None
@@ -309,7 +348,9 @@ def test_create_proof_persists_complete_proof_graph() -> None:
 
 def test_create_proof_rejects_link_to_claim_outside_proof() -> None:
     session = create_session()
-    service = FinancialProofApplicationService(FinancialUnitOfWork(session))
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(session)
+    )
 
     proof = FinancialProof(subject="Applicant")
     claims = [make_claim("monthly salary", "0.90")]
@@ -326,7 +367,12 @@ def test_create_proof_rejects_link_to_claim_outside_proof() -> None:
     )
 
     with pytest.raises(ValueError, match="outside this proof"):
-        service.create_proof(proof, claims, evidence, [link])
+        service.create_proof(
+            proof,
+            claims,
+            evidence,
+            [link],
+        )
 
     assert session.query(FinancialProofModel).count() == 0
     assert session.query(FinancialClaimModel).count() == 0
@@ -336,7 +382,9 @@ def test_create_proof_rejects_link_to_claim_outside_proof() -> None:
 
 def test_create_proof_rejects_link_to_evidence_outside_proof() -> None:
     session = create_session()
-    service = FinancialProofApplicationService(FinancialUnitOfWork(session))
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(session)
+    )
 
     proof = FinancialProof(subject="Applicant")
     claims = [make_claim("monthly salary", "0.90")]
@@ -353,7 +401,12 @@ def test_create_proof_rejects_link_to_evidence_outside_proof() -> None:
     )
 
     with pytest.raises(ValueError, match="outside this proof"):
-        service.create_proof(proof, claims, evidence, [link])
+        service.create_proof(
+            proof,
+            claims,
+            evidence,
+            [link],
+        )
 
     assert session.query(FinancialProofModel).count() == 0
     assert session.query(FinancialClaimModel).count() == 0
@@ -363,7 +416,9 @@ def test_create_proof_rejects_link_to_evidence_outside_proof() -> None:
 
 def test_get_proof_aggregate_returns_complete_graph() -> None:
     session = create_session()
-    service = FinancialProofApplicationService(FinancialUnitOfWork(session))
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(session)
+    )
 
     proof = FinancialProof(subject="Applicant")
     claims = [
@@ -395,7 +450,12 @@ def test_get_proof_aggregate_returns_complete_graph() -> None:
         ),
     ]
 
-    service.create_proof(proof, claims, evidence, links)
+    service.create_proof(
+        proof,
+        claims,
+        evidence,
+        links,
+    )
 
     result = service.get_proof_aggregate(proof.id)
 
@@ -414,14 +474,18 @@ def test_get_proof_aggregate_returns_complete_graph() -> None:
 
 def test_get_proof_aggregate_returns_none_for_missing_proof() -> None:
     session = create_session()
-    service = FinancialProofApplicationService(FinancialUnitOfWork(session))
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(session)
+    )
 
     assert service.get_proof_aggregate(uuid4()) is None
 
 
 def test_get_proof_aggregate_returns_empty_children_when_no_children_exist() -> None:
     session = create_session()
-    service = FinancialProofApplicationService(FinancialUnitOfWork(session))
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(session)
+    )
 
     proof = FinancialProof(subject="Applicant")
     service.create_proof(proof, [])
@@ -437,7 +501,9 @@ def test_get_proof_aggregate_returns_empty_children_when_no_children_exist() -> 
 
 def test_create_proof_rolls_back_when_link_is_invalid() -> None:
     session = create_session()
-    service = FinancialProofApplicationService(FinancialUnitOfWork(session))
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(session)
+    )
 
     proof = FinancialProof(subject="Applicant")
     claims = [make_claim("monthly salary", "0.90")]
@@ -469,7 +535,9 @@ def test_create_proof_rolls_back_when_link_is_invalid() -> None:
 
 def test_evaluate_proof_updates_status_and_confidence() -> None:
     session = create_session()
-    service = FinancialProofApplicationService(FinancialUnitOfWork(session))
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(session)
+    )
 
     proof = FinancialProof(subject="Applicant")
     claims = [
@@ -489,7 +557,9 @@ def test_evaluate_proof_updates_status_and_confidence() -> None:
 
 def test_evaluate_proof_with_no_claims_is_ready_with_zero_confidence() -> None:
     session = create_session()
-    service = FinancialProofApplicationService(FinancialUnitOfWork(session))
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(session)
+    )
 
     proof = FinancialProof(subject="Applicant")
     service.create_proof(proof, [])
@@ -503,7 +573,9 @@ def test_evaluate_proof_with_no_claims_is_ready_with_zero_confidence() -> None:
 
 def test_evaluate_proof_with_one_claim_uses_claim_confidence() -> None:
     session = create_session()
-    service = FinancialProofApplicationService(FinancialUnitOfWork(session))
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(session)
+    )
 
     proof = FinancialProof(subject="Applicant")
     claim = make_claim("monthly salary", "0.87")
@@ -519,7 +591,9 @@ def test_evaluate_proof_with_one_claim_uses_claim_confidence() -> None:
 
 def test_evaluate_proof_uses_average_confidence() -> None:
     session = create_session()
-    service = FinancialProofApplicationService(FinancialUnitOfWork(session))
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(session)
+    )
 
     proof = FinancialProof(subject="Applicant")
     claims = [
@@ -539,7 +613,9 @@ def test_evaluate_proof_uses_average_confidence() -> None:
 
 def test_evaluate_proof_marks_proof_invalid_when_any_claim_is_contradicted() -> None:
     session = create_session()
-    service = FinancialProofApplicationService(FinancialUnitOfWork(session))
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(session)
+    )
 
     proof = FinancialProof(subject="Applicant")
     claims = [
@@ -558,9 +634,11 @@ def test_evaluate_proof_marks_proof_invalid_when_any_claim_is_contradicted() -> 
     assert result.status == ProofStatus.INVALID
 
 
-def test_evaluate_proof_persists_status_and_confidence() -> None:
+def test_evaluate_proof_persists_status_confidence_and_reasons() -> None:
     session = create_session()
-    service = FinancialProofApplicationService(FinancialUnitOfWork(session))
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(session)
+    )
 
     proof = FinancialProof(subject="Applicant")
     claims = [
@@ -573,17 +651,24 @@ def test_evaluate_proof_persists_status_and_confidence() -> None:
     result = service.evaluate_proof(proof.id)
 
     assert result is not None
+    assert result.status == ProofStatus.READY
+    assert result.evaluation_reasons == [
+        EvaluationReason.EVALUATION_PASSED
+    ]
 
     stored = session.get(FinancialProofModel, proof.id)
 
     assert stored is not None
     assert stored.status == ProofStatus.READY.value
     assert stored.overall_confidence == Decimal("0.8000")
+    assert stored.evaluation_reasons == ["evaluation_passed"]
 
 
 def test_evaluate_proof_returns_none_for_missing_proof() -> None:
     session = create_session()
-    service = FinancialProofApplicationService(FinancialUnitOfWork(session))
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(session)
+    )
 
     result = service.evaluate_proof(uuid4())
 
@@ -592,7 +677,9 @@ def test_evaluate_proof_returns_none_for_missing_proof() -> None:
 
 def test_evaluate_proof_persists_invalid_status() -> None:
     session = create_session()
-    service = FinancialProofApplicationService(FinancialUnitOfWork(session))
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(session)
+    )
 
     proof = FinancialProof(subject="Applicant")
     claims = [
@@ -614,7 +701,7 @@ def test_evaluate_proof_persists_invalid_status() -> None:
 
     assert stored is not None
     assert stored.status == ProofStatus.INVALID.value
-
+    assert stored.evaluation_reasons == ["contradicted_claim"]
 
 
 def test_evaluate_proof_uses_injected_evaluator_policy() -> None:
@@ -643,6 +730,7 @@ def test_evaluate_proof_uses_injected_evaluator_policy() -> None:
     assert result.status == ProofStatus.NEEDS_REVIEW
     assert result.overall_confidence.value == Decimal("0.80")
 
+
 def test_default_service_uses_default_evaluator_policy() -> None:
     session = create_session()
     service = FinancialProofApplicationService(
@@ -652,6 +740,7 @@ def test_default_service_uses_default_evaluator_policy() -> None:
     assert service.evaluator.policy.minimum_ready_confidence == Decimal(
         "0.70"
     )
+
 
 def test_service_preserves_injected_evaluator() -> None:
     session = create_session()

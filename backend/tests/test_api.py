@@ -388,6 +388,7 @@ def test_evaluate_proof_returns_ready_for_valid_claims(
 
     assert body["proof"]["id"] == proof_id
     assert body["proof"]["status"] == "ready"
+    assert body["proof"]["evaluation_reasons"] == ["evaluation_passed"]
     assert body["proof"]["overall_confidence"] == "0.8000"
     assert len(body["claims"]) == 2
 
@@ -411,6 +412,7 @@ def test_evaluate_proof_returns_ready_for_empty_proof(
     body = response.json()
 
     assert body["proof"]["status"] == "ready"
+    assert body["proof"]["evaluation_reasons"] == ["no_claims"]
     assert body["proof"]["overall_confidence"] == "0.0000"
 
 
@@ -450,6 +452,7 @@ def test_evaluate_proof_returns_invalid_for_contradicted_claim(
 
     assert body["proof"]["status"] == "invalid"
     assert body["proof"]["overall_confidence"] == "0.8500"
+    assert body["proof"]["evaluation_reasons"] == ["contradicted_claim"]
 
 
 def test_evaluate_proof_returns_404_for_missing_proof(
@@ -502,6 +505,7 @@ def test_evaluate_proof_persists_result(client: TestClient) -> None:
     body = response.json()
 
     assert body["proof"]["status"] == "ready"
+    assert body["proof"]["evaluation_reasons"] == ["evaluation_passed"]
     assert body["proof"]["overall_confidence"] == "0.7000"
 
 def test_evaluate_proof_is_idempotent(client: TestClient) -> None:
@@ -600,6 +604,9 @@ def test_evaluate_proof_respects_configured_ready_confidence(
 
         assert body["proof"]["status"] == "needs_review"
         assert body["proof"]["overall_confidence"] == "0.9000"
+        assert body["proof"]["evaluation_reasons"] == [
+            "confidence_below_ready_threshold"
+        ]
     finally:
         get_settings.cache_clear()
 def test_evaluate_proof_respects_configured_review_confidence(
@@ -651,6 +658,12 @@ def test_evaluate_proof_respects_configured_review_confidence(
 
         assert body["proof"]["status"] == "needs_review"
         assert body["proof"]["overall_confidence"] == "0.8000"
+        assert body["proof"]["evaluation_reasons"] == [
+            "confidence_below_ready_threshold"
+        ]
+        assert body["proof"]["evaluation_reasons"] == [
+            "confidence_below_ready_threshold"
+        ]
     finally:
         get_settings.cache_clear()
 
@@ -710,8 +723,17 @@ def test_evaluate_proof_respects_configured_supported_claim_ratio(
 
         assert body["proof"]["status"] == "needs_review"
         assert body["proof"]["overall_confidence"] == "0.9000"
+        assert body["proof"]["evaluation_reasons"] == [
+            "unverified_claim",
+            "supported_claim_ratio_below_threshold",
+        ]
     finally:
         get_settings.cache_clear()
+
+
+
+
+
 
 
 
