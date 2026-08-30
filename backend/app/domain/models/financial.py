@@ -19,8 +19,10 @@ if TYPE_CHECKING:
 
 from app.domain.value_objects.financial import (
     ConfidenceScore,
+    ContractAuthorization,
     ContractField,
     ContractRule,
+    ContractTemporalRule,
     FinancialConstraint,
     FinancialPeriod,
     Money,
@@ -128,6 +130,12 @@ class FinancialContract:
     financial_constraints: tuple[FinancialConstraint, ...] = field(
         default_factory=tuple
     )
+    authorizations: tuple[ContractAuthorization, ...] = field(
+        default_factory=tuple
+    )
+    temporal_rules: tuple[ContractTemporalRule, ...] = field(
+        default_factory=tuple
+    )
 
     def __post_init__(self) -> None:
         """Validate contract invariants."""
@@ -161,7 +169,6 @@ class FinancialContract:
 
         self._validate_fields(self.inputs, "input")
         self._validate_fields(self.outputs, "output")
-
         self._validate_financial_constraints()
 
     @staticmethod

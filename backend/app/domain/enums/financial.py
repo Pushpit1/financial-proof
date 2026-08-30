@@ -88,3 +88,21 @@ class ContractOperator(StrEnum):
     NOT_EXISTS = "not_exists"
     IN = "in"
     NOT_IN = "not_in"
+
+
+class ContractAuthorizationAction(StrEnum):
+    READ = "read"
+    CREATE = "create"
+    UPDATE = "update"
+    DELETE = "delete"
+    EVALUATE = "evaluate"
+    APPROVE = "approve"
+    REJECT = "reject"
+
+
+class ContractTimeRelation(StrEnum):
+    BEFORE = "before"
+    AFTER = "after"
+    ON_OR_BEFORE = "on_or_before"
+    ON_OR_AFTER = "on_or_after"
+    BETWEEN = "between"

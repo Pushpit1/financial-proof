@@ -1,10 +1,15 @@
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 from uuid import UUID, uuid4
 
-from app.domain.enums.financial import ContractOperator, ContractRuleType
+from app.domain.enums.financial import (
+    ContractAuthorizationAction,
+    ContractOperator,
+    ContractRuleType,
+    ContractTimeRelation,
+)
 
 
 @dataclass(frozen=True)
@@ -195,4 +200,72 @@ class FinancialConstraint:
                 self,
                 "currency",
                 normalized_currency,
+            )
+
+
+@dataclass(frozen=True)
+class ContractAuthorization:
+    """Immutable authorization requirement for a contract operation."""
+
+    actor: str
+    action: ContractAuthorizationAction
+    resource: str
+    id: UUID = field(default_factory=uuid4)
+
+    def __post_init__(self) -> None:
+        if not self.actor.strip():
+            raise ValueError(
+                "Contract authorization actor cannot be empty."
+            )
+
+        if not self.resource.strip():
+            raise ValueError(
+                "Contract authorization resource cannot be empty."
+            )
+
+
+@dataclass(frozen=True)
+class ContractTemporalRule:
+    """Immutable temporal restriction for a contract."""
+
+    field: str
+    relation: ContractTimeRelation
+    start: datetime
+    end: datetime | None = None
+    id: UUID = field(default_factory=uuid4)
+
+    def __post_init__(self) -> None:
+        if not self.field.strip():
+            raise ValueError(
+                "Contract temporal rule field cannot be empty."
+            )
+
+        if self.field != self.field.strip():
+            raise ValueError(
+                "Contract temporal rule field cannot contain surrounding whitespace."
+            )
+
+        if (
+            self.relation == ContractTimeRelation.BETWEEN
+            and self.end is None
+        ):
+            raise ValueError(
+                "Between temporal rules require an end timestamp."
+            )
+
+        if (
+            self.end is not None
+            and self.relation == ContractTimeRelation.BETWEEN
+            and self.end < self.start
+        ):
+            raise ValueError(
+                "Temporal rule end cannot precede its start."
+            )
+
+        if (
+            self.end is not None
+            and self.relation != ContractTimeRelation.BETWEEN
+        ):
+            raise ValueError(
+                "Only between temporal rules may define an end timestamp."
             )
