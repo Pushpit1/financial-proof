@@ -91,6 +91,59 @@ def test_get_proof_returns_complete_aggregate(
     assert body["evidence"][0]["id"] == str(evidence.id)
 
 
+def test_get_proof_returns_evidence_links_deterministically(client) -> None:
+    from uuid import uuid4
+
+    evidence_id = str(uuid4())
+    claim_id = str(uuid4())
+
+    create_response = client.post(
+        "/proofs",
+        json={
+            "subject": "Applicant",
+            "claims": [
+                {
+                    "id": claim_id,
+                    "claim_type": "income",
+                    "subject": "salary",
+                    "confidence": "0.80",
+                }
+            ],
+            "evidence": [
+                {
+                    "id": evidence_id,
+                    "evidence_type": "payslip",
+                    "source_name": "Payslip",
+                    "received_at": "2026-08-28",
+                }
+            ],
+            "evidence_links": [
+                {
+                    "claim_id": claim_id,
+                    "evidence_id": evidence_id,
+                    "explanation": "Payslip supports salary claim.",
+                }
+            ],
+        },
+    )
+
+    assert create_response.status_code == 201
+
+    proof_id = create_response.json()["proof"]["id"]
+
+    response = client.get(f"/proofs/{proof_id}")
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert len(body["evidence_links"]) == 1
+    assert body["evidence_links"][0]["claim_id"] == claim_id
+    assert body["evidence_links"][0]["evidence_id"] == evidence_id
+    assert body["evidence_links"][0]["explanation"] == (
+        "Payslip supports salary claim."
+    )
+
 def test_get_proof_returns_404_for_missing_proof(
     client: TestClient,
 ) -> None:
