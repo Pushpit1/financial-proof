@@ -118,6 +118,15 @@ class EvidenceLinkRepository:
         )
         return list(self.session.scalars(statement).all())
 
+    def list_by_evidence(self, evidence_id: UUID) -> list[EvidenceLinkModel]:
+        """List evidence links belonging to evidence."""
+        statement = (
+            select(EvidenceLinkModel)
+            .where(EvidenceLinkModel.evidence_id == evidence_id)
+            .order_by(EvidenceLinkModel.id.asc())
+        )
+        return list(self.session.scalars(statement).all())
+
 
 class ProofEvaluationRepository:
     """Repository for immutable proof evaluation history."""
