@@ -881,3 +881,93 @@ def test_list_proofs_returns_empty_for_unknown_subject(
 
     assert response.status_code == 200
     assert response.json() == []
+
+def _create_api_proof(client, subject: str = "API History Applicant") -> str:
+    response = client.post(
+        "/proofs",
+        json={
+            "subject": subject,
+            "claims": [
+                {
+                    "claim_type": "income",
+                    "subject": "Monthly salary",
+                    "verification_status": "verified",
+                    "confidence": "0.90",
+                    "confidence_level": "high",
+                },
+                {
+                    "claim_type": "income",
+                    "subject": "Annual bonus",
+                    "verification_status": "verified",
+                    "confidence": "0.70",
+                    "confidence_level": "medium",
+                },
+            ],
+            "evidence": [],
+            "evidence_links": [],
+        },
+    )
+
+    assert response.status_code == 201
+    return response.json()["proof"]["id"]
+
+
+def test_get_proof_evaluation_history(client) -> None:
+    proof_id = _create_api_proof(client)
+
+    first = client.post(f"/proofs/{proof_id}/evaluate")
+    second = client.post(f"/proofs/{proof_id}/evaluate")
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+
+    response = client.get(f"/proofs/{proof_id}/evaluations")
+
+    assert response.status_code == 200
+
+    history = response.json()
+
+    assert len(history) == 2
+
+    assert history[0]["proof_id"] == proof_id
+    assert history[1]["proof_id"] == proof_id
+
+    assert history[0]["status"] == "ready"
+    assert history[1]["status"] == "ready"
+
+    assert history[0]["overall_confidence"] == "0.8000"
+    assert history[1]["overall_confidence"] == "0.8000"
+
+    assert history[0]["evaluation_reasons"] == ["evaluation_passed"]
+    assert history[1]["evaluation_reasons"] == ["evaluation_passed"]
+
+    assert history[0]["evaluated_at"] <= history[1]["evaluated_at"]
+
+
+def test_get_proof_evaluation_history_returns_empty_list_before_evaluation(
+    client,
+) -> None:
+    proof_id = _create_api_proof(
+        client,
+        subject="Unevaluated API History Applicant",
+    )
+
+    response = client.get(f"/proofs/{proof_id}/evaluations")
+
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+def test_get_proof_evaluation_history_returns_empty_for_missing_proof(
+    client,
+) -> None:
+    from uuid import uuid4
+
+    missing_proof_id = uuid4()
+
+    response = client.get(
+        f"/proofs/{missing_proof_id}/evaluations"
+    )
+
+    assert response.status_code == 200
+    assert response.json() == []
