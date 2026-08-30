@@ -62,8 +62,10 @@ class FinancialClaimRepository:
 
     def list_by_proof(self, proof_id: UUID) -> list[FinancialClaimModel]:
         """List claims belonging to a proof."""
-        statement = select(FinancialClaimModel).where(
-            FinancialClaimModel.proof_id == proof_id
+        statement = (
+            select(FinancialClaimModel)
+            .where(FinancialClaimModel.proof_id == proof_id)
+            .order_by(FinancialClaimModel.id.asc())
         )
         return list(self.session.scalars(statement).all())
 
