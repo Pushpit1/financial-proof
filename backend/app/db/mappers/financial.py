@@ -1,6 +1,6 @@
 """Mappings between financial domain objects and persistence models."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import UUID
 
 from app.db.models.financial import (
@@ -121,6 +121,7 @@ def evidence_link_to_model(
         verification_status=link.verification_status.value,
         confidence=link.confidence.value,
         explanation=link.explanation,
+        created_at=link.created_at,
     )
 
 
@@ -137,6 +138,11 @@ def evidence_link_to_domain(
         ),
         confidence=ConfidenceScore(model.confidence),
         explanation=model.explanation,
+        created_at=(
+            model.created_at.replace(tzinfo=UTC)
+            if model.created_at.tzinfo is None
+            else model.created_at.astimezone(UTC)
+        ),
     )
 
 

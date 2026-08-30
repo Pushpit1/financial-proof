@@ -1248,6 +1248,193 @@ def test_attach_evidence_to_claim_returns_409_for_evidence_id_mismatch(
     assert response.status_code == 409
     assert "evidence_id does not match" in response.json()["detail"]
 
+def test_list_evidence_links_by_evidence_returns_links(client) -> None:
+    from uuid import uuid4
+
+    claim_id = uuid4()
+    evidence_id = uuid4()
+
+    create_response = client.post(
+        "/proofs",
+        json={
+            "subject": "Evidence Links Applicant",
+            "claims": [
+                {
+                    "id": str(claim_id),
+                    "claim_type": "income",
+                    "subject": "Monthly salary",
+                    "confidence": "0.90",
+                }
+            ],
+            "evidence": [
+                {
+                    "id": str(evidence_id),
+                    "evidence_type": "payslip",
+                    "source_name": "Employer Payslip",
+                    "received_at": "2026-08-28",
+                }
+            ],
+            "evidence_links": [],
+        },
+    )
+
+    assert create_response.status_code == 201
+
+    attach_response = client.post(
+        f"/proofs/claims/{claim_id}/evidence/{evidence_id}",
+        json={
+            "claim_id": str(claim_id),
+            "evidence_id": str(evidence_id),
+            "confidence": "0.95",
+            "explanation": "Employer payslip supports salary claim.",
+        },
+    )
+
+    assert attach_response.status_code == 201
+
+    response = client.get(
+        f"/proofs/evidence/{evidence_id}/links"
+    )
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert len(body) == 1
+    assert body[0]["claim_id"] == str(claim_id)
+    assert body[0]["evidence_id"] == str(evidence_id)
+    assert body[0]["verification_status"] == "unverified"
+    assert body[0]["confidence"] == "0.9500"
+    assert body[0]["explanation"] == (
+        "Employer payslip supports salary claim."
+    )
+
+
+def test_list_evidence_links_by_evidence_is_deterministic(
+    client,
+) -> None:
+    from uuid import uuid4
+
+    first_claim_id = uuid4()
+    second_claim_id = uuid4()
+    evidence_id = uuid4()
+
+    create_response = client.post(
+        "/proofs",
+        json={
+            "subject": "Deterministic Evidence Applicant",
+            "claims": [
+                {
+                    "id": str(first_claim_id),
+                    "claim_type": "income",
+                    "subject": "Monthly salary",
+                    "confidence": "0.90",
+                },
+                {
+                    "id": str(second_claim_id),
+                    "claim_type": "income",
+                    "subject": "Annual bonus",
+                    "confidence": "0.80",
+                },
+            ],
+            "evidence": [
+                {
+                    "id": str(evidence_id),
+                    "evidence_type": "payslip",
+                    "source_name": "Employer Payslip",
+                    "received_at": "2026-08-28",
+                }
+            ],
+            "evidence_links": [],
+        },
+    )
+
+    assert create_response.status_code == 201
+
+    first_attach = client.post(
+        f"/proofs/claims/{first_claim_id}/evidence/{evidence_id}",
+        json={
+            "claim_id": str(first_claim_id),
+            "evidence_id": str(evidence_id),
+            "confidence": "0.90",
+            "explanation": "Supports salary.",
+        },
+    )
+
+    second_attach = client.post(
+        f"/proofs/claims/{second_claim_id}/evidence/{evidence_id}",
+        json={
+            "claim_id": str(second_claim_id),
+            "evidence_id": str(evidence_id),
+            "confidence": "0.80",
+            "explanation": "Supports bonus.",
+        },
+    )
+
+    assert first_attach.status_code == 201
+    assert second_attach.status_code == 201
+
+    response = client.get(
+        f"/proofs/evidence/{evidence_id}/links"
+    )
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert len(body) == 2
+    assert body[0]["claim_id"] == str(first_claim_id)
+    assert body[1]["claim_id"] == str(second_claim_id)
+
+
+def test_list_evidence_links_by_evidence_returns_404_for_missing_evidence(
+    client,
+) -> None:
+    from uuid import uuid4
+
+    evidence_id = uuid4()
+
+    response = client.get(
+        f"/proofs/evidence/{evidence_id}/links"
+    )
+
+    assert response.status_code == 404
+    assert "Evidence" in response.json()["detail"]
+
+
+def test_list_evidence_links_by_evidence_returns_empty_list(
+    client,
+) -> None:
+    from uuid import uuid4
+
+    evidence_id = uuid4()
+
+    create_response = client.post(
+        "/proofs",
+        json={
+            "subject": "Unlinked Evidence Applicant",
+            "claims": [],
+            "evidence": [
+                {
+                    "id": str(evidence_id),
+                    "evidence_type": "bank_statement",
+                    "source_name": "Bank",
+                    "received_at": "2026-08-28",
+                }
+            ],
+            "evidence_links": [],
+        },
+    )
+
+    assert create_response.status_code == 201
+
+    response = client.get(
+        f"/proofs/evidence/{evidence_id}/links"
+    )
+
+    assert response.status_code == 200
+    assert response.json() == []
+
 def test_get_proof_evaluation_history(client) -> None:
     proof_id = _create_api_proof(client)
 

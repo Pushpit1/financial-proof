@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
@@ -74,6 +74,7 @@ class EvidenceLink:
         default_factory=lambda: ConfidenceScore(Decimal("0"))
     )
     explanation: str | None = None
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 
 @dataclass(frozen=True)

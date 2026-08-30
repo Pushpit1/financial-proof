@@ -178,9 +178,16 @@ class EvidenceLinkModel(UUIDModel):
         nullable=True,
     )
 
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+    )
+
     def __init__(self, **kwargs: object) -> None:
         kwargs.setdefault("verification_status", "unverified")
         kwargs.setdefault("confidence", Decimal("0"))
+        kwargs.setdefault("created_at", datetime.now(UTC))
         super().__init__(**kwargs)
 
 

@@ -123,7 +123,10 @@ class EvidenceLinkRepository:
         statement = (
             select(EvidenceLinkModel)
             .where(EvidenceLinkModel.evidence_id == evidence_id)
-            .order_by(EvidenceLinkModel.id.asc())
+            .order_by(
+                EvidenceLinkModel.created_at.asc(),
+                EvidenceLinkModel.id.asc(),
+            )
         )
         return list(self.session.scalars(statement).all())
 

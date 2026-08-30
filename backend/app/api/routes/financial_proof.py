@@ -245,6 +245,29 @@ async def get_proof(
     )
 
 
+@router.get(
+    "/evidence/{evidence_id}/links",
+    response_model=list[EvidenceLinkResponse],
+)
+async def list_evidence_links_by_evidence(
+    evidence_id: UUID,
+    service: FinancialProofApplicationService = Depends(  # noqa: B008
+        get_financial_proof_service
+    ),
+) -> list[EvidenceLinkResponse]:
+    """Return evidence links belonging to an evidence record."""
+    evidence = service.get_evidence(evidence_id)
+
+    if evidence is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Evidence {evidence_id} was not found.",
+        )
+
+    links = service.list_evidence_links_by_evidence(evidence_id)
+
+    return [_evidence_link_to_response(link) for link in links]
+
 @router.post(
     "/claims/{claim_id}/evidence/{evidence_id}",
     response_model=EvidenceLinkResponse,
