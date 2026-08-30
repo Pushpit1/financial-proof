@@ -841,3 +841,120 @@ def test_list_evaluation_history_returns_empty_for_unknown_proof() -> None:
     history = service.list_evaluation_history(uuid4())
 
     assert history == []
+
+def test_evaluate_proof_persists_evaluation_snapshot(db) -> None:
+    from app.application.services.financial_proof import (
+        FinancialProofApplicationService,
+    )
+    from app.db.models.financial import ProofEvaluationModel
+
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(db),
+        evaluator=ProofEvaluator(),
+    )
+
+    proof = FinancialProof(subject="Audit Snapshot Applicant")
+    service.create_proof(
+        proof,
+        [
+            make_claim("monthly salary", "0.90"),
+            make_claim("annual bonus", "0.70"),
+        ],
+    )
+
+    result = service.evaluate_proof(proof.id)
+
+    assert result is not None
+
+    record = (
+        db.query(ProofEvaluationModel)
+        .filter(ProofEvaluationModel.proof_id == proof.id)
+        .one()
+    )
+
+    assert record.proof_id == proof.id
+    assert record.status == result.status.value
+    assert record.overall_confidence == Decimal("0.8000")
+    assert record.evaluation_reasons == [
+        reason.value for reason in result.evaluation_reasons
+    ]
+    assert record.evaluated_at is not None
+
+
+def test_evaluation_history_is_append_only(db) -> None:
+    from app.application.services.financial_proof import (
+        FinancialProofApplicationService,
+    )
+    from app.db.models.financial import ProofEvaluationModel
+
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(db),
+        evaluator=ProofEvaluator(),
+    )
+
+    proof = FinancialProof(subject="Append Only Applicant")
+    service.create_proof(
+        proof,
+        [
+            make_claim("monthly salary", "0.90"),
+            make_claim("annual bonus", "0.70"),
+        ],
+    )
+
+    first = service.evaluate_proof(proof.id)
+
+    assert first is not None
+
+    first_record = (
+        db.query(ProofEvaluationModel)
+        .filter(ProofEvaluationModel.proof_id == proof.id)
+        .one()
+    )
+
+    first_id = first_record.id
+    first_timestamp = first_record.evaluated_at
+
+    second = service.evaluate_proof(proof.id)
+
+    assert second is not None
+
+    history = (
+        db.query(ProofEvaluationModel)
+        .filter(ProofEvaluationModel.proof_id == proof.id)
+        .order_by(ProofEvaluationModel.evaluated_at.asc())
+        .all()
+    )
+
+    assert len(history) == 2
+    assert history[0].id == first_id
+    assert history[0].evaluated_at == first_timestamp
+    assert history[0].status == first.status.value
+    assert history[1].status == second.status.value
+    assert history[1].id != history[0].id
+    assert history[1].evaluated_at >= history[0].evaluated_at
+
+
+def test_missing_proof_does_not_create_evaluation_history(db) -> None:
+    from app.application.services.financial_proof import (
+        FinancialProofApplicationService,
+    )
+    from app.db.models.financial import ProofEvaluationModel
+
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(db),
+        evaluator=ProofEvaluator(),
+    )
+
+    missing_id = uuid4()
+
+    result = service.evaluate_proof(missing_id)
+
+    assert result is None
+
+    history = (
+        db.query(ProofEvaluationModel)
+        .filter(ProofEvaluationModel.proof_id == missing_id)
+        .all()
+    )
+
+    assert history == []
