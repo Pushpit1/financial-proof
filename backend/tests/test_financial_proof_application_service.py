@@ -833,6 +833,57 @@ def test_evaluate_proof_appends_history_without_overwriting_previous_evaluation(
     assert history[0].evaluated_at <= history[1].evaluated_at
 
 
+def test_list_evidence_links_by_evidence_scopes_to_requested_evidence() -> None:
+    session = create_session()
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(session)
+    )
+
+    proof = FinancialProofModel(subject="Applicant")
+    session.add(proof)
+    session.flush()
+
+    claim = FinancialClaimModel(
+        proof_id=proof.id,
+        claim_type="income",
+        subject="salary",
+    )
+    session.add(claim)
+    session.flush()
+
+    evidence_one = EvidenceModel(
+        evidence_type="document",
+        source_name="Document 1",
+        received_at=date.today(),
+        source_reference="document-1",
+    )
+    evidence_two = EvidenceModel(
+        evidence_type="document",
+        source_name="Document 2",
+        received_at=date.today(),
+        source_reference="document-2",
+    )
+    session.add(evidence_one)
+    session.add(evidence_two)
+    session.flush()
+
+    matching_link = EvidenceLinkModel(
+        claim_id=claim.id,
+        evidence_id=evidence_one.id,
+    )
+    unrelated_link = EvidenceLinkModel(
+        claim_id=claim.id,
+        evidence_id=evidence_two.id,
+    )
+    session.add(unrelated_link)
+    session.add(matching_link)
+    session.flush()
+
+    result = service.list_evidence_links_by_evidence(evidence_one.id)
+
+    assert [link.id for link in result] == [matching_link.id]
+    assert result[0].evidence_id == evidence_one.id
+
 def test_list_evaluation_history_returns_empty_for_unknown_proof() -> None:
     session = create_session()
     service = FinancialProofApplicationService(
