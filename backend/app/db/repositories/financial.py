@@ -111,8 +111,10 @@ class EvidenceLinkRepository:
 
     def list_by_claim(self, claim_id: UUID) -> list[EvidenceLinkModel]:
         """List evidence links belonging to a claim."""
-        statement = select(EvidenceLinkModel).where(
-            EvidenceLinkModel.claim_id == claim_id
+        statement = (
+            select(EvidenceLinkModel)
+            .where(EvidenceLinkModel.claim_id == claim_id)
+            .order_by(EvidenceLinkModel.id.asc())
         )
         return list(self.session.scalars(statement).all())
 
