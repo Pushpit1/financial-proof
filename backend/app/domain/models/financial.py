@@ -21,6 +21,7 @@ from app.domain.value_objects.financial import (
     ConfidenceScore,
     ContractField,
     ContractRule,
+    FinancialConstraint,
     FinancialPeriod,
     Money,
 )
@@ -124,6 +125,9 @@ class FinancialContract:
     outputs: tuple[ContractField, ...] = field(
         default_factory=tuple
     )
+    financial_constraints: tuple[FinancialConstraint, ...] = field(
+        default_factory=tuple
+    )
 
     def __post_init__(self) -> None:
         """Validate contract invariants."""
@@ -158,6 +162,8 @@ class FinancialContract:
         self._validate_fields(self.inputs, "input")
         self._validate_fields(self.outputs, "output")
 
+        self._validate_financial_constraints()
+
     @staticmethod
     def _validate_rule_types(
         rules: tuple[ContractRule, ...],
@@ -185,6 +191,35 @@ class FinancialContract:
                 )
 
             names.add(contract_field.name)
+
+    def _validate_financial_constraints(self) -> None:
+        fields = {contract_field.name for contract_field in self.inputs}
+        fields.update(
+            contract_field.name for contract_field in self.outputs
+        )
+
+        constraint_names: set[tuple[str, str]] = set()
+
+        for constraint in self.financial_constraints:
+            key = (
+                constraint.field,
+                constraint.operator.value,
+            )
+
+            if key in constraint_names:
+                raise ValueError(
+                    "Duplicate financial constraint for field "
+                    f"'{constraint.field}' and operator "
+                    f"'{constraint.operator.value}'."
+                )
+
+            constraint_names.add(key)
+
+            if fields and constraint.field not in fields:
+                raise ValueError(
+                    "Financial constraint field must reference a "
+                    "declared contract field."
+                )
 
 
 @dataclass

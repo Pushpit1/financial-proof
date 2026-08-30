@@ -16,8 +16,15 @@ class Money:
         if self.amount < 0:
             raise ValueError("Money amount cannot be negative.")
 
-        if len(self.currency) != 3:
+        normalized_currency = self.currency.upper()
+
+        if len(normalized_currency) != 3:
             raise ValueError("Currency must be a 3-letter ISO code.")
+
+        if not normalized_currency.isalpha():
+            raise ValueError("Currency must contain only letters.")
+
+        object.__setattr__(self, "currency", normalized_currency)
 
 
 @dataclass(frozen=True)
@@ -135,4 +142,57 @@ class ContractField:
         if self.description is not None and not self.description.strip():
             raise ValueError(
                 "Contract field description cannot be empty."
+            )
+
+
+@dataclass(frozen=True)
+class FinancialConstraint:
+    """Immutable financial-specific constraint declared by a contract."""
+
+    field: str
+    operator: ContractOperator
+    value: Decimal
+    currency: str | None = None
+    id: UUID = field(default_factory=uuid4)
+
+    def __post_init__(self) -> None:
+        if not self.field.strip():
+            raise ValueError(
+                "Financial constraint field cannot be empty."
+            )
+
+        if self.field != self.field.strip():
+            raise ValueError(
+                "Financial constraint field cannot contain surrounding whitespace."
+            )
+
+        if self.operator in (
+            ContractOperator.EXISTS,
+            ContractOperator.NOT_EXISTS,
+            ContractOperator.IN,
+            ContractOperator.NOT_IN,
+        ):
+            raise ValueError(
+                "Financial constraints require a numeric comparison operator."
+            )
+
+        if self.currency is not None:
+            normalized_currency = self.currency.upper()
+
+            if len(normalized_currency) != 3:
+                raise ValueError(
+                    "Financial constraint currency must be a "
+                    "3-letter ISO code."
+                )
+
+            if not normalized_currency.isalpha():
+                raise ValueError(
+                    "Financial constraint currency must contain "
+                    "only letters."
+                )
+
+            object.__setattr__(
+                self,
+                "currency",
+                normalized_currency,
             )
