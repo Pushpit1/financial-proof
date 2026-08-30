@@ -31,8 +31,10 @@ class FinancialProofRepository:
 
     def list_by_subject(self, subject: str) -> list[FinancialProofModel]:
         """List financial proofs by subject."""
-        statement = select(FinancialProofModel).where(
-            FinancialProofModel.subject == subject
+        statement = (
+            select(FinancialProofModel)
+            .where(FinancialProofModel.subject == subject)
+            .order_by(FinancialProofModel.id.asc())
         )
         return list(self.session.scalars(statement).all())
 
