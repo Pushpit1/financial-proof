@@ -7,26 +7,16 @@ from uuid import UUID, uuid4
 from app.domain.enums.financial import (
     ClaimType,
     ConfidenceLevel,
-    ContractAuthorizationAction,
     ContractIdempotencyMode,
-    ContractOperator,
     ContractRuleType,
-    ContractState,
-    ContractTimeRelation,
-    ContractTransitionTrigger,
     EvidenceStatus,
     EvidenceType,
     ProofStatus,
     VerificationStatus,
 )
-
-if TYPE_CHECKING:
-    from app.domain.services.proof_evaluator import ProofEvaluation
-
 from app.domain.value_objects.financial import (
     ConfidenceScore,
     ContractAuthorization,
-    ContractCondition,
     ContractField,
     ContractIdempotencyPolicy,
     ContractRule,
@@ -36,6 +26,9 @@ from app.domain.value_objects.financial import (
     FinancialPeriod,
     Money,
 )
+
+if TYPE_CHECKING:
+    from app.domain.services.proof_evaluator import ProofEvaluation
 
 
 @dataclass
