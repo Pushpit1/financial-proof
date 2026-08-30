@@ -250,6 +250,42 @@ def test_proof_repository_returns_empty_list_for_unknown_subject() -> None:
     assert result == []
 
 
+def test_evidence_link_repository_orders_same_claim_by_id() -> None:
+    session = create_session()
+    repository = EvidenceLinkRepository(session)
+
+    claim_id = uuid4()
+    first_evidence_id = uuid4()
+    second_evidence_id = uuid4()
+
+    first_id = uuid4()
+    second_id = uuid4()
+
+    if first_id > second_id:
+        first_id, second_id = second_id, first_id
+
+    first = EvidenceLinkModel(
+        id=first_id,
+        claim_id=claim_id,
+        evidence_id=first_evidence_id,
+    )
+    second = EvidenceLinkModel(
+        id=second_id,
+        claim_id=claim_id,
+        evidence_id=second_evidence_id,
+    )
+
+    repository.add(second)
+    repository.add(first)
+    session.flush()
+
+    result = repository.list_by_claim(claim_id)
+
+    assert [link.id for link in result] == [
+        first_id,
+        second_id,
+    ]
+
 def test_evaluation_repository_lists_history_in_chronological_order() -> None:
     session = create_session()
     repository = ProofEvaluationRepository(session)
