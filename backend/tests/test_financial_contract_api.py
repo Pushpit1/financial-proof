@@ -130,3 +130,35 @@ def test_create_contract_rejects_invalid_claim_ratio(client) -> None:
     )
 
     assert response.status_code == 422
+
+def test_create_contract_rejects_duplicate_version(client) -> None:
+    payload = {
+        "name": "API Duplicate Contract",
+        "version": 1,
+        "minimum_confidence": "0.80",
+        "minimum_supported_claim_ratio": "0.90",
+        "required_claim_types": ["income"],
+    }
+
+    first_response = client.post(
+        "/contracts",
+        json=payload,
+    )
+
+    assert first_response.status_code == 201
+
+    duplicate_response = client.post(
+        "/contracts",
+        json={
+            **payload,
+            "minimum_confidence": "0.95",
+            "minimum_supported_claim_ratio": "0.99",
+            "required_claim_types": ["employment"],
+        },
+    )
+
+    assert duplicate_response.status_code == 409
+
+    body = duplicate_response.json()
+
+    assert "detail" in body
