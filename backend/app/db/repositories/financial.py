@@ -87,8 +87,10 @@ class EvidenceRepository:
 
     def list_by_proof(self, proof_id: UUID) -> list[EvidenceModel]:
         """List evidence belonging to a proof."""
-        statement = select(EvidenceModel).where(
-            EvidenceModel.proof_id == proof_id
+        statement = (
+            select(EvidenceModel)
+            .where(EvidenceModel.proof_id == proof_id)
+            .order_by(EvidenceModel.id.asc())
         )
         return list(self.session.scalars(statement).all())
 
