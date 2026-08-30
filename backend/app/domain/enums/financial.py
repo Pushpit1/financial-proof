@@ -69,3 +69,9 @@ class EvaluationReason(StrEnum):
         "supported_claim_ratio_below_threshold"
     )
     EVALUATION_PASSED = "evaluation_passed"
+
+
+class ContractRuleType(StrEnum):
+    PRECONDITION = "precondition"
+    INVARIANT = "invariant"
+    POSTCONDITION = "postcondition"

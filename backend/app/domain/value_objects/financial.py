@@ -1,6 +1,9 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
+from uuid import UUID, uuid4
+
+from app.domain.enums.financial import ContractRuleType
 
 
 @dataclass(frozen=True)
@@ -33,3 +36,22 @@ class ConfidenceScore:
     def __post_init__(self) -> None:
         if not Decimal("0") <= self.value <= Decimal("1"):
             raise ValueError("Confidence score must be between 0 and 1.")
+
+
+@dataclass(frozen=True)
+class ContractRule:
+    """Immutable rule declared by a financial contract."""
+
+    name: str
+    expression: str
+    rule_type: ContractRuleType
+    id: UUID = field(default_factory=uuid4)
+
+    def __post_init__(self) -> None:
+        if not self.name.strip():
+            raise ValueError("Contract rule name cannot be empty.")
+
+        if not self.expression.strip():
+            raise ValueError(
+                "Contract rule expression cannot be empty."
+            )

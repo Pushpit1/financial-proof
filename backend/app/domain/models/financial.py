@@ -7,6 +7,7 @@ from uuid import UUID, uuid4
 from app.domain.enums.financial import (
     ClaimType,
     ConfidenceLevel,
+    ContractRuleType,
     EvidenceStatus,
     EvidenceType,
     ProofStatus,
@@ -18,6 +19,7 @@ if TYPE_CHECKING:
 
 from app.domain.value_objects.financial import (
     ConfidenceScore,
+    ContractRule,
     FinancialPeriod,
     Money,
 )
@@ -41,7 +43,8 @@ class Evidence:
 @dataclass
 class FinancialClaim:
     """
-    A normalized financial assertion derived from one or more evidence items.
+    A normalized financial assertion derived from one or more evidence
+    items.
     """
 
     claim_type: ClaimType
@@ -74,7 +77,9 @@ class EvidenceLink:
         default_factory=lambda: ConfidenceScore(Decimal("0"))
     )
     explanation: str | None = None
-    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    created_at: datetime = field(
+        default_factory=lambda: datetime.now(UTC)
+    )
 
 
 @dataclass(frozen=True)
@@ -103,6 +108,15 @@ class FinancialContract:
     required_claim_types: tuple[ClaimType, ...] = field(
         default_factory=tuple
     )
+    preconditions: tuple[ContractRule, ...] = field(
+        default_factory=tuple
+    )
+    invariants: tuple[ContractRule, ...] = field(
+        default_factory=tuple
+    )
+    postconditions: tuple[ContractRule, ...] = field(
+        default_factory=tuple
+    )
 
     def __post_init__(self) -> None:
         """Validate contract invariants."""
@@ -120,6 +134,31 @@ class FinancialContract:
             raise ValueError(
                 "Minimum supported claim ratio must be between 0 and 1."
             )
+
+        self._validate_rule_types(
+            self.preconditions,
+            ContractRuleType.PRECONDITION,
+        )
+        self._validate_rule_types(
+            self.invariants,
+            ContractRuleType.INVARIANT,
+        )
+        self._validate_rule_types(
+            self.postconditions,
+            ContractRuleType.POSTCONDITION,
+        )
+
+    @staticmethod
+    def _validate_rule_types(
+        rules: tuple[ContractRule, ...],
+        expected_type: ContractRuleType,
+    ) -> None:
+        for rule in rules:
+            if rule.rule_type != expected_type:
+                raise ValueError(
+                    "Contract rule must have type "
+                    f"'{expected_type.value}'."
+                )
 
 
 @dataclass
