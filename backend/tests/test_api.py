@@ -822,3 +822,62 @@ def test_list_proof_evaluations_returns_empty_history(
 
     assert history_response.status_code == 200
     assert history_response.json() == []
+
+
+def test_list_proofs_by_subject_returns_matching_proofs(
+    client: TestClient,
+) -> None:
+    first = client.post(
+        "/proofs",
+        json={"subject": "Applicant"},
+    )
+    second = client.post(
+        "/proofs",
+        json={"subject": "Applicant"},
+    )
+    other = client.post(
+        "/proofs",
+        json={"subject": "Other Applicant"},
+    )
+
+    assert first.status_code == 201
+    assert second.status_code == 201
+    assert other.status_code == 201
+
+    first_id = first.json()["proof"]["id"]
+    second_id = second.json()["proof"]["id"]
+    other_id = other.json()["proof"]["id"]
+
+    response = client.get(
+        "/proofs",
+        params={"subject": "Applicant"},
+    )
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert len(body) == 2
+    assert {proof["id"] for proof in body} == {
+        first_id,
+        second_id,
+    }
+    assert other_id not in {proof["id"] for proof in body}
+
+    for proof in body:
+        assert proof["subject"] == "Applicant"
+        assert proof["status"] == "draft"
+        assert proof["overall_confidence"] == "0.0000"
+        assert proof["evaluation_reasons"] == []
+
+
+def test_list_proofs_returns_empty_for_unknown_subject(
+    client: TestClient,
+) -> None:
+    response = client.get(
+        "/proofs",
+        params={"subject": "Unknown Applicant"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == []

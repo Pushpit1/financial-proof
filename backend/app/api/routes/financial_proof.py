@@ -30,6 +30,25 @@ from app.schemas.financial_proof import (
 router = APIRouter(prefix="/proofs", tags=["financial-proof"])
 
 
+@router.get(
+    "",
+    response_model=list[FinancialProofResponse],
+)
+async def list_proofs(
+    subject: str,
+    service: FinancialProofApplicationService = Depends(  # noqa: B008
+        get_financial_proof_service
+    ),
+) -> list[FinancialProofResponse]:
+    """List financial proofs belonging to a subject."""
+    proofs = service.list_proofs(subject)
+
+    return [
+        _proof_to_response(proof)
+        for proof in proofs
+    ]
+
+
 def _evaluation_to_response(
     evaluation,
 ) -> ProofEvaluationResponse:
