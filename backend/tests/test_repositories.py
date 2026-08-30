@@ -198,6 +198,36 @@ def test_proof_repository_add_get_and_list_by_subject() -> None:
     assert proofs[0].subject == "Applicant"
 
 
+def test_proof_repository_lists_subject_results_deterministically() -> None:
+    session = create_session()
+    repository = FinancialProofRepository(session)
+
+    first_id = uuid4()
+    second_id = uuid4()
+
+    if first_id > second_id:
+        first_id, second_id = second_id, first_id
+
+    first = FinancialProofModel(
+        id=first_id,
+        subject="Applicant",
+    )
+    second = FinancialProofModel(
+        id=second_id,
+        subject="Applicant",
+    )
+
+    repository.add(second)
+    repository.add(first)
+    session.flush()
+
+    result = repository.list_by_subject("Applicant")
+
+    assert [proof.id for proof in result] == [
+        first_id,
+        second_id,
+    ]
+
 def test_proof_repository_returns_none_for_missing_id() -> None:
     session = create_session()
     repository = FinancialProofRepository(session)
