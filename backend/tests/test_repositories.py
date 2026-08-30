@@ -286,6 +286,37 @@ def test_evidence_link_repository_orders_same_claim_by_id() -> None:
         second_id,
     ]
 
+def test_evidence_link_repository_lists_only_matching_evidence() -> None:
+    session = create_session()
+    repository = EvidenceLinkRepository(session)
+
+    claim_id = uuid4()
+    evidence_one = uuid4()
+    evidence_two = uuid4()
+
+    link_one = EvidenceLinkModel(
+        claim_id=claim_id,
+        evidence_id=evidence_one,
+    )
+    link_two = EvidenceLinkModel(
+        claim_id=claim_id,
+        evidence_id=evidence_two,
+    )
+    unrelated = EvidenceLinkModel(
+        claim_id=claim_id,
+        evidence_id=uuid4(),
+    )
+
+    repository.add(unrelated)
+    repository.add(link_two)
+    repository.add(link_one)
+    session.flush()
+
+    result = repository.list_by_evidence(evidence_one)
+
+    assert [link.id for link in result] == [link_one.id]
+    assert result[0].evidence_id == evidence_one
+
 def test_evaluation_repository_lists_history_in_chronological_order() -> None:
     session = create_session()
     repository = ProofEvaluationRepository(session)
