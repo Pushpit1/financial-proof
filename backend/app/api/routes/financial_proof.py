@@ -18,6 +18,7 @@ from app.domain.models.financial import (
 )
 from app.domain.value_objects.financial import ConfidenceScore, Money
 from app.schemas.financial_proof import (
+    EvidenceLinkCreateRequest,
     EvidenceLinkResponse,
     EvidenceResponse,
     FinancialClaimResponse,
@@ -243,6 +244,48 @@ async def get_proof(
         ],
     )
 
+
+@router.post(
+    "/claims/{claim_id}/evidence/{evidence_id}",
+    response_model=EvidenceLinkResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def attach_evidence_to_claim(
+    claim_id: UUID,
+    evidence_id: UUID,
+    request: EvidenceLinkCreateRequest,
+    service: FinancialProofApplicationService = Depends(  # noqa: B008
+        get_financial_proof_service
+    ),
+) -> EvidenceLinkResponse:
+    """Attach existing evidence to an existing financial claim."""
+    link = EvidenceLink(
+        id=request.id or uuid4(),
+        claim_id=claim_id,
+        evidence_id=evidence_id,
+        verification_status=request.verification_status,
+        confidence=ConfidenceScore(request.confidence),
+        explanation=request.explanation,
+    )
+
+    try:
+        attached = service.attach_evidence_to_claim(
+            claim_id=claim_id,
+            evidence_id=evidence_id,
+            link=link,
+        )
+    except NotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
+
+    return _evidence_link_to_response(attached)
 
 @router.get(
     "/{proof_id}/evaluations",

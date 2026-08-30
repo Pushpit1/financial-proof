@@ -965,6 +965,60 @@ def _create_api_proof(client, subject: str = "API History Applicant") -> str:
     return response.json()["proof"]["id"]
 
 
+def test_attach_evidence_to_claim_returns_created_link(client) -> None:
+    from uuid import uuid4
+
+    claim_id = uuid4()
+    evidence_id = uuid4()
+
+    create_response = client.post(
+        "/proofs",
+        json={
+            "subject": "Attach Evidence Applicant",
+            "claims": [
+                {
+                    "id": str(claim_id),
+                    "claim_type": "income",
+                    "subject": "Monthly salary",
+                    "confidence": "0.90",
+                }
+            ],
+            "evidence": [
+                {
+                    "id": str(evidence_id),
+                    "evidence_type": "payslip",
+                    "source_name": "Employer Payslip",
+                    "received_at": "2026-08-28",
+                }
+            ],
+            "evidence_links": [],
+        },
+    )
+
+    assert create_response.status_code == 201
+
+    response = client.post(
+        f"/proofs/claims/{claim_id}/evidence/{evidence_id}",
+        json={
+            "claim_id": str(claim_id),
+            "evidence_id": str(evidence_id),
+            "confidence": "0.95",
+            "explanation": "Employer payslip supports salary claim.",
+        },
+    )
+
+    assert response.status_code == 201
+
+    body = response.json()
+
+    assert body["claim_id"] == str(claim_id)
+    assert body["evidence_id"] == str(evidence_id)
+    assert body["verification_status"] == "unverified"
+    assert body["confidence"] == "0.95"
+    assert body["explanation"] == (
+        "Employer payslip supports salary claim."
+    )
+
 def test_get_proof_evaluation_history(client) -> None:
     proof_id = _create_api_proof(client)
 
