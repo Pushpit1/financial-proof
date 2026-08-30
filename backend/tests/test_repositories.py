@@ -1,6 +1,7 @@
 """Tests for financial repositories."""
 
-from datetime import date
+from datetime import UTC, date, datetime
+from decimal import Decimal
 from uuid import uuid4
 
 from sqlalchemy import create_engine
@@ -12,12 +13,14 @@ from app.db.models.financial import (
     EvidenceModel,
     FinancialClaimModel,
     FinancialProofModel,
+    ProofEvaluationModel,
 )
 from app.db.repositories.financial import (
     EvidenceLinkRepository,
     EvidenceRepository,
     FinancialClaimRepository,
     FinancialProofRepository,
+    ProofEvaluationRepository,
 )
 
 
@@ -216,6 +219,47 @@ def test_proof_repository_returns_empty_list_for_unknown_subject() -> None:
 
     assert result == []
 
+
+def test_evaluation_repository_lists_history_in_chronological_order() -> None:
+    session = create_session()
+    repository = ProofEvaluationRepository(session)
+
+    proof_id = uuid4()
+
+    older = ProofEvaluationModel(
+        proof_id=proof_id,
+        status="ready",
+        overall_confidence=Decimal("0.8000"),
+        evaluation_reasons=["evaluation_passed"],
+        evaluated_at=datetime(2026, 1, 1, tzinfo=UTC),
+    )
+    newer = ProofEvaluationModel(
+        proof_id=proof_id,
+        status="ready",
+        overall_confidence=Decimal("0.8000"),
+        evaluation_reasons=["evaluation_passed"],
+        evaluated_at=datetime(2026, 1, 2, tzinfo=UTC),
+    )
+
+    repository.add(newer)
+    repository.add(older)
+    session.flush()
+
+    result = repository.list_by_proof(proof_id)
+
+    assert [evaluation.id for evaluation in result] == [
+        older.id,
+        newer.id,
+    ]
+
+
+def test_evaluation_repository_returns_empty_for_unknown_proof() -> None:
+    session = create_session()
+    repository = ProofEvaluationRepository(session)
+
+    result = repository.list_by_proof(uuid4())
+
+    assert result == []
 
 def test_repository_changes_can_be_rolled_back() -> None:
     session = create_session()
