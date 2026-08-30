@@ -57,7 +57,7 @@ def _evaluation_to_response(
         id=evaluation.id,
         proof_id=evaluation.proof_id,
         status=evaluation.status,
-        overall_confidence=evaluation.overall_confidence,
+        overall_confidence=evaluation.overall_confidence.value,
         evaluation_reasons=evaluation.evaluation_reasons,
         evaluated_at=evaluation.evaluated_at,
     )

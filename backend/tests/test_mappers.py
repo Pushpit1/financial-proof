@@ -2,17 +2,21 @@
 
 from datetime import date
 from decimal import Decimal
+from uuid import UUID
 
 from app.db.mappers.financial import (
     claim_to_domain,
     claim_to_model,
     evidence_to_domain,
     evidence_to_model,
+    proof_evaluation_to_domain,
+    proof_evaluation_to_model,
     proof_to_domain,
     proof_to_model,
 )
 from app.domain.enums.financial import (
     ClaimType,
+    EvaluationReason,
     EvidenceStatus,
     EvidenceType,
     ProofStatus,
@@ -22,7 +26,9 @@ from app.domain.models.financial import (
     Evidence,
     FinancialClaim,
     FinancialProof,
+    ProofEvaluationHistory,
 )
+from app.domain.services.proof_evaluator import ProofEvaluation
 from app.domain.value_objects.financial import (
     ConfidenceScore,
     Money,
@@ -98,3 +104,38 @@ def test_proof_mapping_round_trip() -> None:
     assert model.id == proof.id
     assert model.status == "ready"
     assert restored == proof
+
+def test_proof_evaluation_history_mapping_round_trip() -> None:
+    evaluation = ProofEvaluation(
+        status=ProofStatus.READY,
+        overall_confidence=ConfidenceScore(
+            Decimal("0.85")
+        ),
+        reasons=(
+            EvaluationReason.EVALUATION_PASSED,
+        ),
+    )
+
+    proof_id = UUID("11111111-1111-1111-1111-111111111111")
+
+    model = proof_evaluation_to_model(
+        evaluation,
+        proof_id=proof_id,
+    )
+    restored = proof_evaluation_to_domain(model)
+
+    assert model.proof_id == proof_id
+    assert model.status == "ready"
+    assert model.overall_confidence == Decimal("0.8500")
+    assert model.evaluation_reasons == ["evaluation_passed"]
+
+    assert isinstance(restored, ProofEvaluationHistory)
+    assert restored.proof_id == proof_id
+    assert restored.status == ProofStatus.READY
+    assert restored.overall_confidence == ConfidenceScore(
+        Decimal("0.85")
+    )
+    assert restored.evaluation_reasons == (
+        "evaluation_passed",
+    )
+    assert restored.evaluated_at == model.evaluated_at

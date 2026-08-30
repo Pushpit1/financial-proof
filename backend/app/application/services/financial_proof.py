@@ -11,6 +11,7 @@ from app.db.mappers.financial import (
     evidence_link_to_model,
     evidence_to_domain,
     evidence_to_model,
+    proof_evaluation_to_domain,
     proof_evaluation_to_model,
     proof_to_domain,
     proof_to_model,
@@ -21,6 +22,7 @@ from app.domain.models.financial import (
     EvidenceLink,
     FinancialClaim,
     FinancialProof,
+    ProofEvaluationHistory,
 )
 from app.domain.services.proof_evaluator import ProofEvaluator
 
@@ -174,9 +176,14 @@ class FinancialProofApplicationService:
     def list_evaluation_history(
         self,
         proof_id: UUID,
-    ) -> list:
+    ) -> list[ProofEvaluationHistory]:
         """Return persisted evaluation history for a proof."""
-        return self.unit_of_work.evaluations.list_by_proof(proof_id)
+        models = self.unit_of_work.evaluations.list_by_proof(proof_id)
+
+        return [
+            proof_evaluation_to_domain(model)
+            for model in models
+        ]
 
     def get_proof(self, proof_id: UUID) -> FinancialProof | None:
         """Retrieve a proof through the repository boundary."""

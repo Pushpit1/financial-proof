@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
@@ -74,6 +74,18 @@ class EvidenceLink:
         default_factory=lambda: ConfidenceScore(Decimal("0"))
     )
     explanation: str | None = None
+
+
+@dataclass(frozen=True)
+class ProofEvaluationHistory:
+    """Immutable persisted record of a financial proof evaluation."""
+
+    id: UUID
+    proof_id: UUID
+    status: ProofStatus
+    overall_confidence: ConfidenceScore
+    evaluation_reasons: tuple[str, ...]
+    evaluated_at: datetime
 
 
 @dataclass

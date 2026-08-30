@@ -23,6 +23,7 @@ from app.domain.models.financial import (
     EvidenceLink,
     FinancialClaim,
     FinancialProof,
+    ProofEvaluationHistory,
 )
 from app.domain.services.proof_evaluator import ProofEvaluation
 from app.domain.value_objects.financial import ConfidenceScore, Money
@@ -168,6 +169,22 @@ def proof_to_domain(model: FinancialProofModel) -> FinancialProof:
     )
 
 
+def proof_evaluation_to_domain(
+    model: ProofEvaluationModel,
+) -> ProofEvaluationHistory:
+    """Convert a persisted evaluation into a domain history record."""
+    return ProofEvaluationHistory(
+        id=model.id,
+        proof_id=model.proof_id,
+        status=ProofStatus(model.status),
+        overall_confidence=ConfidenceScore(
+            model.overall_confidence
+        ),
+        evaluation_reasons=tuple(model.evaluation_reasons),
+        evaluated_at=model.evaluated_at,
+    )
+
+
 def proof_evaluation_to_model(
     evaluation: ProofEvaluation,
     proof_id: UUID,
@@ -183,4 +200,3 @@ def proof_evaluation_to_model(
         ],
         evaluated_at=evaluated_at,
     )
-
