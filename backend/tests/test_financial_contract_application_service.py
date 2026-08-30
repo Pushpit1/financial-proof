@@ -350,3 +350,79 @@ def test_create_contract_rejects_invalid_version(db) -> None:
                 required_claim_types=(ClaimType.INCOME,),
             )
         )
+
+def test_contract_version_history_preserves_previous_versions(
+    db,
+) -> None:
+    service = create_service(db)
+
+    version_one = FinancialContract(
+        name="Historical Contract",
+        version=1,
+        minimum_confidence=ConfidenceScore(
+            Decimal("0.80"),
+        ),
+        minimum_supported_claim_ratio=Decimal("0.90"),
+        required_claim_types=(ClaimType.INCOME,),
+    )
+
+    version_two = FinancialContract(
+        name="Historical Contract",
+        version=2,
+        minimum_confidence=ConfidenceScore(
+            Decimal("0.95"),
+        ),
+        minimum_supported_claim_ratio=Decimal("0.98"),
+        required_claim_types=(
+            ClaimType.INCOME,
+            ClaimType.EMPLOYMENT,
+        ),
+    )
+
+    created_v1 = service.create_contract(version_one)
+    created_v2 = service.create_contract(version_two)
+
+    assert created_v1.id != created_v2.id
+
+    restored_v1 = service.get_contract_version(
+        "Historical Contract",
+        1,
+    )
+    restored_v2 = service.get_contract_version(
+        "Historical Contract",
+        2,
+    )
+
+    assert restored_v1 is not None
+    assert restored_v2 is not None
+
+    assert restored_v1.id == created_v1.id
+    assert restored_v1.version == 1
+    assert restored_v1.minimum_confidence == ConfidenceScore(
+        Decimal("0.80"),
+    )
+    assert restored_v1.minimum_supported_claim_ratio == Decimal("0.9000")
+    assert restored_v1.required_claim_types == (
+        ClaimType.INCOME,
+    )
+
+    assert restored_v2.id == created_v2.id
+    assert restored_v2.version == 2
+    assert restored_v2.minimum_confidence == ConfidenceScore(
+        Decimal("0.95"),
+    )
+    assert restored_v2.minimum_supported_claim_ratio == Decimal("0.9800")
+    assert restored_v2.required_claim_types == (
+        ClaimType.INCOME,
+        ClaimType.EMPLOYMENT,
+    )
+
+    history = service.list_contract_versions(
+        "Historical Contract",
+    )
+
+    assert [contract.version for contract in history] == [1, 2]
+    assert [contract.id for contract in history] == [
+        created_v1.id,
+        created_v2.id,
+    ]
