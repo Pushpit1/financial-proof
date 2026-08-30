@@ -192,3 +192,92 @@ def test_create_contract_rejects_duplicate_version(db) -> None:
     )
     assert restored.minimum_supported_claim_ratio == Decimal("0.9000")
     assert restored.required_claim_types == (ClaimType.INCOME,)
+
+def test_get_contract_by_id_returns_persisted_contract(db) -> None:
+    service = create_service(db)
+
+    contract = FinancialContract(
+        name="ID Resolution Contract",
+        version=7,
+        minimum_confidence=ConfidenceScore(
+            Decimal("0.88"),
+        ),
+        minimum_supported_claim_ratio=Decimal("0.93"),
+        required_claim_types=(ClaimType.INCOME, ClaimType.EMPLOYMENT),
+    )
+
+    created = service.create_contract(contract)
+
+    restored = service.get_contract(created.id)
+
+    assert restored is not None
+    assert restored.id == created.id
+    assert restored.name == "ID Resolution Contract"
+    assert restored.version == 7
+    assert restored.minimum_confidence == ConfidenceScore(
+        Decimal("0.88"),
+    )
+    assert restored.minimum_supported_claim_ratio == Decimal("0.9300")
+    assert restored.required_claim_types == (
+        ClaimType.INCOME,
+        ClaimType.EMPLOYMENT,
+    )
+
+
+def test_get_contract_version_resolves_exact_version(db) -> None:
+    service = create_service(db)
+
+    contract_v1 = FinancialContract(
+        name="Version Resolution Contract",
+        version=1,
+        minimum_confidence=ConfidenceScore(
+            Decimal("0.80"),
+        ),
+        minimum_supported_claim_ratio=Decimal("0.90"),
+        required_claim_types=(ClaimType.INCOME,),
+    )
+
+    contract_v2 = FinancialContract(
+        name="Version Resolution Contract",
+        version=2,
+        minimum_confidence=ConfidenceScore(
+            Decimal("0.95"),
+        ),
+        minimum_supported_claim_ratio=Decimal("0.98"),
+        required_claim_types=(ClaimType.EMPLOYMENT,),
+    )
+
+    created_v1 = service.create_contract(contract_v1)
+    created_v2 = service.create_contract(contract_v2)
+
+    resolved_v1 = service.get_contract_version(
+        "Version Resolution Contract",
+        1,
+    )
+    resolved_v2 = service.get_contract_version(
+        "Version Resolution Contract",
+        2,
+    )
+
+    assert resolved_v1 is not None
+    assert resolved_v2 is not None
+
+    assert resolved_v1.id == created_v1.id
+    assert resolved_v1.version == 1
+    assert resolved_v1.minimum_confidence == ConfidenceScore(
+        Decimal("0.80"),
+    )
+
+    assert resolved_v2.id == created_v2.id
+    assert resolved_v2.version == 2
+    assert resolved_v2.minimum_confidence == ConfidenceScore(
+        Decimal("0.95"),
+    )
+
+
+def test_get_contract_by_id_returns_none_when_missing(db) -> None:
+    from uuid import uuid4
+
+    service = create_service(db)
+
+    assert service.get_contract(uuid4()) is None
