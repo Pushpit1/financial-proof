@@ -139,7 +139,10 @@ class ProofEvaluationRepository:
         statement = (
             select(ProofEvaluationModel)
             .where(ProofEvaluationModel.proof_id == proof_id)
-            .order_by(ProofEvaluationModel.evaluated_at.asc())
+            .order_by(
+                ProofEvaluationModel.evaluated_at.asc(),
+                ProofEvaluationModel.id.asc(),
+            )
         )
         return list(self.session.scalars(statement).all())
 

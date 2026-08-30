@@ -253,6 +253,47 @@ def test_evaluation_repository_lists_history_in_chronological_order() -> None:
     ]
 
 
+def test_evaluation_repository_orders_same_timestamp_by_id() -> None:
+    session = create_session()
+    repository = ProofEvaluationRepository(session)
+
+    proof_id = uuid4()
+    evaluated_at = datetime(2026, 1, 1, tzinfo=UTC)
+
+    first_id = uuid4()
+    second_id = uuid4()
+
+    if first_id > second_id:
+        first_id, second_id = second_id, first_id
+
+    first = ProofEvaluationModel(
+        id=first_id,
+        proof_id=proof_id,
+        status="ready",
+        overall_confidence=Decimal("0.8000"),
+        evaluation_reasons=["evaluation_passed"],
+        evaluated_at=evaluated_at,
+    )
+    second = ProofEvaluationModel(
+        id=second_id,
+        proof_id=proof_id,
+        status="ready",
+        overall_confidence=Decimal("0.8000"),
+        evaluation_reasons=["evaluation_passed"],
+        evaluated_at=evaluated_at,
+    )
+
+    repository.add(second)
+    repository.add(first)
+    session.flush()
+
+    result = repository.list_by_proof(proof_id)
+
+    assert [evaluation.id for evaluation in result] == [
+        first_id,
+        second_id,
+    ]
+
 def test_evaluation_repository_returns_empty_for_unknown_proof() -> None:
     session = create_session()
     repository = ProofEvaluationRepository(session)
