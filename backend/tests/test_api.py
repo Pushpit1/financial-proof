@@ -1019,6 +1019,235 @@ def test_attach_evidence_to_claim_returns_created_link(client) -> None:
         "Employer payslip supports salary claim."
     )
 
+def test_attach_evidence_to_claim_returns_404_for_missing_claim(client) -> None:
+    from uuid import uuid4
+
+    claim_id = uuid4()
+    evidence_id = uuid4()
+
+    create_response = client.post(
+        "/proofs",
+        json={
+            "subject": "Missing Claim Applicant",
+            "claims": [],
+            "evidence": [
+                {
+                    "id": str(evidence_id),
+                    "evidence_type": "payslip",
+                    "source_name": "Employer Payslip",
+                    "received_at": "2026-08-28",
+                }
+            ],
+            "evidence_links": [],
+        },
+    )
+
+    assert create_response.status_code == 201
+
+    response = client.post(
+        f"/proofs/claims/{claim_id}/evidence/{evidence_id}",
+        json={
+            "claim_id": str(claim_id),
+            "evidence_id": str(evidence_id),
+            "confidence": "0.95",
+            "explanation": "Payslip supports salary claim.",
+        },
+    )
+
+    assert response.status_code == 404
+    assert "Financial claim" in response.json()["detail"]
+
+def test_attach_evidence_to_claim_returns_404_for_missing_evidence(client) -> None:
+    from uuid import uuid4
+
+    claim_id = uuid4()
+    evidence_id = uuid4()
+
+    create_response = client.post(
+        "/proofs",
+        json={
+            "subject": "Missing Evidence Applicant",
+            "claims": [
+                {
+                    "id": str(claim_id),
+                    "claim_type": "income",
+                    "subject": "Monthly salary",
+                    "confidence": "0.90",
+                }
+            ],
+            "evidence": [],
+            "evidence_links": [],
+        },
+    )
+
+    assert create_response.status_code == 201
+
+    response = client.post(
+        f"/proofs/claims/{claim_id}/evidence/{evidence_id}",
+        json={
+            "claim_id": str(claim_id),
+            "evidence_id": str(evidence_id),
+            "confidence": "0.95",
+            "explanation": "Missing evidence.",
+        },
+    )
+
+    assert response.status_code == 404
+    assert "Evidence" in response.json()["detail"]
+
+
+def test_attach_evidence_to_claim_returns_409_for_duplicate(client) -> None:
+    from uuid import uuid4
+
+    claim_id = uuid4()
+    evidence_id = uuid4()
+
+    create_response = client.post(
+        "/proofs",
+        json={
+            "subject": "Duplicate Evidence Applicant",
+            "claims": [
+                {
+                    "id": str(claim_id),
+                    "claim_type": "income",
+                    "subject": "Monthly salary",
+                    "confidence": "0.90",
+                }
+            ],
+            "evidence": [
+                {
+                    "id": str(evidence_id),
+                    "evidence_type": "payslip",
+                    "source_name": "Employer Payslip",
+                    "received_at": "2026-08-28",
+                }
+            ],
+            "evidence_links": [],
+        },
+    )
+
+    assert create_response.status_code == 201
+
+    payload = {
+        "claim_id": str(claim_id),
+        "evidence_id": str(evidence_id),
+        "confidence": "0.95",
+        "explanation": "Employer payslip supports salary claim.",
+    }
+
+    first = client.post(
+        f"/proofs/claims/{claim_id}/evidence/{evidence_id}",
+        json=payload,
+    )
+
+    assert first.status_code == 201
+
+    second = client.post(
+        f"/proofs/claims/{claim_id}/evidence/{evidence_id}",
+        json=payload,
+    )
+
+    assert second.status_code == 409
+    assert "already linked" in second.json()["detail"]
+
+
+def test_attach_evidence_to_claim_returns_409_for_claim_id_mismatch(
+    client,
+) -> None:
+    from uuid import uuid4
+
+    claim_id = uuid4()
+    wrong_claim_id = uuid4()
+    evidence_id = uuid4()
+
+    create_response = client.post(
+        "/proofs",
+        json={
+            "subject": "Claim Mismatch Applicant",
+            "claims": [
+                {
+                    "id": str(claim_id),
+                    "claim_type": "income",
+                    "subject": "Monthly salary",
+                    "confidence": "0.90",
+                }
+            ],
+            "evidence": [
+                {
+                    "id": str(evidence_id),
+                    "evidence_type": "payslip",
+                    "source_name": "Employer Payslip",
+                    "received_at": "2026-08-28",
+                }
+            ],
+            "evidence_links": [],
+        },
+    )
+
+    assert create_response.status_code == 201
+
+    response = client.post(
+        f"/proofs/claims/{claim_id}/evidence/{evidence_id}",
+        json={
+            "claim_id": str(wrong_claim_id),
+            "evidence_id": str(evidence_id),
+            "confidence": "0.95",
+            "explanation": "Claim ID mismatch.",
+        },
+    )
+
+    assert response.status_code == 409
+    assert "claim_id does not match" in response.json()["detail"]
+
+
+def test_attach_evidence_to_claim_returns_409_for_evidence_id_mismatch(
+    client,
+) -> None:
+    from uuid import uuid4
+
+    claim_id = uuid4()
+    evidence_id = uuid4()
+    wrong_evidence_id = uuid4()
+
+    create_response = client.post(
+        "/proofs",
+        json={
+            "subject": "Evidence Mismatch Applicant",
+            "claims": [
+                {
+                    "id": str(claim_id),
+                    "claim_type": "income",
+                    "subject": "Monthly salary",
+                    "confidence": "0.90",
+                }
+            ],
+            "evidence": [
+                {
+                    "id": str(evidence_id),
+                    "evidence_type": "payslip",
+                    "source_name": "Employer Payslip",
+                    "received_at": "2026-08-28",
+                }
+            ],
+            "evidence_links": [],
+        },
+    )
+
+    assert create_response.status_code == 201
+
+    response = client.post(
+        f"/proofs/claims/{claim_id}/evidence/{evidence_id}",
+        json={
+            "claim_id": str(claim_id),
+            "evidence_id": str(wrong_evidence_id),
+            "confidence": "0.95",
+            "explanation": "Evidence ID mismatch.",
+        },
+    )
+
+    assert response.status_code == 409
+    assert "evidence_id does not match" in response.json()["detail"]
+
 def test_get_proof_evaluation_history(client) -> None:
     proof_id = _create_api_proof(client)
 

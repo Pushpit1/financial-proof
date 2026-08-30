@@ -261,8 +261,8 @@ async def attach_evidence_to_claim(
     """Attach existing evidence to an existing financial claim."""
     link = EvidenceLink(
         id=request.id or uuid4(),
-        claim_id=claim_id,
-        evidence_id=evidence_id,
+        claim_id=request.claim_id,
+        evidence_id=request.evidence_id,
         verification_status=request.verification_status,
         confidence=ConfidenceScore(request.confidence),
         explanation=request.explanation,
