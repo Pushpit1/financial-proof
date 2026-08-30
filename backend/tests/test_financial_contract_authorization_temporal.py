@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
@@ -69,13 +69,13 @@ def test_temporal_rule_supports_between() -> None:
         2026,
         1,
         1,
-        tzinfo=timezone.utc,
+        tzinfo=UTC,
     )
     end = datetime(
         2026,
         12,
         31,
-        tzinfo=timezone.utc,
+        tzinfo=UTC,
     )
 
     rule = ContractTemporalRule(
@@ -96,7 +96,7 @@ def test_temporal_rule_supports_single_boundary() -> None:
         2026,
         1,
         1,
-        tzinfo=timezone.utc,
+        tzinfo=UTC,
     )
 
     rule = ContractTemporalRule(
@@ -117,7 +117,7 @@ def test_temporal_rule_is_immutable() -> None:
             2026,
             1,
             1,
-            tzinfo=timezone.utc,
+            tzinfo=UTC,
         ),
     )
 
@@ -137,7 +137,7 @@ def test_temporal_rule_rejects_empty_field() -> None:
                 2026,
                 1,
                 1,
-                tzinfo=timezone.utc,
+                tzinfo=UTC,
             ),
         )
 
@@ -154,7 +154,7 @@ def test_between_temporal_rule_requires_end() -> None:
                 2026,
                 1,
                 1,
-                tzinfo=timezone.utc,
+                tzinfo=UTC,
             ),
         )
 
@@ -171,13 +171,13 @@ def test_between_temporal_rule_rejects_reversed_range() -> None:
                 2026,
                 12,
                 31,
-                tzinfo=timezone.utc,
+                tzinfo=UTC,
             ),
             end=datetime(
                 2026,
                 1,
                 1,
-                tzinfo=timezone.utc,
+                tzinfo=UTC,
             ),
         )
 
@@ -194,13 +194,13 @@ def test_non_between_temporal_rule_rejects_end() -> None:
                 2026,
                 1,
                 1,
-                tzinfo=timezone.utc,
+                tzinfo=UTC,
             ),
             end=datetime(
                 2026,
                 2,
                 1,
-                tzinfo=timezone.utc,
+                tzinfo=UTC,
             ),
         )
 
@@ -219,7 +219,7 @@ def test_contract_supports_authorization_and_temporal_rules() -> None:
             2026,
             1,
             1,
-            tzinfo=timezone.utc,
+            tzinfo=UTC,
         ),
     )
 

@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -6,6 +6,7 @@ from app.domain.enums.financial import (
     ContractAuthorizationAction,
     ContractIdempotencyMode,
     ContractState,
+    ContractTimeRelation,
     ContractTransitionTrigger,
 )
 from app.domain.models.financial import FinancialContract
@@ -16,7 +17,6 @@ from app.domain.value_objects.financial import (
     ContractStateTransition,
     ContractTemporalRule,
 )
-from app.domain.enums.financial import ContractTimeRelation
 
 
 def test_idempotency_policy_supports_required_mode() -> None:
@@ -133,7 +133,7 @@ def test_contract_supports_idempotency_and_transitions() -> None:
                     2026,
                     1,
                     1,
-                    tzinfo=timezone.utc,
+                    tzinfo=UTC,
                 ),
             ),
         ),
