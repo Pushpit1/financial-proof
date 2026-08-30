@@ -1,6 +1,10 @@
 """Tests for financial contract persistence repository."""
 
+from decimal import Decimal
 from uuid import uuid4
+
+import pytest
+from sqlalchemy.exc import IntegrityError
 
 from app.db.models.financial import FinancialContractModel
 from app.db.repositories.financial import FinancialContractRepository
@@ -97,3 +101,46 @@ def test_list_contract_versions_is_ordered(db) -> None:
     )
 
     assert [contract.version for contract in contracts] == [1, 2]
+
+
+def test_duplicate_contract_version_is_rejected(db) -> None:
+    repository = FinancialContractRepository(db)
+
+    first = FinancialContractModel(
+        id=uuid4(),
+        name="Immutable Contract",
+        version=1,
+        minimum_confidence=0.80,
+        minimum_supported_claim_ratio=0.90,
+        required_claim_types=["income"],
+    )
+
+    second = FinancialContractModel(
+        id=uuid4(),
+        name="Immutable Contract",
+        version=1,
+        minimum_confidence=0.95,
+        minimum_supported_claim_ratio=0.99,
+        required_claim_types=["employment"],
+    )
+
+    repository.add(first)
+    db.commit()
+
+    repository.add(second)
+
+    with pytest.raises(IntegrityError):
+        db.commit()
+
+    db.rollback()
+
+    stored = repository.get_by_name_and_version(
+        "Immutable Contract",
+        1,
+    )
+
+    assert stored is not None
+    assert stored.id == first.id
+    assert stored.minimum_confidence == Decimal("0.8000")
+    assert stored.minimum_supported_claim_ratio == Decimal("0.9000")
+    assert stored.required_claim_types == ["income"]

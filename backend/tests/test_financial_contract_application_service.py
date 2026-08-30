@@ -143,3 +143,52 @@ def test_require_contract_version_raises_when_missing(
         raise AssertionError(
             "Expected missing contract to raise."
         )
+
+def test_create_contract_rejects_duplicate_version(db) -> None:
+    from sqlalchemy.exc import IntegrityError
+
+    service = create_service(db)
+
+    contract = FinancialContract(
+        name="Duplicate Service Contract",
+        version=1,
+        minimum_confidence=ConfidenceScore(
+            Decimal("0.80"),
+        ),
+        minimum_supported_claim_ratio=Decimal("0.90"),
+        required_claim_types=(ClaimType.INCOME,),
+    )
+
+    service.create_contract(contract)
+
+    duplicate = FinancialContract(
+        name="Duplicate Service Contract",
+        version=1,
+        minimum_confidence=ConfidenceScore(
+            Decimal("0.95"),
+        ),
+        minimum_supported_claim_ratio=Decimal("0.99"),
+        required_claim_types=(ClaimType.EMPLOYMENT,),
+    )
+
+    try:
+        service.create_contract(duplicate)
+    except IntegrityError:
+        db.rollback()
+    else:
+        raise AssertionError(
+            "Expected duplicate contract version to raise IntegrityError."
+        )
+
+    restored = service.get_contract_version(
+        "Duplicate Service Contract",
+        1,
+    )
+
+    assert restored is not None
+    assert restored.id == contract.id
+    assert restored.minimum_confidence == ConfidenceScore(
+        Decimal("0.80"),
+    )
+    assert restored.minimum_supported_claim_ratio == Decimal("0.9000")
+    assert restored.required_claim_types == (ClaimType.INCOME,)

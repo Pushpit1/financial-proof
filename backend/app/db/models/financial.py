@@ -13,6 +13,7 @@ from sqlalchemy import (
     Numeric,
     String,
     Text,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -187,6 +188,14 @@ class FinancialContractModel(UUIDModel):
     """Persistence model for immutable financial proof contracts."""
 
     __tablename__ = "financial_contracts"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "name",
+            "version",
+            name="uq_financial_contract_name_version",
+        ),
+    )
 
     name: Mapped[str] = mapped_column(
         String(255),

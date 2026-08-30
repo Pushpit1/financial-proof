@@ -2,14 +2,8 @@
 
 from uuid import uuid4
 
-from fastapi.testclient import TestClient
 
-from app.main import app
-
-client = TestClient(app)
-
-
-def test_create_contract() -> None:
+def test_create_contract(client) -> None:
     response = client.post(
         "/contracts",
         json={
@@ -39,7 +33,7 @@ def test_create_contract() -> None:
     assert body["id"]
 
 
-def test_get_contract_by_id() -> None:
+def test_get_contract_by_id(client) -> None:
     create_response = client.post(
         "/contracts",
         json={
@@ -66,7 +60,7 @@ def test_get_contract_by_id() -> None:
     assert body["version"] == 1
 
 
-def test_get_contract_by_name_and_version() -> None:
+def test_get_contract_by_name_and_version(client) -> None:
     create_response = client.post(
         "/contracts",
         json={
@@ -92,7 +86,7 @@ def test_get_contract_by_name_and_version() -> None:
     assert body["version"] == 2
 
 
-def test_get_contract_returns_404_when_missing() -> None:
+def test_get_contract_returns_404_when_missing(client) -> None:
     contract_id = uuid4()
 
     response = client.get(f"/contracts/{contract_id}")
@@ -100,7 +94,7 @@ def test_get_contract_returns_404_when_missing() -> None:
     assert response.status_code == 404
 
 
-def test_get_contract_version_returns_404_when_missing() -> None:
+def test_get_contract_version_returns_404_when_missing(client) -> None:
     response = client.get(
         "/contracts/Does%20Not%20Exist/99"
     )
@@ -108,7 +102,7 @@ def test_get_contract_version_returns_404_when_missing() -> None:
     assert response.status_code == 404
 
 
-def test_create_contract_rejects_invalid_confidence() -> None:
+def test_create_contract_rejects_invalid_confidence(client) -> None:
     response = client.post(
         "/contracts",
         json={
@@ -123,7 +117,7 @@ def test_create_contract_rejects_invalid_confidence() -> None:
     assert response.status_code == 422
 
 
-def test_create_contract_rejects_invalid_claim_ratio() -> None:
+def test_create_contract_rejects_invalid_claim_ratio(client) -> None:
     response = client.post(
         "/contracts",
         json={
