@@ -173,6 +173,18 @@ class FinancialProofApplicationService:
 
             return proof
 
+    def list_evidence_links_by_evidence(
+        self,
+        evidence_id: UUID,
+    ) -> list[EvidenceLink]:
+        """List evidence links belonging to evidence."""
+        with self.unit_of_work:
+            models = self.unit_of_work.evidence_links.list_by_evidence(
+                evidence_id
+            )
+
+        return [evidence_link_to_domain(model) for model in models]
+
     def list_evaluation_history(
         self,
         proof_id: UUID,
