@@ -756,3 +756,88 @@ def test_service_preserves_injected_evaluator() -> None:
     )
 
     assert service.evaluator is evaluator
+
+def test_evaluate_proof_persists_evaluation_history() -> None:
+    session = create_session()
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(session)
+    )
+
+    proof = FinancialProof(subject="History Applicant")
+    claims = [
+        make_claim("monthly salary", "0.90"),
+        make_claim("annual bonus", "0.70"),
+    ]
+
+    service.create_proof(proof, claims)
+
+    result = service.evaluate_proof(proof.id)
+
+    assert result is not None
+
+    history = service.list_evaluation_history(proof.id)
+
+    assert len(history) == 1
+
+    record = history[0]
+
+    assert record.proof_id == proof.id
+    assert record.status == result.status
+    assert record.overall_confidence == result.overall_confidence
+    assert record.evaluation_reasons == tuple(reason.value for reason in result.evaluation_reasons)
+    assert record.evaluated_at is not None
+
+
+def test_evaluate_proof_appends_history_without_overwriting_previous_evaluation() -> None:
+    session = create_session()
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(session)
+    )
+
+    proof = FinancialProof(subject="History Applicant")
+    claims = [
+        make_claim("monthly salary", "0.90"),
+        make_claim("annual bonus", "0.70"),
+    ]
+
+    service.create_proof(proof, claims)
+
+    first = service.evaluate_proof(proof.id)
+
+    assert first is not None
+
+    second = service.evaluate_proof(proof.id)
+
+    assert second is not None
+
+    history = service.list_evaluation_history(proof.id)
+
+    assert len(history) == 2
+
+    assert history[0].proof_id == proof.id
+    assert history[1].proof_id == proof.id
+
+    assert history[0].status == first.status
+    assert history[0].overall_confidence == first.overall_confidence
+    assert history[0].evaluation_reasons == tuple(
+        reason.value for reason in first.evaluation_reasons
+    )
+
+    assert history[1].status == second.status
+    assert history[1].overall_confidence == second.overall_confidence
+    assert history[1].evaluation_reasons == tuple(
+        reason.value for reason in second.evaluation_reasons
+    )
+
+    assert history[0].evaluated_at <= history[1].evaluated_at
+
+
+def test_list_evaluation_history_returns_empty_for_unknown_proof() -> None:
+    session = create_session()
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(session)
+    )
+
+    history = service.list_evaluation_history(uuid4())
+
+    assert history == []
