@@ -1,5 +1,6 @@
 """Tests for the financial proof application service."""
 
+from dataclasses import FrozenInstanceError
 from datetime import date
 from decimal import Decimal
 from uuid import uuid4
@@ -1020,6 +1021,67 @@ def test_list_evaluation_history_returns_empty_for_missing_proof(
 
     assert history == []
 
+
+def test_list_evaluation_history_returns_empty_for_proof_with_no_evaluations(
+    db,
+) -> None:
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(db),
+        evaluator=ProofEvaluator(),
+    )
+
+    proof = FinancialProof(subject="No Evaluation History Applicant")
+
+    service.create_proof(
+        proof,
+        [
+            make_claim("monthly salary", "0.90"),
+            make_claim("annual bonus", "0.70"),
+        ],
+    )
+
+    history = service.list_evaluation_history(proof.id)
+
+    assert history == []
+
+
+def test_list_evaluation_history_returns_immutable_records(
+    db,
+) -> None:
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(db),
+        evaluator=ProofEvaluator(),
+    )
+
+    proof = FinancialProof(subject="Immutable History Applicant")
+
+    service.create_proof(
+        proof,
+        [
+            make_claim("monthly salary", "0.90"),
+            make_claim("annual bonus", "0.70"),
+        ],
+    )
+
+    evaluation = service.evaluate_proof(proof.id)
+
+    assert evaluation is not None
+
+    history = service.list_evaluation_history(proof.id)
+
+    assert len(history) == 1
+
+    with pytest.raises(FrozenInstanceError):
+        history[0].evaluation_reasons = (
+            "tampered_reason",
+        )
+
+    history_after = service.list_evaluation_history(proof.id)
+
+    assert len(history_after) == 1
+    assert history_after[0].evaluation_reasons == (
+        "evaluation_passed",
+    )
 
 def test_list_evaluation_history_is_scoped_to_requested_proof(
     db,
