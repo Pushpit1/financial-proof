@@ -741,3 +741,84 @@ def test_evaluate_proof_respects_configured_supported_claim_ratio(
 
 
 
+
+def test_list_proof_evaluations_returns_history(
+    client: TestClient,
+) -> None:
+    response = client.post(
+        "/proofs",
+        json={
+            "subject": "Applicant",
+            "claims": [
+                {
+                    "claim_type": "income",
+                    "subject": "Monthly income",
+                    "confidence": "0.90",
+                    "verification_status": "verified",
+                },
+                {
+                    "claim_type": "income",
+                    "subject": "Annual bonus",
+                    "confidence": "0.70",
+                    "verification_status": "verified",
+                },
+            ],
+        },
+    )
+
+    assert response.status_code == 201
+
+    proof_id = response.json()["proof"]["id"]
+
+    first = client.post(f"/proofs/{proof_id}/evaluate")
+    second = client.post(f"/proofs/{proof_id}/evaluate")
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+
+    history_response = client.get(
+        f"/proofs/{proof_id}/evaluations"
+    )
+
+    assert history_response.status_code == 200
+
+    history = history_response.json()
+
+    assert len(history) == 2
+
+    assert history[0]["proof_id"] == proof_id
+    assert history[1]["proof_id"] == proof_id
+
+    assert history[0]["status"] == "ready"
+    assert history[1]["status"] == "ready"
+
+    assert history[0]["overall_confidence"] == "0.8000"
+    assert history[1]["overall_confidence"] == "0.8000"
+
+    assert history[0]["evaluation_reasons"] == ["evaluation_passed"]
+    assert history[1]["evaluation_reasons"] == ["evaluation_passed"]
+
+    assert history[0]["id"] != history[1]["id"]
+
+    assert history[0]["evaluated_at"]
+    assert history[1]["evaluated_at"]
+
+
+def test_list_proof_evaluations_returns_empty_history(
+    client: TestClient,
+) -> None:
+    response = client.post(
+        "/proofs",
+        json={"subject": "Applicant"},
+    )
+
+    assert response.status_code == 201
+
+    proof_id = response.json()["proof"]["id"]
+
+    history_response = client.get(
+        f"/proofs/{proof_id}/evaluations"
+    )
+
+    assert history_response.status_code == 200
+    assert history_response.json() == []

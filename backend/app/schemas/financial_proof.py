@@ -1,6 +1,6 @@
 """API schemas for financial proof resources."""
 
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID
 
@@ -156,3 +156,14 @@ class FinancialProofAggregateResponse(BaseModel):
     claims: list[FinancialClaimResponse]
     evidence: list[EvidenceResponse]
     evidence_links: list[EvidenceLinkResponse]
+
+
+class ProofEvaluationResponse(BaseModel):
+    """API representation of a persisted proof evaluation."""
+
+    id: UUID
+    proof_id: UUID
+    status: str
+    overall_confidence: Decimal
+    evaluation_reasons: list[str] = Field(default_factory=list)
+    evaluated_at: datetime

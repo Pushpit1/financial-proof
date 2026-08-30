@@ -24,9 +24,24 @@ from app.schemas.financial_proof import (
     FinancialProofAggregateResponse,
     FinancialProofCreateRequest,
     FinancialProofResponse,
+    ProofEvaluationResponse,
 )
 
 router = APIRouter(prefix="/proofs", tags=["financial-proof"])
+
+
+def _evaluation_to_response(
+    evaluation,
+) -> ProofEvaluationResponse:
+    """Convert a persisted evaluation into an API response."""
+    return ProofEvaluationResponse(
+        id=evaluation.id,
+        proof_id=evaluation.proof_id,
+        status=evaluation.status,
+        overall_confidence=evaluation.overall_confidence,
+        evaluation_reasons=evaluation.evaluation_reasons,
+        evaluated_at=evaluation.evaluated_at,
+    )
 
 
 def _claim_to_response(claim: FinancialClaim) -> FinancialClaimResponse:
@@ -210,6 +225,31 @@ async def get_proof(
     )
 
 
+@router.get(
+    "/{proof_id}/evaluations",
+    response_model=list[ProofEvaluationResponse],
+)
+async def list_proof_evaluations(
+    proof_id: UUID,
+    service: FinancialProofApplicationService = Depends(  # noqa: B008
+        get_financial_proof_service
+    ),
+) -> list[ProofEvaluationResponse]:
+    """Return immutable evaluation history for a financial proof."""
+    try:
+        evaluations = service.list_evaluation_history(proof_id)
+    except NotFoundError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail=str(exc),
+        ) from exc
+
+    return [
+        _evaluation_to_response(evaluation)
+        for evaluation in evaluations
+    ]
+
+
 @router.post(
     "/{proof_id}/evaluate",
     response_model=FinancialProofAggregateResponse,
@@ -258,12 +298,3 @@ async def evaluate_proof(
             for link in aggregate.evidence_links
         ],
     )
-
-
-
-
-
-
-
-
-
