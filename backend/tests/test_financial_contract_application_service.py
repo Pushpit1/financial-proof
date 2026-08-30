@@ -2,6 +2,8 @@
 
 from decimal import Decimal
 
+import pytest
+
 from app.application.services.financial_contract import (
     FinancialContractApplicationService,
 )
@@ -281,3 +283,70 @@ def test_get_contract_by_id_returns_none_when_missing(db) -> None:
     service = create_service(db)
 
     assert service.get_contract(uuid4()) is None
+
+def test_create_contract_rejects_invalid_confidence(db) -> None:
+    service = create_service(db)
+
+    with pytest.raises(ValueError):
+        service.create_contract(
+            FinancialContract(
+                name="Invalid Confidence Contract",
+                version=1,
+                minimum_confidence=ConfidenceScore(
+                    Decimal("1.01"),
+                ),
+                minimum_supported_claim_ratio=Decimal("0.90"),
+                required_claim_types=(ClaimType.INCOME,),
+            )
+        )
+
+
+def test_create_contract_rejects_invalid_claim_ratio(db) -> None:
+    service = create_service(db)
+
+    with pytest.raises(ValueError):
+        service.create_contract(
+            FinancialContract(
+                name="Invalid Ratio Contract",
+                version=1,
+                minimum_confidence=ConfidenceScore(
+                    Decimal("0.80"),
+                ),
+                minimum_supported_claim_ratio=Decimal("-0.01"),
+                required_claim_types=(ClaimType.INCOME,),
+            )
+        )
+
+
+def test_create_contract_rejects_empty_name(db) -> None:
+    service = create_service(db)
+
+    with pytest.raises(ValueError):
+        service.create_contract(
+            FinancialContract(
+                name="",
+                version=1,
+                minimum_confidence=ConfidenceScore(
+                    Decimal("0.80"),
+                ),
+                minimum_supported_claim_ratio=Decimal("0.90"),
+                required_claim_types=(ClaimType.INCOME,),
+            )
+        )
+
+
+def test_create_contract_rejects_invalid_version(db) -> None:
+    service = create_service(db)
+
+    with pytest.raises(ValueError):
+        service.create_contract(
+            FinancialContract(
+                name="Invalid Version Contract",
+                version=0,
+                minimum_confidence=ConfidenceScore(
+                    Decimal("0.80"),
+                ),
+                minimum_supported_claim_ratio=Decimal("0.90"),
+                required_claim_types=(ClaimType.INCOME,),
+            )
+        )
