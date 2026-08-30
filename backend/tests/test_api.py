@@ -944,6 +944,38 @@ def test_get_proof_evaluation_history(client) -> None:
     assert history[0]["evaluated_at"] <= history[1]["evaluated_at"]
 
 
+def test_get_proof_evaluation_history_is_read_only(client) -> None:
+    proof_id = _create_api_proof(
+        client,
+        subject="Read Only Evaluation History Applicant",
+    )
+
+    first_evaluation = client.post(
+        f"/proofs/{proof_id}/evaluate",
+    )
+
+    assert first_evaluation.status_code == 200
+
+    before = client.get(
+        f"/proofs/{proof_id}",
+    )
+
+    assert before.status_code == 200
+
+    history_response = client.get(
+        f"/proofs/{proof_id}/evaluations",
+    )
+
+    assert history_response.status_code == 200
+
+    after = client.get(
+        f"/proofs/{proof_id}",
+    )
+
+    assert after.status_code == 200
+    assert after.json() == before.json()
+
+
 def test_get_proof_evaluation_history_returns_empty_list_before_evaluation(
     client,
 ) -> None:
