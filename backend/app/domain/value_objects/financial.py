@@ -6,9 +6,12 @@ from uuid import UUID, uuid4
 
 from app.domain.enums.financial import (
     ContractAuthorizationAction,
+    ContractIdempotencyMode,
     ContractOperator,
     ContractRuleType,
+    ContractState,
     ContractTimeRelation,
+    ContractTransitionTrigger,
 )
 
 
@@ -268,4 +271,59 @@ class ContractTemporalRule:
         ):
             raise ValueError(
                 "Only between temporal rules may define an end timestamp."
+            )
+
+
+@dataclass(frozen=True)
+class ContractIdempotencyPolicy:
+    """Immutable idempotency policy declared by a contract."""
+
+    mode: ContractIdempotencyMode
+    key_field: str | None = None
+    ttl_seconds: int | None = None
+    id: UUID = field(default_factory=uuid4)
+
+    def __post_init__(self) -> None:
+        if self.mode == ContractIdempotencyMode.DISABLED:
+            if self.key_field is not None:
+                raise ValueError(
+                    "Disabled idempotency cannot define a key field."
+                )
+
+            if self.ttl_seconds is not None:
+                raise ValueError(
+                    "Disabled idempotency cannot define a TTL."
+                )
+
+            return
+
+        if self.key_field is None or not self.key_field.strip():
+            raise ValueError(
+                "Enabled idempotency requires a key field."
+            )
+
+        if self.key_field != self.key_field.strip():
+            raise ValueError(
+                "Idempotency key field cannot contain surrounding whitespace."
+            )
+
+        if self.ttl_seconds is not None and self.ttl_seconds <= 0:
+            raise ValueError(
+                "Idempotency TTL must be greater than zero."
+            )
+
+
+@dataclass(frozen=True)
+class ContractStateTransition:
+    """Immutable allowed transition between contract states."""
+
+    from_state: ContractState
+    to_state: ContractState
+    trigger: ContractTransitionTrigger
+    id: UUID = field(default_factory=uuid4)
+
+    def __post_init__(self) -> None:
+        if self.from_state == self.to_state:
+            raise ValueError(
+                "Contract state transition must change state."
             )

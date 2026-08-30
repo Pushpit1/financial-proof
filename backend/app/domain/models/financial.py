@@ -7,7 +7,13 @@ from uuid import UUID, uuid4
 from app.domain.enums.financial import (
     ClaimType,
     ConfidenceLevel,
+    ContractAuthorizationAction,
+    ContractIdempotencyMode,
+    ContractOperator,
     ContractRuleType,
+    ContractState,
+    ContractTimeRelation,
+    ContractTransitionTrigger,
     EvidenceStatus,
     EvidenceType,
     ProofStatus,
@@ -20,8 +26,11 @@ if TYPE_CHECKING:
 from app.domain.value_objects.financial import (
     ConfidenceScore,
     ContractAuthorization,
+    ContractCondition,
     ContractField,
+    ContractIdempotencyPolicy,
     ContractRule,
+    ContractStateTransition,
     ContractTemporalRule,
     FinancialConstraint,
     FinancialPeriod,
@@ -31,9 +40,7 @@ from app.domain.value_objects.financial import (
 
 @dataclass
 class Evidence:
-    """
-    A source artifact from which financial facts can be established.
-    """
+    """A source artifact from which financial facts can be established."""
 
     evidence_type: EvidenceType
     source_name: str
@@ -46,10 +53,7 @@ class Evidence:
 
 @dataclass
 class FinancialClaim:
-    """
-    A normalized financial assertion derived from one or more evidence
-    items.
-    """
+    """A normalized financial assertion derived from evidence."""
 
     claim_type: ClaimType
     subject: str
@@ -67,9 +71,7 @@ class FinancialClaim:
 
 @dataclass
 class EvidenceLink:
-    """
-    Links a claim to evidence supporting or contradicting it.
-    """
+    """Links a claim to evidence supporting or contradicting it."""
 
     claim_id: UUID
     evidence_id: UUID
@@ -136,9 +138,12 @@ class FinancialContract:
     temporal_rules: tuple[ContractTemporalRule, ...] = field(
         default_factory=tuple
     )
+    idempotency_policy: ContractIdempotencyPolicy | None = None
+    state_transitions: tuple[ContractStateTransition, ...] = field(
+        default_factory=tuple
+    )
 
     def __post_init__(self) -> None:
-        """Validate contract invariants."""
         if not self.name.strip():
             raise ValueError("Contract name cannot be empty.")
 
@@ -170,6 +175,8 @@ class FinancialContract:
         self._validate_fields(self.inputs, "input")
         self._validate_fields(self.outputs, "output")
         self._validate_financial_constraints()
+        self._validate_state_transitions()
+        self._validate_idempotency()
 
     @staticmethod
     def _validate_rule_types(
@@ -228,12 +235,44 @@ class FinancialContract:
                     "declared contract field."
                 )
 
+    def _validate_state_transitions(self) -> None:
+        transitions: set[tuple[str, str, str]] = set()
+
+        for transition in self.state_transitions:
+            key = (
+                transition.from_state.value,
+                transition.to_state.value,
+                transition.trigger.value,
+            )
+
+            if key in transitions:
+                raise ValueError(
+                    "Duplicate contract state transition."
+                )
+
+            transitions.add(key)
+
+    def _validate_idempotency(self) -> None:
+        policy = self.idempotency_policy
+
+        if policy is None:
+            return
+
+        if policy.mode == ContractIdempotencyMode.DISABLED:
+            return
+
+        fields = {contract_field.name for contract_field in self.inputs}
+
+        if fields and policy.key_field not in fields:
+            raise ValueError(
+                "Idempotency key field must reference a declared "
+                "contract input field."
+            )
+
 
 @dataclass
 class FinancialProof:
-    """
-    A defensible collection of claims and supporting evidence.
-    """
+    """A defensible collection of claims and supporting evidence."""
 
     subject: str
     id: UUID = field(default_factory=uuid4)
@@ -249,7 +288,6 @@ class FinancialProof:
         self,
         evaluation: "ProofEvaluation",
     ) -> None:
-        """Apply an evaluation result to this proof."""
         self.status = evaluation.status
         self.overall_confidence = evaluation.overall_confidence
         self.evaluation_reasons = list(evaluation.reasons)

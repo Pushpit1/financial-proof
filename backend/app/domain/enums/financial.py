@@ -106,3 +106,25 @@ class ContractTimeRelation(StrEnum):
     ON_OR_BEFORE = "on_or_before"
     ON_OR_AFTER = "on_or_after"
     BETWEEN = "between"
+
+
+class ContractIdempotencyMode(StrEnum):
+    REQUIRED = "required"
+    OPTIONAL = "optional"
+    DISABLED = "disabled"
+
+
+class ContractState(StrEnum):
+    DRAFT = "draft"
+    PROCESSING = "processing"
+    READY = "ready"
+    NEEDS_REVIEW = "needs_review"
+    INVALID = "invalid"
+
+
+class ContractTransitionTrigger(StrEnum):
+    EVALUATE = "evaluate"
+    VERIFY = "verify"
+    APPROVE = "approve"
+    REJECT = "reject"
+    RESET = "reset"
