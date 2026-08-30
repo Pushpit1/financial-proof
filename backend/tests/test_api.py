@@ -971,3 +971,81 @@ def test_get_proof_evaluation_history_returns_empty_for_missing_proof(
 
     assert response.status_code == 200
     assert response.json() == []
+
+def test_get_proof_evaluation_history_returns_serialized_records(
+    client,
+) -> None:
+    proof_id = _create_api_proof(
+        client,
+        subject="API History Applicant",
+    )
+
+    evaluation = client.post(
+        f"/proofs/{proof_id}/evaluate"
+    )
+
+    assert evaluation.status_code == 200
+
+    response = client.get(
+        f"/proofs/{proof_id}/evaluations"
+    )
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert len(body) == 1
+    assert body[0]["proof_id"] == proof_id
+    assert body[0]["status"] == "ready"
+    assert body[0]["overall_confidence"] == "0.8000"
+    assert body[0]["evaluation_reasons"] == [
+        "evaluation_passed",
+    ]
+    assert body[0]["evaluated_at"]
+
+def test_get_proof_evaluation_history_preserves_repeated_evaluations(
+    client,
+) -> None:
+    proof_id = _create_api_proof(
+        client,
+        subject="Repeated API History Applicant",
+    )
+
+    first = client.post(
+        f"/proofs/{proof_id}/evaluate"
+    )
+    second = client.post(
+        f"/proofs/{proof_id}/evaluate"
+    )
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+
+    response = client.get(
+        f"/proofs/{proof_id}/evaluations"
+    )
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert len(body) == 2
+
+    assert body[0]["proof_id"] == proof_id
+    assert body[1]["proof_id"] == proof_id
+
+    assert body[0]["status"] == "ready"
+    assert body[1]["status"] == "ready"
+
+    assert body[0]["overall_confidence"] == "0.8000"
+    assert body[1]["overall_confidence"] == "0.8000"
+
+    assert body[0]["evaluation_reasons"] == [
+        "evaluation_passed",
+    ]
+    assert body[1]["evaluation_reasons"] == [
+        "evaluation_passed",
+    ]
+
+    assert body[0]["id"] != body[1]["id"]
+    assert body[0]["evaluated_at"] <= body[1]["evaluated_at"]
