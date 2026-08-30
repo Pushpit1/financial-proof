@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 
 from app.domain.value_objects.financial import (
     ConfidenceScore,
+    ContractField,
     ContractRule,
     FinancialPeriod,
     Money,
@@ -117,6 +118,12 @@ class FinancialContract:
     postconditions: tuple[ContractRule, ...] = field(
         default_factory=tuple
     )
+    inputs: tuple[ContractField, ...] = field(
+        default_factory=tuple
+    )
+    outputs: tuple[ContractField, ...] = field(
+        default_factory=tuple
+    )
 
     def __post_init__(self) -> None:
         """Validate contract invariants."""
@@ -148,6 +155,9 @@ class FinancialContract:
             ContractRuleType.POSTCONDITION,
         )
 
+        self._validate_fields(self.inputs, "input")
+        self._validate_fields(self.outputs, "output")
+
     @staticmethod
     def _validate_rule_types(
         rules: tuple[ContractRule, ...],
@@ -159,6 +169,22 @@ class FinancialContract:
                     "Contract rule must have type "
                     f"'{expected_type.value}'."
                 )
+
+    @staticmethod
+    def _validate_fields(
+        fields: tuple[ContractField, ...],
+        field_kind: str,
+    ) -> None:
+        names: set[str] = set()
+
+        for contract_field in fields:
+            if contract_field.name in names:
+                raise ValueError(
+                    f"Duplicate contract {field_kind} field: "
+                    f"'{contract_field.name}'."
+                )
+
+            names.add(contract_field.name)
 
 
 @dataclass
