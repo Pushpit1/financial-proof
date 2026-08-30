@@ -6,6 +6,7 @@ from app.db.repositories.financial import (
     EvidenceLinkRepository,
     EvidenceRepository,
     FinancialClaimRepository,
+    FinancialContractRepository,
     FinancialProofRepository,
     ProofEvaluationRepository,
 )
@@ -18,6 +19,7 @@ class FinancialUnitOfWork:
         self.session = session
         self.evidence = EvidenceRepository(session)
         self.claims = FinancialClaimRepository(session)
+        self.contracts = FinancialContractRepository(session)
         self.evidence_links = EvidenceLinkRepository(session)
         self.proofs = FinancialProofRepository(session)
         self.evaluations = ProofEvaluationRepository(session)

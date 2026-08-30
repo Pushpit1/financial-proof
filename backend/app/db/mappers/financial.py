@@ -7,6 +7,7 @@ from app.db.models.financial import (
     EvidenceLinkModel,
     EvidenceModel,
     FinancialClaimModel,
+    FinancialContractModel,
     FinancialProofModel,
     ProofEvaluationModel,
 )
@@ -22,6 +23,7 @@ from app.domain.models.financial import (
     Evidence,
     EvidenceLink,
     FinancialClaim,
+    FinancialContract,
     FinancialProof,
     ProofEvaluationHistory,
 )
@@ -199,4 +201,43 @@ def proof_evaluation_to_model(
             reason.value for reason in evaluation.reasons
         ],
         evaluated_at=evaluated_at,
+    )
+
+def financial_contract_to_model(
+    contract: FinancialContract,
+) -> FinancialContractModel:
+    """Convert a domain financial contract into persistence."""
+    return FinancialContractModel(
+        id=contract.id,
+        name=contract.name,
+        version=contract.version,
+        minimum_confidence=contract.minimum_confidence.value,
+        minimum_supported_claim_ratio=(
+            contract.minimum_supported_claim_ratio
+        ),
+        required_claim_types=[
+            claim_type.value
+            for claim_type in contract.required_claim_types
+        ],
+    )
+
+
+def financial_contract_to_domain(
+    model: FinancialContractModel,
+) -> FinancialContract:
+    """Convert persisted financial contract into the domain."""
+    return FinancialContract(
+        id=model.id,
+        name=model.name,
+        version=model.version,
+        minimum_confidence=ConfidenceScore(
+            model.minimum_confidence
+        ),
+        minimum_supported_claim_ratio=(
+            model.minimum_supported_claim_ratio
+        ),
+        required_claim_types=tuple(
+            ClaimType(claim_type)
+            for claim_type in model.required_claim_types
+        ),
     )

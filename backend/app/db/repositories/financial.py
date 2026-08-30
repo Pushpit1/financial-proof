@@ -9,6 +9,7 @@ from app.db.models.financial import (
     EvidenceLinkModel,
     EvidenceModel,
     FinancialClaimModel,
+    FinancialContractModel,
     FinancialProofModel,
     ProofEvaluationModel,
 )
@@ -142,3 +143,48 @@ class ProofEvaluationRepository:
         )
         return list(self.session.scalars(statement).all())
 
+class FinancialContractRepository:
+    """Repository for financial contract persistence."""
+
+    def __init__(self, session: Session) -> None:
+        self.session = session
+
+    def add(self, contract: FinancialContractModel) -> None:
+        """Add a financial contract."""
+        self.session.add(contract)
+
+    def get_by_id(
+        self,
+        contract_id: UUID,
+    ) -> FinancialContractModel | None:
+        """Get a financial contract by ID."""
+        return self.session.get(
+            FinancialContractModel,
+            contract_id,
+        )
+
+    def get_by_name_and_version(
+        self,
+        name: str,
+        version: int,
+    ) -> FinancialContractModel | None:
+        """Get a specific contract version by name."""
+        statement = select(FinancialContractModel).where(
+            FinancialContractModel.name == name,
+            FinancialContractModel.version == version,
+        )
+
+        return self.session.scalars(statement).first()
+
+    def list_by_name(
+        self,
+        name: str,
+    ) -> list[FinancialContractModel]:
+        """List all versions of a financial contract."""
+        statement = (
+            select(FinancialContractModel)
+            .where(FinancialContractModel.name == name)
+            .order_by(FinancialContractModel.version.asc())
+        )
+
+        return list(self.session.scalars(statement).all())

@@ -1,6 +1,7 @@
 """Tests for the financial unit of work."""
 
 from datetime import date
+from decimal import Decimal
 
 import pytest
 from sqlalchemy import create_engine
@@ -10,6 +11,7 @@ from app.db.base import Base
 from app.db.models.financial import (
     EvidenceModel,
     FinancialClaimModel,
+    FinancialContractModel,
     FinancialProofModel,
 )
 from app.db.unit_of_work import FinancialUnitOfWork
@@ -28,6 +30,7 @@ def test_unit_of_work_exposes_all_repositories() -> None:
     with FinancialUnitOfWork(session) as unit_of_work:
         assert unit_of_work.evidence is not None
         assert unit_of_work.claims is not None
+        assert unit_of_work.contracts is not None
         assert unit_of_work.evidence_links is not None
         assert unit_of_work.proofs is not None
 
@@ -98,3 +101,31 @@ def test_unit_of_work_can_coordinate_multiple_repositories() -> None:
     assert stored_claim is not None
     assert stored_proof.subject == "Applicant"
     assert stored_claim.subject == "Applicant"
+
+def test_unit_of_work_can_persist_contract() -> None:
+    session = create_session()
+
+    contract_id = None
+
+    with FinancialUnitOfWork(session) as unit_of_work:
+        contract = FinancialContractModel(
+            name="Income Verification Contract",
+            version=1,
+            minimum_confidence=0.80,
+            minimum_supported_claim_ratio=0.90,
+            required_claim_types=["income", "employment"],
+        )
+
+        unit_of_work.contracts.add(contract)
+        contract_id = contract.id
+
+    assert contract_id is not None
+
+    stored = session.get(FinancialContractModel, contract_id)
+
+    assert stored is not None
+    assert stored.name == "Income Verification Contract"
+    assert stored.version == 1
+    assert stored.minimum_confidence == Decimal("0.8000")
+    assert stored.minimum_supported_claim_ratio == Decimal("0.9000")
+    assert stored.required_claim_types == ["income", "employment"]

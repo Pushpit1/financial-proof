@@ -183,6 +183,47 @@ class EvidenceLinkModel(UUIDModel):
         super().__init__(**kwargs)
 
 
+class FinancialContractModel(UUIDModel):
+    """Persistence model for immutable financial proof contracts."""
+
+    __tablename__ = "financial_contracts"
+
+    name: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False,
+    )
+
+    version: Mapped[int] = mapped_column(
+        nullable=False,
+        default=1,
+    )
+
+    minimum_confidence: Mapped[Decimal] = mapped_column(
+        Numeric(5, 4),
+        nullable=False,
+        default=Decimal("0"),
+    )
+
+    minimum_supported_claim_ratio: Mapped[Decimal] = mapped_column(
+        Numeric(5, 4),
+        nullable=False,
+        default=Decimal("1"),
+    )
+
+    required_claim_types: Mapped[list[str]] = mapped_column(
+        JSON,
+        nullable=False,
+        default=list,
+    )
+
+    def __init__(self, **kwargs: object) -> None:
+        kwargs.setdefault("version", 1)
+        kwargs.setdefault("minimum_confidence", Decimal("0"))
+        kwargs.setdefault("minimum_supported_claim_ratio", Decimal("1"))
+        kwargs.setdefault("required_claim_types", [])
+        super().__init__(**kwargs)
+
+
 class FinancialProofModel(UUIDModel):
     """Persistence model for a defensible financial proof."""
 

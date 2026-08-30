@@ -3,6 +3,9 @@
 from fastapi import Depends
 from sqlalchemy.orm import Session
 
+from app.application.services.financial_contract import (
+    FinancialContractApplicationService,
+)
 from app.application.services.financial_proof import (
     FinancialProofApplicationService,
 )
@@ -36,4 +39,10 @@ def get_financial_proof_service(
         evaluator=ProofEvaluator(policy),
     )
 
-
+def get_financial_contract_service(
+    db: Session = Depends(get_db),  # noqa: B008
+) -> FinancialContractApplicationService:
+    """Build the financial contract application service."""
+    return FinancialContractApplicationService(
+        FinancialUnitOfWork(db),
+    )

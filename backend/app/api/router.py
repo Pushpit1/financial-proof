@@ -1,5 +1,8 @@
 from fastapi import APIRouter
 
+from app.api.routes.financial_contract import (
+    router as financial_contract_router,
+)
 from app.api.routes.financial_proof import (
     router as financial_proof_router,
 )
@@ -9,3 +12,4 @@ api_router = APIRouter()
 
 api_router.include_router(health_router)
 api_router.include_router(financial_proof_router)
+api_router.include_router(financial_contract_router)

@@ -9,6 +9,8 @@ from app.db.mappers.financial import (
     claim_to_model,
     evidence_to_domain,
     evidence_to_model,
+    financial_contract_to_domain,
+    financial_contract_to_model,
     proof_evaluation_to_domain,
     proof_evaluation_to_model,
     proof_to_domain,
@@ -25,6 +27,7 @@ from app.domain.enums.financial import (
 from app.domain.models.financial import (
     Evidence,
     FinancialClaim,
+    FinancialContract,
     FinancialProof,
     ProofEvaluationHistory,
 )
@@ -139,3 +142,32 @@ def test_proof_evaluation_history_mapping_round_trip() -> None:
         "evaluation_passed",
     )
     assert restored.evaluated_at == model.evaluated_at
+
+def test_financial_contract_mapping_round_trip() -> None:
+    contract = FinancialContract(
+        name="Income Verification Contract",
+        version=2,
+        minimum_confidence=ConfidenceScore(
+            Decimal("0.80")
+        ),
+        minimum_supported_claim_ratio=Decimal("0.90"),
+        required_claim_types=(
+            ClaimType.INCOME,
+            ClaimType.EMPLOYMENT,
+        ),
+    )
+
+    model = financial_contract_to_model(contract)
+    restored = financial_contract_to_domain(model)
+
+    assert model.id == contract.id
+    assert model.name == "Income Verification Contract"
+    assert model.version == 2
+    assert model.minimum_confidence == Decimal("0.8000")
+    assert model.minimum_supported_claim_ratio == Decimal("0.9000")
+    assert model.required_claim_types == [
+        "income",
+        "employment",
+    ]
+
+    assert restored == contract

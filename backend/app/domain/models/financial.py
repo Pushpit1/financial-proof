@@ -88,6 +88,39 @@ class ProofEvaluationHistory:
     evaluated_at: datetime
 
 
+@dataclass(frozen=True)
+class FinancialContract:
+    """Immutable contract defining rules for financial proof decisions."""
+
+    id: UUID = field(default_factory=uuid4)
+    name: str = ""
+    version: int = 1
+    minimum_confidence: ConfidenceScore = field(
+        default_factory=lambda: ConfidenceScore(Decimal("0"))
+    )
+    minimum_supported_claim_ratio: Decimal = Decimal("1")
+    required_claim_types: tuple[ClaimType, ...] = field(
+        default_factory=tuple
+    )
+
+    def __post_init__(self) -> None:
+        """Validate contract invariants."""
+        if not self.name.strip():
+            raise ValueError("Contract name cannot be empty.")
+
+        if self.version < 1:
+            raise ValueError("Contract version must be at least 1.")
+
+        if not (
+            Decimal("0")
+            <= self.minimum_supported_claim_ratio
+            <= Decimal("1")
+        ):
+            raise ValueError(
+                "Minimum supported claim ratio must be between 0 and 1."
+            )
+
+
 @dataclass
 class FinancialProof:
     """
