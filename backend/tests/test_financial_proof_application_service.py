@@ -958,3 +958,104 @@ def test_missing_proof_does_not_create_evaluation_history(db) -> None:
     )
 
     assert history == []
+
+def test_list_evaluation_history_returns_all_records_in_order(
+    db,
+) -> None:
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(db),
+        evaluator=ProofEvaluator(),
+    )
+
+    proof = FinancialProof(subject="History Retrieval Applicant")
+
+    service.create_proof(
+        proof,
+        [
+            make_claim("monthly salary", "0.90"),
+            make_claim("annual bonus", "0.70"),
+        ],
+    )
+
+    first = service.evaluate_proof(proof.id)
+    second = service.evaluate_proof(proof.id)
+    third = service.evaluate_proof(proof.id)
+
+    assert first is not None
+    assert second is not None
+    assert third is not None
+
+    history = service.list_evaluation_history(proof.id)
+
+    assert len(history) == 3
+
+    assert history[0].status == first.status
+    assert history[0].overall_confidence == first.overall_confidence
+    assert history[0].evaluation_reasons == tuple(
+        reason.value for reason in first.evaluation_reasons
+    )
+
+    assert history[1].status == second.status
+    assert history[1].overall_confidence == second.overall_confidence
+    assert history[1].evaluation_reasons == tuple(
+        reason.value for reason in second.evaluation_reasons
+    )
+
+    assert history[2].status == third.status
+    assert history[2].overall_confidence == third.overall_confidence
+    assert history[2].evaluation_reasons == tuple(
+        reason.value for reason in third.evaluation_reasons
+    )
+
+
+def test_list_evaluation_history_returns_empty_for_missing_proof(
+    db,
+) -> None:
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(db),
+        evaluator=ProofEvaluator(),
+    )
+
+    history = service.list_evaluation_history(uuid4())
+
+    assert history == []
+
+
+def test_list_evaluation_history_is_scoped_to_requested_proof(
+    db,
+) -> None:
+    service = FinancialProofApplicationService(
+        FinancialUnitOfWork(db),
+        evaluator=ProofEvaluator(),
+    )
+
+    proof_one = FinancialProof(subject="Applicant One")
+    proof_two = FinancialProof(subject="Applicant Two")
+
+    claims_one = [
+        make_claim("salary one", "0.90"),
+        make_claim("bonus one", "0.70"),
+    ]
+
+    claims_two = [
+        make_claim("salary two", "0.80"),
+        make_claim("bonus two", "0.60"),
+    ]
+
+    service.create_proof(proof_one, claims_one)
+    service.create_proof(proof_two, claims_two)
+
+    first = service.evaluate_proof(proof_one.id)
+    second = service.evaluate_proof(proof_two.id)
+
+    assert first is not None
+    assert second is not None
+
+    history_one = service.list_evaluation_history(proof_one.id)
+    history_two = service.list_evaluation_history(proof_two.id)
+
+    assert len(history_one) == 1
+    assert len(history_two) == 1
+
+    assert history_one[0].overall_confidence == first.overall_confidence
+    assert history_two[0].overall_confidence == second.overall_confidence
