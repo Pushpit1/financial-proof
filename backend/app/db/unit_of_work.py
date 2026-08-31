@@ -10,6 +10,9 @@ from app.db.repositories.financial import (
     FinancialProofRepository,
     ProofEvaluationRepository,
 )
+from app.db.repositories.financial_contract_decision import (
+    SqlAlchemyFinancialContractDecisionRepository,
+)
 
 
 class FinancialUnitOfWork:
@@ -23,6 +26,9 @@ class FinancialUnitOfWork:
         self.evidence_links = EvidenceLinkRepository(session)
         self.proofs = FinancialProofRepository(session)
         self.evaluations = ProofEvaluationRepository(session)
+        self.decisions = SqlAlchemyFinancialContractDecisionRepository(
+            session
+        )
 
     def commit(self) -> None:
         """Commit the current transaction."""
