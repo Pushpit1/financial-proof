@@ -1,21 +1,10 @@
-"""Application services for financial proof workflows."""
+﻿"""Application services for financial proof workflows."""
 
+from datetime import UTC, datetime
 from uuid import UUID
 
 from app.application.dto.financial_proof import FinancialProofAggregate
 from app.core.errors.domain import NotFoundError
-from app.db.mappers.financial import (
-    claim_to_domain,
-    claim_to_model,
-    evidence_link_to_domain,
-    evidence_link_to_model,
-    evidence_to_domain,
-    evidence_to_model,
-    proof_evaluation_to_domain,
-    proof_evaluation_to_model,
-    proof_to_domain,
-    proof_to_model,
-)
 from app.db.unit_of_work import FinancialUnitOfWork
 from app.domain.models.financial import (
     Evidence,
@@ -50,35 +39,38 @@ class FinancialProofApplicationService:
         evidence_links = evidence_links or []
 
         with self.unit_of_work:
-            self.unit_of_work.proofs.add(proof_to_model(proof))
+            self.unit_of_work.financial_proofs.add_proof(proof)
 
             for claim in claims:
-                self.unit_of_work.claims.add(
-                    claim_to_model(claim, proof.id)
+                self.unit_of_work.financial_proofs.add_claim(
+                    claim,
+                    proof.id,
                 )
 
             for item in evidence:
-                self.unit_of_work.evidence.add(
-                    evidence_to_model(item, proof.id)
+                self.unit_of_work.financial_proofs.add_evidence(
+                    item,
+                    proof.id,
                 )
 
+            claim_ids = {claim.id for claim in claims}
+            evidence_ids = {item.id for item in evidence}
+
             for link in evidence_links:
-                if link.claim_id not in {claim.id for claim in claims}:
+                if link.claim_id not in claim_ids:
                     raise ValueError(
                         "Evidence link references a claim "
                         "outside this proof."
                     )
 
-                if link.evidence_id not in {
-                    item.id for item in evidence
-                }:
+                if link.evidence_id not in evidence_ids:
                     raise ValueError(
                         "Evidence link references evidence "
                         "outside this proof."
                     )
 
-                self.unit_of_work.evidence_links.add(
-                    evidence_link_to_model(link)
+                self.unit_of_work.financial_proofs.add_evidence_link(
+                    link
                 )
 
         return proof
@@ -88,42 +80,35 @@ class FinancialProofApplicationService:
         proof_id: UUID,
     ) -> FinancialProofAggregate | None:
         """Retrieve a complete financial proof aggregate."""
-        proof_model = self.unit_of_work.proofs.get_by_id(proof_id)
+        proof = self.unit_of_work.financial_proofs.get_proof(proof_id)
 
-        if proof_model is None:
+        if proof is None:
             return None
 
-        claim_models = self.unit_of_work.claims.list_by_proof(proof_id)
+        claims = self.unit_of_work.financial_proofs.list_claims_by_proof(
+            proof_id
+        )
 
-        claim_ids = {claim.id for claim in claim_models}
+        claim_ids = {claim.id for claim in claims}
 
-        evidence_link_models = []
+        evidence_links: list[EvidenceLink] = []
 
         for claim_id in claim_ids:
-            evidence_link_models.extend(
-                self.unit_of_work.evidence_links.list_by_claim(
+            evidence_links.extend(
+                self.unit_of_work.financial_proofs.list_evidence_links_by_claim(
                     claim_id
                 )
             )
 
-        evidence_models = self.unit_of_work.evidence.list_by_proof(
+        evidence = self.unit_of_work.financial_proofs.list_evidence_by_proof(
             proof_id
         )
 
         return FinancialProofAggregate(
-            proof=proof_to_domain(proof_model),
-            claims=tuple(
-                claim_to_domain(model)
-                for model in claim_models
-            ),
-            evidence=tuple(
-                evidence_to_domain(model)
-                for model in evidence_models
-            ),
-            evidence_links=tuple(
-                evidence_link_to_domain(model)
-                for model in evidence_link_models
-            ),
+            proof=proof,
+            claims=tuple(claims),
+            evidence=tuple(evidence),
+            evidence_links=tuple(evidence_links),
         )
 
     def evaluate_proof(
@@ -132,40 +117,34 @@ class FinancialProofApplicationService:
     ) -> FinancialProof | None:
         """Evaluate a proof and persist both current state and history."""
         with self.unit_of_work:
-            proof_model = self.unit_of_work.proofs.get_by_id(proof_id)
+            proof = self.unit_of_work.financial_proofs.get_proof(proof_id)
 
-            if proof_model is None:
+            if proof is None:
                 return None
 
-            claim_models = self.unit_of_work.claims.list_by_proof(
-                proof_id
+            claims = (
+                self.unit_of_work.financial_proofs.list_claims_by_proof(
+                    proof_id
+                )
             )
-
-            claims = [
-                claim_to_domain(model)
-                for model in claim_models
-            ]
-
-            proof = proof_to_domain(proof_model)
 
             evaluation = self.evaluator.evaluate(claims)
 
             proof.apply_evaluation(evaluation)
 
-            updated_model = proof_to_model(proof)
+            evaluated_at = datetime.now(UTC)
 
-            proof_model.status = updated_model.status
-            proof_model.overall_confidence = (
-                updated_model.overall_confidence
-            )
-            proof_model.evaluation_reasons = (
-                updated_model.evaluation_reasons
-            )
+            self.unit_of_work.financial_proofs.update_proof(proof)
 
-            self.unit_of_work.evaluations.add(
-                proof_evaluation_to_model(
-                    evaluation,
-                    proof_id,
+            self.unit_of_work.financial_proofs.add_evaluation(
+                ProofEvaluationHistory(
+                    proof_id=proof_id,
+                    status=evaluation.status,
+                    overall_confidence=evaluation.overall_confidence,
+                    evaluation_reasons=tuple(
+                        reason.value for reason in evaluation.reasons
+                    ),
+                    evaluated_at=evaluated_at,
                 )
             )
 
@@ -179,62 +158,56 @@ class FinancialProofApplicationService:
     ) -> list[EvidenceLink]:
         """List evidence links belonging to evidence."""
         with self.unit_of_work:
-            models = self.unit_of_work.evidence_links.list_by_evidence(
-                evidence_id
+            return (
+                self.unit_of_work.financial_proofs
+                .list_evidence_links_by_evidence(evidence_id)
             )
-
-        return [evidence_link_to_domain(model) for model in models]
 
     def list_evaluation_history(
         self,
         proof_id: UUID,
     ) -> list[ProofEvaluationHistory]:
         """Return persisted evaluation history for a proof."""
-        models = self.unit_of_work.evaluations.list_by_proof(proof_id)
+        return self.unit_of_work.financial_proofs.list_evaluation_history(
+            proof_id
+        )
 
-        return [
-            proof_evaluation_to_domain(model)
-            for model in models
-        ]
-
-    def get_proof(self, proof_id: UUID) -> FinancialProof | None:
+    def get_proof(
+        self,
+        proof_id: UUID,
+    ) -> FinancialProof | None:
         """Retrieve a proof through the repository boundary."""
-        model = self.unit_of_work.proofs.get_by_id(proof_id)
+        return self.unit_of_work.financial_proofs.get_proof(proof_id)
 
-        if model is None:
-            return None
-
-        return proof_to_domain(model)
-
-    def list_proofs(self, subject: str) -> list[FinancialProof]:
+    def list_proofs(
+        self,
+        subject: str,
+    ) -> list[FinancialProof]:
         """Retrieve all financial proofs belonging to a subject."""
-        models = self.unit_of_work.proofs.list_by_subject(subject)
+        return self.unit_of_work.financial_proofs.list_proofs(subject)
 
-        return [proof_to_domain(model) for model in models]
-
-    def get_claim(self, claim_id: UUID) -> FinancialClaim | None:
+    def get_claim(
+        self,
+        claim_id: UUID,
+    ) -> FinancialClaim | None:
         """Retrieve a claim through the repository boundary."""
-        model = self.unit_of_work.claims.get_by_id(claim_id)
+        return self.unit_of_work.financial_proofs.get_claim(claim_id)
 
-        if model is None:
-            return None
-
-        return claim_to_domain(model)
-
-    def list_claims(self, subject: str) -> list[FinancialClaim]:
+    def list_claims(
+        self,
+        subject: str,
+    ) -> list[FinancialClaim]:
         """Retrieve standalone claims matching a subject."""
-        models = self.unit_of_work.claims.list_by_subject(subject)
-
-        return [claim_to_domain(model) for model in models]
+        return self.unit_of_work.financial_proofs.list_claims(subject)
 
     def list_proof_claims(
         self,
         proof_id: UUID,
     ) -> list[FinancialClaim]:
         """Retrieve claims belonging to a specific proof."""
-        models = self.unit_of_work.claims.list_by_proof(proof_id)
-
-        return [claim_to_domain(model) for model in models]
+        return self.unit_of_work.financial_proofs.list_claims_by_proof(
+            proof_id
+        )
 
     def add_claims(
         self,
@@ -243,44 +216,47 @@ class FinancialProofApplicationService:
     ) -> FinancialProof:
         """Add claims to an existing financial proof atomically."""
         with self.unit_of_work:
-            proof_model = self.unit_of_work.proofs.get_by_id(proof_id)
+            proof = self.unit_of_work.financial_proofs.get_proof(proof_id)
 
-            if proof_model is None:
+            if proof is None:
                 raise NotFoundError(
                     f"Financial proof {proof_id} was not found."
                 )
 
             for claim in claims:
-                self.unit_of_work.claims.add(
-                    claim_to_model(claim, proof_id)
+                self.unit_of_work.financial_proofs.add_claim(
+                    claim,
+                    proof_id,
                 )
 
-            return proof_to_domain(proof_model)
+            self.unit_of_work.flush()
 
-    def add_evidence(self, evidence: Evidence) -> Evidence:
+            return proof
+
+    def add_evidence(
+        self,
+        evidence: Evidence,
+    ) -> Evidence:
         """Persist evidence atomically."""
         with self.unit_of_work:
-            self.unit_of_work.evidence.add(
-                evidence_to_model(evidence)
-            )
+            self.unit_of_work.financial_proofs.add_evidence(evidence)
 
         return evidence
 
-    def get_evidence(self, evidence_id: UUID) -> Evidence | None:
+    def get_evidence(
+        self,
+        evidence_id: UUID,
+    ) -> Evidence | None:
         """Retrieve evidence through the repository boundary."""
-        model = self.unit_of_work.evidence.get_by_id(evidence_id)
+        return self.unit_of_work.financial_proofs.get_evidence(evidence_id)
 
-        if model is None:
-            return None
-
-        return evidence_to_domain(model)
-
-    def add_evidence_link(self, link: EvidenceLink) -> EvidenceLink:
+    def add_evidence_link(
+        self,
+        link: EvidenceLink,
+    ) -> EvidenceLink:
         """Persist an evidence link atomically."""
         with self.unit_of_work:
-            self.unit_of_work.evidence_links.add(
-                evidence_link_to_model(link)
-            )
+            self.unit_of_work.financial_proofs.add_evidence_link(link)
 
         return link
 
@@ -289,23 +265,16 @@ class FinancialProofApplicationService:
         link_id: UUID,
     ) -> EvidenceLink | None:
         """Retrieve an evidence link through the repository boundary."""
-        model = self.unit_of_work.evidence_links.get_by_id(link_id)
-
-        if model is None:
-            return None
-
-        return evidence_link_to_domain(model)
+        return self.unit_of_work.financial_proofs.get_evidence_link(link_id)
 
     def list_evidence_links(
         self,
         claim_id: UUID,
     ) -> list[EvidenceLink]:
         """Retrieve evidence links belonging to a claim."""
-        models = self.unit_of_work.evidence_links.list_by_claim(
+        return self.unit_of_work.financial_proofs.list_evidence_links_by_claim(
             claim_id
         )
-
-        return [evidence_link_to_domain(model) for model in models]
 
     def attach_evidence_to_claim(
         self,
@@ -315,18 +284,18 @@ class FinancialProofApplicationService:
     ) -> EvidenceLink:
         """Attach existing evidence to an existing claim atomically."""
         with self.unit_of_work:
-            claim_model = self.unit_of_work.claims.get_by_id(claim_id)
+            claim = self.unit_of_work.financial_proofs.get_claim(claim_id)
 
-            if claim_model is None:
+            if claim is None:
                 raise NotFoundError(
                     f"Financial claim {claim_id} was not found."
                 )
 
-            evidence_model = self.unit_of_work.evidence.get_by_id(
+            evidence = self.unit_of_work.financial_proofs.get_evidence(
                 evidence_id
             )
 
-            if evidence_model is None:
+            if evidence is None:
                 raise NotFoundError(
                     f"Evidence {evidence_id} was not found."
                 )
@@ -341,8 +310,9 @@ class FinancialProofApplicationService:
                     "Evidence link evidence_id does not match evidence_id."
                 )
 
-            existing_links = self.unit_of_work.evidence_links.list_by_claim(
-                claim_id
+            existing_links = (
+                self.unit_of_work.financial_proofs
+                .list_evidence_links_by_claim(claim_id)
             )
 
             if any(
@@ -353,8 +323,10 @@ class FinancialProofApplicationService:
                     "Evidence is already linked to this claim."
                 )
 
-            self.unit_of_work.evidence_links.add(
-                evidence_link_to_model(link)
-            )
+            self.unit_of_work.financial_proofs.add_evidence_link(link)
 
         return link
+
+
+
+

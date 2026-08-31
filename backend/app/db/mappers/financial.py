@@ -1,7 +1,11 @@
 ﻿"""Mappings between financial domain objects and persistence models."""
 
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 from uuid import UUID
+
+if TYPE_CHECKING:
+    from app.domain.services.proof_evaluator import ProofEvaluation
 
 from app.db.models.financial import (
     EvidenceLinkModel,
@@ -29,7 +33,6 @@ from app.domain.models.financial import (
     FinancialProof,
     ProofEvaluationHistory,
 )
-from app.domain.services.proof_evaluator import ProofEvaluation
 from app.domain.value_objects.financial import ConfidenceScore, Money
 
 
@@ -107,7 +110,11 @@ def claim_to_domain(model: FinancialClaimModel) -> FinancialClaim:
         verification_status=VerificationStatus(
             model.verification_status
         ),
-        confidence=ConfidenceScore(model.confidence),
+        confidence=(
+            model.confidence
+            if isinstance(model.confidence, ConfidenceScore)
+            else ConfidenceScore(model.confidence)
+        ),
         confidence_level=ConfidenceLevel(model.confidence_level),
     )
 
@@ -138,7 +145,11 @@ def evidence_link_to_domain(
         verification_status=VerificationStatus(
             model.verification_status
         ),
-        confidence=ConfidenceScore(model.confidence),
+        confidence=(
+            model.confidence
+            if isinstance(model.confidence, ConfidenceScore)
+            else ConfidenceScore(model.confidence)
+        ),
         explanation=model.explanation,
         created_at=(
             model.created_at.replace(tzinfo=UTC)
@@ -196,11 +207,26 @@ def proof_evaluation_to_domain(
 
 
 def proof_evaluation_to_model(
-    evaluation: ProofEvaluation,
-    proof_id: UUID,
+    evaluation: ProofEvaluation | ProofEvaluationHistory,
+    proof_id: UUID | None = None,
     evaluated_at: datetime | None = None,
 ) -> ProofEvaluationModel:
-    """Convert an evaluation result into an immutable audit record."""
+    """Convert a proof evaluation into an immutable persistence record."""
+    if isinstance(evaluation, ProofEvaluationHistory):
+        return ProofEvaluationModel(
+            id=evaluation.id,
+            proof_id=evaluation.proof_id,
+            status=evaluation.status.value,
+            overall_confidence=evaluation.overall_confidence.value,
+            evaluation_reasons=list(evaluation.evaluation_reasons),
+            evaluated_at=evaluation.evaluated_at,
+        )
+
+    if proof_id is None:
+        raise ValueError(
+            "proof_id is required when mapping a ProofEvaluation."
+        )
+
     return ProofEvaluationModel(
         proof_id=proof_id,
         status=evaluation.status.value,
@@ -284,6 +310,9 @@ def financial_contract_decision_to_domain(
         violation_count=model.violation_count,
         evaluated_at=model.evaluated_at,
     )
+
+
+
 
 
 

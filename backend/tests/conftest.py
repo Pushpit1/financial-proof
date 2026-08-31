@@ -1,4 +1,4 @@
-from collections.abc import Generator
+﻿from collections.abc import Generator
 
 import pytest
 from fastapi.testclient import TestClient
@@ -9,6 +9,19 @@ from sqlalchemy.pool import StaticPool
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
+
+
+def create_session() -> Session:
+    """Create an isolated in-memory database session."""
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+
+    Base.metadata.create_all(engine)
+
+    return Session(engine)
 
 
 @pytest.fixture

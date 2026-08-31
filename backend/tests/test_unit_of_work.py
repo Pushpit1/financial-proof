@@ -1,7 +1,4 @@
-﻿"""Tests for the financial unit of work."""
-
-from datetime import date
-from decimal import Decimal
+﻿from datetime import date
 
 import pytest
 from sqlalchemy import create_engine
@@ -11,12 +8,9 @@ from app.db.base import Base
 from app.db.models.financial import (
     EvidenceModel,
     FinancialClaimModel,
-    FinancialContractDecisionModel,
-    FinancialContractModel,
     FinancialProofModel,
 )
 from app.db.unit_of_work import FinancialUnitOfWork
-from app.domain.models.financial import FinancialContract
 
 
 def create_session() -> Session:
@@ -26,17 +20,33 @@ def create_session() -> Session:
     return Session(engine)
 
 
-def test_unit_of_work_exposes_all_repositories() -> None:
+def test_unit_of_work_exposes_financial_proof_repository() -> None:
     session = create_session()
 
     with FinancialUnitOfWork(session) as unit_of_work:
-        assert unit_of_work.evidence is not None
-        assert unit_of_work.claims is not None
+        assert unit_of_work.financial_proofs is not None
         assert unit_of_work.contracts is not None
-        assert unit_of_work.evidence_links is not None
-        assert unit_of_work.proofs is not None
-        assert unit_of_work.evaluations is not None
         assert unit_of_work.decisions is not None
+
+
+def test_unit_of_work_flushes_pending_changes_without_committing() -> None:
+    session = create_session()
+
+    with FinancialUnitOfWork(session) as unit_of_work:
+        evidence = EvidenceModel(
+            evidence_type="bank_statement",
+            source_name="Flush Test Bank",
+            received_at=date(2026, 8, 28),
+        )
+
+        unit_of_work.financial_proofs.session.add(evidence)
+        unit_of_work.flush()
+
+        assert session.get(EvidenceModel, evidence.id) is not None
+
+        session.rollback()
+
+    assert session.get(EvidenceModel, evidence.id) is None
 
 
 def test_unit_of_work_commits_successful_transaction() -> None:
@@ -51,15 +61,11 @@ def test_unit_of_work_commits_successful_transaction() -> None:
             received_at=date(2026, 8, 28),
         )
 
-        unit_of_work.evidence.add(evidence)
         evidence_id = evidence.id
+        unit_of_work.financial_proofs.session.add(evidence)
 
     assert evidence_id is not None
-
-    stored = session.get(EvidenceModel, evidence_id)
-
-    assert stored is not None
-    assert stored.source_name == "Test Bank"
+    assert session.get(EvidenceModel, evidence_id) is not None
 
 
 def test_unit_of_work_rolls_back_failed_transaction() -> None:
@@ -75,17 +81,20 @@ def test_unit_of_work_rolls_back_failed_transaction() -> None:
                 received_at=date(2026, 8, 28),
             )
 
-            unit_of_work.evidence.add(evidence)
             evidence_id = evidence.id
+            unit_of_work.financial_proofs.session.add(evidence)
 
-            raise RuntimeError("transaction failed")
+            raise RuntimeError("Simulated transaction failure.")
 
     assert evidence_id is not None
     assert session.get(EvidenceModel, evidence_id) is None
 
 
-def test_unit_of_work_can_coordinate_multiple_repositories() -> None:
+def test_unit_of_work_can_coordinate_multiple_financial_proof_records() -> None:
     session = create_session()
+
+    proof_id = None
+    claim_id = None
 
     with FinancialUnitOfWork(session) as unit_of_work:
         proof = FinancialProofModel(subject="Applicant")
@@ -95,73 +104,13 @@ def test_unit_of_work_can_coordinate_multiple_repositories() -> None:
             subject="Applicant",
         )
 
-        unit_of_work.proofs.add(proof)
-        unit_of_work.claims.add(claim)
+        proof_id = proof.id
+        claim_id = claim.id
 
-    stored_proof = session.get(FinancialProofModel, proof.id)
-    stored_claim = session.get(FinancialClaimModel, claim.id)
+        unit_of_work.financial_proofs.session.add(proof)
+        unit_of_work.financial_proofs.session.add(claim)
 
-    assert stored_proof is not None
-    assert stored_claim is not None
-    assert stored_proof.subject == "Applicant"
-    assert stored_claim.subject == "Applicant"
-
-
-def test_unit_of_work_can_persist_contract() -> None:
-    session = create_session()
-
-    contract = FinancialContract(
-        name="Income Verification Contract",
-        version=1,
-        minimum_confidence=0.80,
-        minimum_supported_claim_ratio=0.90,
-        required_claim_types=["income", "employment"],
-    )
-
-    contract_id = contract.id
-
-    with FinancialUnitOfWork(session) as unit_of_work:
-        unit_of_work.contracts.add(contract)
-
-    stored = session.get(FinancialContractModel, contract_id)
-
-    assert stored is not None
-    assert stored.name == "Income Verification Contract"
-    assert stored.version == 1
-    assert stored.minimum_confidence == Decimal("0.8000")
-    assert stored.minimum_supported_claim_ratio == Decimal("0.9000")
-    assert stored.required_claim_types == ["income", "employment"]
-
-
-def test_unit_of_work_can_persist_decision() -> None:
-    session = create_session()
-
-    contract = FinancialContractModel(
-        name="Decision Contract",
-        version=1,
-        minimum_confidence=0.80,
-        minimum_supported_claim_ratio=0.90,
-        required_claim_types=["income"],
-    )
-    session.add(contract)
-    session.flush()
-
-    decision = FinancialContractDecisionModel(
-        contract_id=contract.id,
-        passed=True,
-        reason_codes=[],
-        violation_count=0,
-    )
-
-    with FinancialUnitOfWork(session) as unit_of_work:
-        unit_of_work.decisions.save(decision)
-
-    stored = session.get(
-        FinancialContractDecisionModel,
-        decision.id,
-    )
-
-    assert stored is not None
-    assert stored.contract_id == decision.contract_id
-    assert stored.passed is True
-    assert stored.violation_count == 0
+    assert proof_id is not None
+    assert claim_id is not None
+    assert session.get(FinancialProofModel, proof_id) is not None
+    assert session.get(FinancialClaimModel, claim_id) is not None

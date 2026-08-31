@@ -1,15 +1,13 @@
-"""Tests for transactional rollback behavior."""
+﻿"""Tests for transactional rollback behavior."""
 
 from decimal import Decimal
+from uuid import UUID
 
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session
 
 from app.application.services.financial_proof import (
     FinancialProofApplicationService,
 )
-from app.db.base import Base
 from app.db.models.financial import (
     FinancialClaimModel,
     FinancialProofModel,
@@ -19,13 +17,7 @@ from app.db.unit_of_work import FinancialUnitOfWork
 from app.domain.enums.financial import ClaimType
 from app.domain.models.financial import FinancialClaim, FinancialProof
 from app.domain.value_objects.financial import ConfidenceScore
-
-
-def create_session() -> Session:
-    """Create an isolated in-memory database session."""
-    engine = create_engine("sqlite:///:memory:")
-    Base.metadata.create_all(engine)
-    return Session(engine)
+from tests.conftest import create_session
 
 
 def make_claim(subject: str, confidence: str) -> FinancialClaim:
@@ -46,19 +38,22 @@ def test_create_proof_rolls_back_when_claim_persistence_fails(
 
     proof = FinancialProof(subject="Applicant")
 
-    original_add = unit_of_work.claims.add
+    original_add = unit_of_work.financial_proofs.add_claim
     call_count = 0
 
-    def failing_add(claim: FinancialClaimModel) -> FinancialClaimModel:
+    def failing_add(
+        claim: FinancialClaim,
+        proof_id: UUID | None = None,
+    ) -> None:
         nonlocal call_count
         call_count += 1
 
         if call_count == 2:
             raise RuntimeError("Simulated claim persistence failure.")
 
-        return original_add(claim)
+        return original_add(claim, proof_id)
 
-    monkeypatch.setattr(unit_of_work.claims, "add", failing_add)
+    monkeypatch.setattr(unit_of_work.financial_proofs, "add_claim", failing_add)
 
     claims = [
         make_claim("monthly salary", "0.90"),
@@ -116,8 +111,8 @@ def test_evaluate_proof_rolls_back_when_evaluation_persistence_fails(
         raise RuntimeError("Simulated evaluation persistence failure.")
 
     monkeypatch.setattr(
-        unit_of_work.evaluations,
-        "add",
+        unit_of_work.financial_proofs,
+        "add_evaluation",
         failing_add,
     )
 
@@ -154,19 +149,22 @@ def test_add_claims_rolls_back_when_claim_persistence_fails(
     proof = FinancialProof(subject="Applicant")
     service.create_proof(proof, [])
 
-    original_add = unit_of_work.claims.add
+    original_add = unit_of_work.financial_proofs.add_claim
     call_count = 0
 
-    def failing_add(claim: FinancialClaimModel) -> FinancialClaimModel:
+    def failing_add(
+        claim: FinancialClaim,
+        proof_id: UUID | None = None,
+    ) -> None:
         nonlocal call_count
         call_count += 1
 
         if call_count == 2:
             raise RuntimeError("Simulated claim persistence failure.")
 
-        return original_add(claim)
+        return original_add(claim, proof_id)
 
-    monkeypatch.setattr(unit_of_work.claims, "add", failing_add)
+    monkeypatch.setattr(unit_of_work.financial_proofs, "add_claim", failing_add)
 
     claims = [
         make_claim("monthly salary", "0.90"),
@@ -181,5 +179,3 @@ def test_add_claims_rolls_back_when_claim_persistence_fails(
     assert stored_claims == []
     assert session.get(FinancialProofModel, proof.id) is not None
 
-
-    

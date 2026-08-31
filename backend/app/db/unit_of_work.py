@@ -1,15 +1,13 @@
-from sqlalchemy.orm import Session
+﻿from sqlalchemy.orm import Session
 
-from app.db.repositories.financial import (
-    EvidenceLinkRepository,
-    EvidenceRepository,
-    FinancialClaimRepository,
-    FinancialProofRepository,
-    ProofEvaluationRepository,
+from app.db.repositories.financial_contract import (
+    FinancialContractRepository,
 )
-from app.db.repositories.financial_contract import FinancialContractRepository
 from app.db.repositories.financial_contract_decision import (
     SqlAlchemyFinancialContractDecisionRepository,
+)
+from app.db.repositories.financial_proof import (
+    SqlAlchemyFinancialProofRepository,
 )
 
 
@@ -18,12 +16,8 @@ class FinancialUnitOfWork:
 
     def __init__(self, session: Session) -> None:
         self.session = session
-        self.evidence = EvidenceRepository(session)
-        self.claims = FinancialClaimRepository(session)
+        self.financial_proofs = SqlAlchemyFinancialProofRepository(session)
         self.contracts = FinancialContractRepository(session)
-        self.evidence_links = EvidenceLinkRepository(session)
-        self.proofs = FinancialProofRepository(session)
-        self.evaluations = ProofEvaluationRepository(session)
         self.decisions = SqlAlchemyFinancialContractDecisionRepository(
             session
         )

@@ -489,7 +489,7 @@ def test_attach_evidence_to_claim_rolls_back_when_link_persistence_fails(
         explanation="Payslip supports monthly salary.",
     )
 
-    original_add = unit_of_work.evidence_links.add
+    original_add = unit_of_work.financial_proofs.add_evidence_link
 
     def failing_add(
         evidence_link: EvidenceLinkModel,
@@ -498,8 +498,8 @@ def test_attach_evidence_to_claim_rolls_back_when_link_persistence_fails(
         raise RuntimeError("Simulated evidence-link persistence failure.")
 
     monkeypatch.setattr(
-        unit_of_work.evidence_links,
-        "add",
+        unit_of_work.financial_proofs,
+        "add_evidence_link",
         failing_add,
     )
 
@@ -593,4 +593,5 @@ def test_attach_evidence_to_claim_rejects_duplicate_link() -> None:
             )
 
     assert len(service.list_evidence_links(claim.id)) == 1
+
 

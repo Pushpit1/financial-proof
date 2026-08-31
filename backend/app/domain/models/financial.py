@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+﻿from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
@@ -88,13 +88,12 @@ class EvidenceLink:
 class ProofEvaluationHistory:
     """Immutable persisted record of a financial proof evaluation."""
 
-    id: UUID
     proof_id: UUID
     status: ProofStatus
     overall_confidence: ConfidenceScore
     evaluation_reasons: tuple[str, ...]
     evaluated_at: datetime
-
+    id: UUID = field(default_factory=uuid4)
 
 @dataclass(frozen=True)
 class FinancialContract:
@@ -315,6 +314,8 @@ class FinancialContractDecision:
             raise ValueError(
                 "Decision violation count must match reason codes."
             )
+
+
 
 
 
