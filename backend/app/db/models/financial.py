@@ -318,3 +318,46 @@ class ProofEvaluationModel(UUIDModel):
             datetime.now(UTC),
         )
         super().__init__(**kwargs)
+
+class FinancialContractDecisionModel(UUIDModel):
+    """Persistence model for an immutable contract decision."""
+
+    __tablename__ = "financial_contract_decisions"
+
+    __table_args__ = (
+        Index(
+            "ix_financial_contract_decisions_contract_id",
+            "contract_id",
+        ),
+    )
+
+    contract_id: Mapped[UUID] = mapped_column(
+        ForeignKey("financial_contracts.id"),
+        nullable=False,
+    )
+
+    passed: Mapped[bool] = mapped_column(
+        nullable=False,
+    )
+
+    reason_codes: Mapped[list[str]] = mapped_column(
+        JSON,
+        nullable=False,
+        default=list,
+    )
+
+    violation_count: Mapped[int] = mapped_column(
+        nullable=False,
+        default=0,
+    )
+
+    evaluated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+    )
+
+    def __init__(self, **kwargs: object) -> None:
+        kwargs.setdefault("reason_codes", [])
+        kwargs.setdefault("violation_count", 0)
+        kwargs.setdefault("evaluated_at", datetime.now(UTC))
+        super().__init__(**kwargs)

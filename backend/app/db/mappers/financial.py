@@ -7,6 +7,7 @@ from app.db.models.financial import (
     EvidenceLinkModel,
     EvidenceModel,
     FinancialClaimModel,
+    FinancialContractDecisionModel,
     FinancialContractModel,
     FinancialProofModel,
     ProofEvaluationModel,
@@ -24,6 +25,7 @@ from app.domain.models.financial import (
     EvidenceLink,
     FinancialClaim,
     FinancialContract,
+    FinancialContractDecision,
     FinancialProof,
     ProofEvaluationHistory,
 )
@@ -247,3 +249,32 @@ def financial_contract_to_domain(
             for claim_type in model.required_claim_types
         ),
     )
+
+
+def financial_contract_decision_to_model(
+    decision: FinancialContractDecision,
+) -> FinancialContractDecisionModel:
+    """Convert contract decision to persistence model."""
+    return FinancialContractDecisionModel(
+        id=decision.id,
+        contract_id=decision.contract_id,
+        passed=decision.passed,
+        reason_codes=list(decision.reason_codes),
+        violation_count=decision.violation_count,
+        evaluated_at=decision.evaluated_at,
+    )
+
+
+def financial_contract_decision_to_domain(
+    model: FinancialContractDecisionModel,
+) -> FinancialContractDecision:
+    """Convert persisted decision into a domain record."""
+    return FinancialContractDecision(
+        id=model.id,
+        contract_id=model.contract_id,
+        passed=model.passed,
+        reason_codes=tuple(model.reason_codes),
+        violation_count=model.violation_count,
+        evaluated_at=model.evaluated_at,
+    )
+
