@@ -1,14 +1,10 @@
 from datetime import UTC, datetime
-from decimal import Decimal
 from uuid import uuid4
 
 from app.db.repositories.financial_contract_decision import (
     SqlAlchemyFinancialContractDecisionRepository,
 )
-from app.domain.models.financial import (
-    FinancialContractDecision,
-)
-from app.domain.value_objects.financial import ConfidenceScore
+from app.domain.models.financial import FinancialContractDecision
 
 
 def make_decision(
@@ -28,21 +24,18 @@ def make_decision(
         else (
             "contract_validation_failed",
         ),
-        violation_count=0 if passed else 1,
-        evaluated_at=evaluated_at
-        or datetime.now(UTC),
+        violation_count=1,
+        evaluated_at=evaluated_at or datetime.now(UTC),
     )
 
 
-def test_repository_round_trips_decision(db_session) -> None:
-    repository = SqlAlchemyFinancialContractDecisionRepository(
-        db_session
-    )
+def test_repository_round_trips_decision(db) -> None:
+    repository = SqlAlchemyFinancialContractDecisionRepository(db)
 
     decision = make_decision(passed=True)
 
     repository.save(decision)
-    db_session.commit()
+    db.commit()
 
     loaded = repository.get_by_id(decision.id)
 
@@ -53,22 +46,17 @@ def test_repository_round_trips_decision(db_session) -> None:
     assert loaded.reason_codes == ("evaluation_passed",)
 
 
-def test_repository_returns_none_for_unknown_id(db_session) -> None:
-    repository = SqlAlchemyFinancialContractDecisionRepository(
-        db_session
-    )
+def test_repository_returns_none_for_unknown_id(db) -> None:
+    repository = SqlAlchemyFinancialContractDecisionRepository(db)
 
     assert repository.get_by_id(uuid4()) is None
 
 
-def test_repository_lists_decisions_deterministically(
-    db_session,
-) -> None:
-    repository = SqlAlchemyFinancialContractDecisionRepository(
-        db_session
-    )
+def test_repository_lists_decisions_deterministically(db) -> None:
+    repository = SqlAlchemyFinancialContractDecisionRepository(db)
 
     contract_id = uuid4()
+
     first = make_decision(
         passed=True,
         contract_id=contract_id,
@@ -79,6 +67,7 @@ def test_repository_lists_decisions_deterministically(
             tzinfo=UTC,
         ),
     )
+
     second = make_decision(
         passed=False,
         contract_id=contract_id,
@@ -92,7 +81,7 @@ def test_repository_lists_decisions_deterministically(
 
     repository.save(second)
     repository.save(first)
-    db_session.commit()
+    db.commit()
 
     decisions = repository.list_by_contract(contract_id)
 
@@ -100,3 +89,4 @@ def test_repository_lists_decisions_deterministically(
         first.id,
         second.id,
     ]
+
