@@ -11,6 +11,7 @@ class ContractViolation:
     rule: str
     message: str
     field: str | None = None
+    reason_code: str = "contract_violation"
     id: UUID = dataclass_field(default_factory=uuid4)
 
     def __post_init__(self) -> None:
@@ -25,6 +26,11 @@ class ContractViolation:
         if self.field is not None and not self.field.strip():
             raise ValueError(
                 "Contract violation field cannot be empty."
+            )
+
+        if not self.reason_code.strip():
+            raise ValueError(
+                "Contract violation reason code cannot be empty."
             )
 
 
@@ -42,3 +48,10 @@ class ContractEvaluationResult:
     @property
     def violation_count(self) -> int:
         return len(self.violations)
+
+    @property
+    def reason_codes(self) -> tuple[str, ...]:
+        return tuple(
+            violation.reason_code
+            for violation in self.violations
+        )

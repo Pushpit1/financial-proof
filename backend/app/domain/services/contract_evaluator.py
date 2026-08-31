@@ -41,6 +41,7 @@ class ContractEvaluator:
             ContractViolation(
                 rule="contract_validation",
                 message=error,
+                reason_code="contract_validation",
             )
             for error in validation.errors
         ]
@@ -48,11 +49,7 @@ class ContractEvaluator:
         if validation.valid:
             values = context or {}
 
-            self._evaluate_conditions(
-                contract,
-                values,
-                violations,
-            )
+            self._evaluate_conditions(contract, values, violations)
             self._evaluate_financial_constraints(
                 contract,
                 values,
@@ -95,6 +92,7 @@ class ContractEvaluator:
                         rule=rule.name,
                         message="Contract condition was not satisfied.",
                         field=rule.condition.field,
+                        reason_code=f"{rule.rule_type.value}_failed",
                     )
                 )
 
@@ -157,10 +155,9 @@ class ContractEvaluator:
                 violations.append(
                     ContractViolation(
                         rule="financial_constraint",
-                        message=(
-                            "Financial constraint was not satisfied."
-                        ),
+                        message="Financial constraint was not satisfied.",
                         field=constraint.field,
+                        reason_code="financial_constraint_failed",
                     )
                 )
 
@@ -215,8 +212,11 @@ class ContractEvaluator:
                 violations.append(
                     ContractViolation(
                         rule="authorization",
-                        message="Authorization requirement was not satisfied.",
+                        message=(
+                            "Authorization requirement was not satisfied."
+                        ),
                         field="actor",
+                        reason_code="authorization_failed",
                     )
                 )
 
@@ -264,6 +264,7 @@ class ContractEvaluator:
                             "context value."
                         ),
                         field=rule.field,
+                        reason_code="temporal_value_missing",
                     )
                 )
                 continue
@@ -277,6 +278,7 @@ class ContractEvaluator:
                         rule="temporal_rule",
                         message="Temporal rule was not satisfied.",
                         field=rule.field,
+                        reason_code="temporal_rule_failed",
                     )
                 )
 
