@@ -13,6 +13,7 @@ from app.db.base import Base
 from app.db.models.financial import (
     FinancialClaimModel,
     FinancialProofModel,
+    ProofEvaluationModel,
 )
 from app.db.unit_of_work import FinancialUnitOfWork
 from app.domain.enums.financial import ClaimType
@@ -89,6 +90,59 @@ def test_create_proof_persists_everything_when_no_failure_occurs() -> None:
     assert session.get(FinancialProofModel, proof.id) is not None
     assert session.query(FinancialClaimModel).count() == 2
 
+def test_evaluate_proof_rolls_back_when_evaluation_persistence_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session = create_session()
+    unit_of_work = FinancialUnitOfWork(session)
+    service = FinancialProofApplicationService(unit_of_work)
+
+    proof = FinancialProof(subject="Evaluation Rollback Applicant")
+    claims = [
+        make_claim("monthly salary", "0.90"),
+        make_claim("annual bonus", "0.70"),
+    ]
+
+    service.create_proof(proof, claims)
+
+    stored_before = session.get(FinancialProofModel, proof.id)
+
+    assert stored_before is not None
+    original_status = stored_before.status
+    original_confidence = stored_before.overall_confidence
+    original_reasons = stored_before.evaluation_reasons
+
+    def failing_add(evaluation) -> None:
+        raise RuntimeError("Simulated evaluation persistence failure.")
+
+    monkeypatch.setattr(
+        unit_of_work.evaluations,
+        "add",
+        failing_add,
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match="Simulated evaluation persistence failure",
+    ):
+        service.evaluate_proof(proof.id)
+
+    session.expire_all()
+
+    stored_after = session.get(FinancialProofModel, proof.id)
+
+    assert stored_after is not None
+    assert stored_after.status == original_status
+    assert stored_after.overall_confidence == original_confidence
+    assert stored_after.evaluation_reasons == original_reasons
+
+    assert (
+        session.query(ProofEvaluationModel)
+        .filter(ProofEvaluationModel.proof_id == proof.id)
+        .count()
+        == 0
+    )
+
 
 def test_add_claims_rolls_back_when_claim_persistence_fails(
     monkeypatch: pytest.MonkeyPatch,
@@ -126,3 +180,6 @@ def test_add_claims_rolls_back_when_claim_persistence_fails(
 
     assert stored_claims == []
     assert session.get(FinancialProofModel, proof.id) is not None
+
+
+    
