@@ -1,5 +1,3 @@
-"""Unit of Work for transactional financial persistence."""
-
 from sqlalchemy.orm import Session
 
 from app.db.repositories.financial import (
@@ -29,6 +27,10 @@ class FinancialUnitOfWork:
         self.decisions = SqlAlchemyFinancialContractDecisionRepository(
             session
         )
+
+    def flush(self) -> None:
+        """Flush pending changes without committing the transaction."""
+        self.session.flush()
 
     def commit(self) -> None:
         """Commit the current transaction."""

@@ -169,7 +169,7 @@ class FinancialProofApplicationService:
                 )
             )
 
-            self.unit_of_work.session.flush()
+            self.unit_of_work.flush()
 
             return proof
 
