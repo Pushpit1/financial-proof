@@ -1,4 +1,4 @@
-"""Mappings between financial domain objects and persistence models."""
+﻿"""Mappings between financial domain objects and persistence models."""
 
 from datetime import UTC, datetime
 from uuid import UUID
@@ -219,16 +219,23 @@ def financial_contract_to_model(
         id=contract.id,
         name=contract.name,
         version=contract.version,
-        minimum_confidence=contract.minimum_confidence.value,
+        minimum_confidence=(
+            contract.minimum_confidence.value
+            if hasattr(contract.minimum_confidence, "value")
+            else contract.minimum_confidence
+        ),
         minimum_supported_claim_ratio=(
             contract.minimum_supported_claim_ratio
         ),
         required_claim_types=[
-            claim_type.value
+            (
+                claim_type.value
+                if hasattr(claim_type, "value")
+                else claim_type
+            )
             for claim_type in contract.required_claim_types
         ],
     )
-
 
 def financial_contract_to_domain(
     model: FinancialContractModel,
@@ -277,4 +284,12 @@ def financial_contract_decision_to_domain(
         violation_count=model.violation_count,
         evaluated_at=model.evaluated_at,
     )
+
+
+
+
+
+
+
+
 

@@ -1,4 +1,4 @@
-"""Tests for the financial unit of work."""
+﻿"""Tests for the financial unit of work."""
 
 from datetime import date
 from decimal import Decimal
@@ -16,6 +16,7 @@ from app.db.models.financial import (
     FinancialProofModel,
 )
 from app.db.unit_of_work import FinancialUnitOfWork
+from app.domain.models.financial import FinancialContract
 
 
 def create_session() -> Session:
@@ -34,6 +35,8 @@ def test_unit_of_work_exposes_all_repositories() -> None:
         assert unit_of_work.contracts is not None
         assert unit_of_work.evidence_links is not None
         assert unit_of_work.proofs is not None
+        assert unit_of_work.evaluations is not None
+        assert unit_of_work.decisions is not None
 
 
 def test_unit_of_work_commits_successful_transaction() -> None:
@@ -103,24 +106,22 @@ def test_unit_of_work_can_coordinate_multiple_repositories() -> None:
     assert stored_proof.subject == "Applicant"
     assert stored_claim.subject == "Applicant"
 
+
 def test_unit_of_work_can_persist_contract() -> None:
     session = create_session()
 
-    contract_id = None
+    contract = FinancialContract(
+        name="Income Verification Contract",
+        version=1,
+        minimum_confidence=0.80,
+        minimum_supported_claim_ratio=0.90,
+        required_claim_types=["income", "employment"],
+    )
+
+    contract_id = contract.id
 
     with FinancialUnitOfWork(session) as unit_of_work:
-        contract = FinancialContractModel(
-            name="Income Verification Contract",
-            version=1,
-            minimum_confidence=0.80,
-            minimum_supported_claim_ratio=0.90,
-            required_claim_types=["income", "employment"],
-        )
-
         unit_of_work.contracts.add(contract)
-        contract_id = contract.id
-
-    assert contract_id is not None
 
     stored = session.get(FinancialContractModel, contract_id)
 
@@ -132,24 +133,21 @@ def test_unit_of_work_can_persist_contract() -> None:
     assert stored.required_claim_types == ["income", "employment"]
 
 
-def test_unit_of_work_exposes_decision_repository() -> None:
-    session = create_session()
-
-    with FinancialUnitOfWork(session) as unit_of_work:
-        assert unit_of_work.decisions is not None
-
-
 def test_unit_of_work_can_persist_decision() -> None:
     session = create_session()
 
+    contract = FinancialContractModel(
+        name="Decision Contract",
+        version=1,
+        minimum_confidence=0.80,
+        minimum_supported_claim_ratio=0.90,
+        required_claim_types=["income"],
+    )
+    session.add(contract)
+    session.flush()
+
     decision = FinancialContractDecisionModel(
-        contract_id=FinancialContractModel(
-            name="Decision Contract",
-            version=1,
-            minimum_confidence=0.80,
-            minimum_supported_claim_ratio=0.90,
-            required_claim_types=["income"],
-        ).id,
+        contract_id=contract.id,
         passed=True,
         reason_codes=[],
         violation_count=0,

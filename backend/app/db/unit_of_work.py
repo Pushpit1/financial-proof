@@ -4,10 +4,10 @@ from app.db.repositories.financial import (
     EvidenceLinkRepository,
     EvidenceRepository,
     FinancialClaimRepository,
-    FinancialContractRepository,
     FinancialProofRepository,
     ProofEvaluationRepository,
 )
+from app.db.repositories.financial_contract import FinancialContractRepository
 from app.db.repositories.financial_contract_decision import (
     SqlAlchemyFinancialContractDecisionRepository,
 )
