@@ -39,6 +39,7 @@ def get_financial_proof_service(
         evaluator=ProofEvaluator(policy),
     )
 
+
 def get_financial_contract_service(
     db: Session = Depends(get_db),  # noqa: B008
 ) -> FinancialContractApplicationService:
@@ -46,3 +47,4 @@ def get_financial_contract_service(
     return FinancialContractApplicationService(
         FinancialUnitOfWork(db),
     )
+
