@@ -20,10 +20,7 @@ class InMemoryDecisionRepository(
     FinancialContractDecisionRepository,
 ):
     def __init__(self) -> None:
-        self.items: dict[
-            UUID,
-            FinancialContractDecision,
-        ] = {}
+        self.items: dict[UUID, FinancialContractDecision] = {}
 
     def save(
         self,
@@ -37,6 +34,16 @@ class InMemoryDecisionRepository(
         decision_id: UUID,
     ) -> FinancialContractDecision | None:
         return self.items.get(decision_id)
+
+    def list_by_contract(
+        self,
+        contract_id: UUID,
+    ) -> list[FinancialContractDecision]:
+        return [
+            decision
+            for decision in self.items.values()
+            if decision.contract_id == contract_id
+        ]
 
 
 class FakeEvaluator:
@@ -55,6 +62,22 @@ class FakeEvaluator:
         )
 
 
+class FakeUnitOfWork:
+    def __init__(self) -> None:
+        self.decisions = InMemoryDecisionRepository()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(
+        self,
+        exc_type,
+        exc_value,
+        traceback,
+    ) -> None:
+        return None
+
+
 def test_repository_can_save_and_get_decision() -> None:
     repository = InMemoryDecisionRepository()
 
@@ -70,11 +93,11 @@ def test_repository_can_save_and_get_decision() -> None:
 
 
 def test_service_persists_when_requested() -> None:
-    repository = InMemoryDecisionRepository()
+    unit_of_work = FakeUnitOfWork()
 
     service = FinancialContractDecisionService(
-        evaluator=FakeEvaluator(),  # type: ignore[arg-type]
-        repository=repository,
+        evaluator=FakeEvaluator(),
+        unit_of_work=unit_of_work,  # type: ignore[arg-type]
     )
 
     contract = FinancialContract(
@@ -87,10 +110,10 @@ def test_service_persists_when_requested() -> None:
     )
 
     assert decision.passed is True
-    assert repository.get_by_id(decision.id) == decision
+    assert unit_of_work.decisions.get_by_id(decision.id) == decision
 
 
-def test_service_does_not_require_repository_by_default() -> None:
+def test_service_does_not_require_unit_of_work_by_default() -> None:
     service = FinancialContractDecisionService(
         evaluator=FakeEvaluator(),  # type: ignore[arg-type]
     )
@@ -104,18 +127,18 @@ def test_service_does_not_require_repository_by_default() -> None:
     assert decision.passed is True
 
 
-def test_service_rejects_persistence_without_repository() -> None:
+def test_service_rejects_persistence_without_unit_of_work() -> None:
     service = FinancialContractDecisionService(
         evaluator=FakeEvaluator(),  # type: ignore[arg-type]
     )
 
     contract = FinancialContract(
-        name="Missing Repository Contract",
+        name="Missing Unit Of Work Contract",
     )
 
     with pytest.raises(
         ValueError,
-        match="Decision repository is required",
+        match="Decision unit of work is required",
     ):
         service.evaluate(
             contract,

@@ -2,6 +2,8 @@ from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Any
 
+import pytest
+
 from app.application.services.financial_contract_decision import (
     FinancialContractDecisionService,
 )
@@ -40,10 +42,39 @@ class FakeEvaluator:
         )
 
 
+class FakeDecisionRepository:
+    def __init__(self) -> None:
+        self.items = []
+
+    def save(self, decision) -> None:
+        self.items.append(decision)
+
+
+class FakeUnitOfWork:
+    def __init__(self) -> None:
+        self.decisions = FakeDecisionRepository()
+        self.committed = False
+        self.rolled_back = False
+
+    def __enter__(self):
+        return self
+
+    def __exit__(
+        self,
+        exc_type,
+        exc_value,
+        traceback,
+    ) -> None:
+        if exc_type is None:
+            self.committed = True
+        else:
+            self.rolled_back = True
+
+
 def test_decision_service_delegates_to_evaluator() -> None:
     evaluator = FakeEvaluator()
     service = FinancialContractDecisionService(
-        evaluator=evaluator,  # type: ignore[arg-type]
+        evaluator=evaluator,
     )
 
     contract = FinancialContract(
@@ -82,7 +113,7 @@ def test_decision_service_converts_failed_evaluation() -> None:
     )
 
     service = FinancialContractDecisionService(
-        evaluator=evaluator,  # type: ignore[arg-type]
+        evaluator=evaluator,
     )
 
     decision = service.evaluate(contract)
@@ -117,7 +148,7 @@ def test_decision_service_preserves_evaluation_timestamp() -> None:
     )
 
     service = FinancialContractDecisionService(
-        evaluator=evaluator,  # type: ignore[arg-type]
+        evaluator=evaluator,
     )
 
     decision = service.evaluate(contract)
@@ -153,3 +184,47 @@ def test_decision_service_returns_zero_violations_for_success() -> None:
     assert decision.passed is True
     assert decision.violation_count == 0
     assert decision.reason_codes == ()
+
+
+def test_decision_service_persists_through_unit_of_work() -> None:
+    evaluator = FakeEvaluator()
+    unit_of_work = FakeUnitOfWork()
+
+    service = FinancialContractDecisionService(
+        evaluator=evaluator,
+        unit_of_work=unit_of_work,  # type: ignore[arg-type]
+    )
+
+    contract = FinancialContract(
+        name="Transactional Decision Contract",
+    )
+
+    decision = service.evaluate(
+        contract,
+        persist=True,
+    )
+
+    assert decision.contract_id == contract.id
+    assert len(unit_of_work.decisions.items) == 1
+    assert unit_of_work.decisions.items[0].id == decision.id
+    assert unit_of_work.committed is True
+    assert unit_of_work.rolled_back is False
+
+
+def test_decision_service_rejects_persistence_without_unit_of_work() -> None:
+    service = FinancialContractDecisionService(
+        evaluator=FakeEvaluator(),
+    )
+
+    contract = FinancialContract(
+        name="Missing Unit Of Work Contract",
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Decision unit of work is required",
+    ):
+        service.evaluate(
+            contract,
+            persist=True,
+        )

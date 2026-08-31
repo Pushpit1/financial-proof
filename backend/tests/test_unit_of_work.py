@@ -11,6 +11,7 @@ from app.db.base import Base
 from app.db.models.financial import (
     EvidenceModel,
     FinancialClaimModel,
+    FinancialContractDecisionModel,
     FinancialContractModel,
     FinancialProofModel,
 )
@@ -129,3 +130,40 @@ def test_unit_of_work_can_persist_contract() -> None:
     assert stored.minimum_confidence == Decimal("0.8000")
     assert stored.minimum_supported_claim_ratio == Decimal("0.9000")
     assert stored.required_claim_types == ["income", "employment"]
+
+
+def test_unit_of_work_exposes_decision_repository() -> None:
+    session = create_session()
+
+    with FinancialUnitOfWork(session) as unit_of_work:
+        assert unit_of_work.decisions is not None
+
+
+def test_unit_of_work_can_persist_decision() -> None:
+    session = create_session()
+
+    decision = FinancialContractDecisionModel(
+        contract_id=FinancialContractModel(
+            name="Decision Contract",
+            version=1,
+            minimum_confidence=0.80,
+            minimum_supported_claim_ratio=0.90,
+            required_claim_types=["income"],
+        ).id,
+        passed=True,
+        reason_codes=[],
+        violation_count=0,
+    )
+
+    with FinancialUnitOfWork(session) as unit_of_work:
+        unit_of_work.decisions.save(decision)
+
+    stored = session.get(
+        FinancialContractDecisionModel,
+        decision.id,
+    )
+
+    assert stored is not None
+    assert stored.contract_id == decision.contract_id
+    assert stored.passed is True
+    assert stored.violation_count == 0
