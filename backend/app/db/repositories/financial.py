@@ -261,3 +261,4 @@ class FinancialContractDecisionRepository:
         )
 
         return list(self.session.scalars(statement).all())
+
