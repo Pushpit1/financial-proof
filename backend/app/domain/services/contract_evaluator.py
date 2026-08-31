@@ -8,7 +8,10 @@ from app.domain.services.contract_evaluation import (
     ContractViolation,
 )
 from app.domain.services.contract_validator import ContractValidator
-from app.domain.value_objects.financial import ContractCondition
+from app.domain.value_objects.financial import (
+    ContractCondition,
+    FinancialConstraint,
+)
 
 
 class ContractEvaluator:
@@ -54,6 +57,21 @@ class ContractEvaluator:
                                 "Contract condition was not satisfied."
                             ),
                             field=rule.condition.field,
+                        )
+                    )
+
+            for constraint in contract.financial_constraints:
+                if not self._evaluate_financial_constraint(
+                    constraint,
+                    values,
+                ):
+                    violations.append(
+                        ContractViolation(
+                            rule="financial_constraint",
+                            message=(
+                                "Financial constraint was not satisfied."
+                            ),
+                            field=constraint.field,
                         )
                     )
 
@@ -105,5 +123,36 @@ class ContractEvaluator:
 
         if condition.operator == ContractOperator.NOT_IN:
             return actual not in expected
+
+        return False
+
+    @staticmethod
+    def _evaluate_financial_constraint(
+        constraint: FinancialConstraint,
+        context: Mapping[str, Any],
+    ) -> bool:
+        if constraint.field not in context:
+            return False
+
+        actual = context[constraint.field]
+        expected = constraint.value
+
+        if constraint.operator == ContractOperator.GREATER_THAN:
+            return actual > expected
+
+        if constraint.operator == ContractOperator.GREATER_THAN_OR_EQUAL:
+            return actual >= expected
+
+        if constraint.operator == ContractOperator.LESS_THAN:
+            return actual < expected
+
+        if constraint.operator == ContractOperator.LESS_THAN_OR_EQUAL:
+            return actual <= expected
+
+        if constraint.operator == ContractOperator.EQUALS:
+            return actual == expected
+
+        if constraint.operator == ContractOperator.NOT_EQUALS:
+            return actual != expected
 
         return False

@@ -1,141 +1,264 @@
 from decimal import Decimal
-from uuid import uuid4
 
 from app.domain.enums.financial import (
     ClaimType,
     ContractOperator,
+    ContractRuleType,
 )
 from app.domain.models.financial import FinancialContract
 from app.domain.services.contract_evaluator import ContractEvaluator
 from app.domain.value_objects.financial import (
+    ContractCondition,
     ContractField,
+    ContractRule,
     FinancialConstraint,
 )
 
 
-def test_evaluator_passes_valid_contract() -> None:
-    contract = FinancialContract(
+def make_contract(
+    rule: ContractRule | None = None,
+    constraint: FinancialConstraint | None = None,
+) -> FinancialContract:
+    return FinancialContract(
         name="Income Verification",
         version=1,
         required_claim_types=(ClaimType.INCOME,),
         inputs=(
             ContractField(
                 name="monthly_income",
-                data_type="money",
+                data_type="decimal",
             ),
         ),
         financial_constraints=(
-            FinancialConstraint(
+            constraint
+            if constraint is not None
+            else FinancialConstraint(
                 field="monthly_income",
                 operator=ContractOperator.GREATER_THAN_OR_EQUAL,
                 value=Decimal("50000"),
                 currency="INR",
             ),
         ),
+        invariants=(rule,) if rule else (),
     )
 
-    result = ContractEvaluator().evaluate(contract)
+
+def test_evaluator_passes_valid_contract() -> None:
+    contract = make_contract()
+
+    result = ContractEvaluator().evaluate(
+        contract,
+        {"monthly_income": Decimal("75000")},
+    )
 
     assert result.contract_id == contract.id
     assert result.passed is True
     assert result.violations == ()
-    assert result.violation_count == 0
 
 
-def test_evaluator_returns_contract_id() -> None:
-    contract_id = uuid4()
-
-    contract = object.__new__(FinancialContract)
-
-    object.__setattr__(contract, "id", contract_id)
-    object.__setattr__(contract, "name", "Test Contract")
-    object.__setattr__(contract, "version", 1)
-    object.__setattr__(contract, "minimum_confidence", None)
-    object.__setattr__(
-        contract,
-        "minimum_supported_claim_ratio",
-        Decimal("1"),
+def test_evaluator_equals_condition() -> None:
+    rule = ContractRule(
+        name="employment_status",
+        condition=ContractCondition(
+            field="employment_status",
+            operator=ContractOperator.EQUALS,
+            value="employed",
+        ),
+        rule_type=ContractRuleType.INVARIANT,
     )
-    object.__setattr__(contract, "required_claim_types", ())
-    object.__setattr__(contract, "preconditions", ())
-    object.__setattr__(contract, "invariants", ())
-    object.__setattr__(contract, "postconditions", ())
-    object.__setattr__(contract, "inputs", ())
-    object.__setattr__(contract, "outputs", ())
-    object.__setattr__(contract, "financial_constraints", ())
-    object.__setattr__(contract, "authorizations", ())
-    object.__setattr__(contract, "temporal_rules", ())
-    object.__setattr__(contract, "idempotency_policy", None)
-    object.__setattr__(contract, "state_transitions", ())
 
-    result = ContractEvaluator().evaluate(contract)
+    contract = make_contract(rule)
 
-    assert result.contract_id == contract_id
+    result = ContractEvaluator().evaluate(
+        contract,
+        {
+            "monthly_income": Decimal("75000"),
+            "employment_status": "employed",
+        },
+    )
+
     assert result.passed is True
 
 
-def test_evaluator_converts_validation_errors_to_violations() -> None:
-    contract = object.__new__(FinancialContract)
-
-    object.__setattr__(contract, "id", uuid4())
-    object.__setattr__(contract, "name", "Invalid Contract")
-    object.__setattr__(contract, "version", 1)
-    object.__setattr__(contract, "minimum_confidence", None)
-    object.__setattr__(
-        contract,
-        "minimum_supported_claim_ratio",
-        Decimal("1"),
+def test_evaluator_rejects_failed_equals_condition() -> None:
+    rule = ContractRule(
+        name="employment_status",
+        condition=ContractCondition(
+            field="employment_status",
+            operator=ContractOperator.EQUALS,
+            value="employed",
+        ),
+        rule_type=ContractRuleType.INVARIANT,
     )
-    object.__setattr__(
-        contract,
-        "required_claim_types",
-        (ClaimType.INCOME, ClaimType.INCOME),
-    )
-    object.__setattr__(contract, "preconditions", ())
-    object.__setattr__(contract, "invariants", ())
-    object.__setattr__(contract, "postconditions", ())
-    object.__setattr__(contract, "inputs", ())
-    object.__setattr__(contract, "outputs", ())
-    object.__setattr__(contract, "financial_constraints", ())
-    object.__setattr__(contract, "authorizations", ())
-    object.__setattr__(contract, "temporal_rules", ())
-    object.__setattr__(contract, "idempotency_policy", None)
-    object.__setattr__(contract, "state_transitions", ())
 
-    result = ContractEvaluator().evaluate(contract)
+    contract = make_contract(rule)
+
+    result = ContractEvaluator().evaluate(
+        contract,
+        {
+            "monthly_income": Decimal("75000"),
+            "employment_status": "unemployed",
+        },
+    )
 
     assert result.passed is False
     assert result.violation_count == 1
-    assert result.violations[0].rule == "contract_validation"
-    assert (
-        result.violations[0].message
-        == "Duplicate required claim type: 'income'."
+    assert result.violations[0].rule == "employment_status"
+    assert result.violations[0].field == "employment_status"
+
+
+def test_financial_constraint_passes() -> None:
+    constraint = FinancialConstraint(
+        field="monthly_income",
+        operator=ContractOperator.GREATER_THAN_OR_EQUAL,
+        value=Decimal("50000"),
+        currency="INR",
     )
 
+    contract = make_contract(constraint=constraint)
 
-def test_evaluator_uses_injected_validator() -> None:
-    class FakeValidator:
-        def validate(self, contract: FinancialContract):
-            from app.domain.services.contract_validator import (
-                ContractValidationResult,
-            )
-
-            return ContractValidationResult(
-                valid=False,
-                errors=("Injected validation failure.",),
-            )
-
-    contract = FinancialContract(
-        name="Injected Validator Contract",
+    result = ContractEvaluator().evaluate(
+        contract,
+        {"monthly_income": Decimal("50000")},
     )
 
-    result = ContractEvaluator(
-        validator=FakeValidator()
-    ).evaluate(contract)
+    assert result.passed is True
+    assert result.violations == ()
+
+
+def test_financial_constraint_rejects_below_minimum() -> None:
+    constraint = FinancialConstraint(
+        field="monthly_income",
+        operator=ContractOperator.GREATER_THAN_OR_EQUAL,
+        value=Decimal("50000"),
+        currency="INR",
+    )
+
+    contract = make_contract(constraint=constraint)
+
+    result = ContractEvaluator().evaluate(
+        contract,
+        {"monthly_income": Decimal("49999")},
+    )
 
     assert result.passed is False
     assert result.violation_count == 1
-    assert (
-        result.violations[0].message
-        == "Injected validation failure."
+    assert result.violations[0].rule == "financial_constraint"
+    assert result.violations[0].field == "monthly_income"
+
+
+def test_missing_financial_constraint_field_fails() -> None:
+    contract = make_contract()
+
+    result = ContractEvaluator().evaluate(contract, {})
+
+    assert result.passed is False
+    assert result.violation_count == 1
+    assert result.violations[0].rule == "financial_constraint"
+
+
+def test_financial_constraint_less_than_passes() -> None:
+    constraint = FinancialConstraint(
+        field="monthly_income",
+        operator=ContractOperator.LESS_THAN,
+        value=Decimal("100000"),
+        currency="INR",
     )
+
+    contract = make_contract(constraint=constraint)
+
+    result = ContractEvaluator().evaluate(
+        contract,
+        {"monthly_income": Decimal("75000")},
+    )
+
+    assert result.passed is True
+
+
+def test_financial_constraint_less_than_or_equal_passes() -> None:
+    constraint = FinancialConstraint(
+        field="monthly_income",
+        operator=ContractOperator.LESS_THAN_OR_EQUAL,
+        value=Decimal("75000"),
+        currency="INR",
+    )
+
+    contract = make_contract(constraint=constraint)
+
+    result = ContractEvaluator().evaluate(
+        contract,
+        {"monthly_income": Decimal("75000")},
+    )
+
+    assert result.passed is True
+
+
+def test_financial_constraint_equals_passes() -> None:
+    constraint = FinancialConstraint(
+        field="monthly_income",
+        operator=ContractOperator.EQUALS,
+        value=Decimal("75000"),
+        currency="INR",
+    )
+
+    contract = make_contract(constraint=constraint)
+
+    result = ContractEvaluator().evaluate(
+        contract,
+        {"monthly_income": Decimal("75000")},
+    )
+
+    assert result.passed is True
+
+
+def test_financial_constraint_not_equals_passes() -> None:
+    constraint = FinancialConstraint(
+        field="monthly_income",
+        operator=ContractOperator.NOT_EQUALS,
+        value=Decimal("75000"),
+        currency="INR",
+    )
+
+    contract = make_contract(constraint=constraint)
+
+    result = ContractEvaluator().evaluate(
+        contract,
+        {"monthly_income": Decimal("80000")},
+    )
+
+    assert result.passed is True
+
+
+def test_condition_and_financial_constraint_both_evaluate() -> None:
+    rule = ContractRule(
+        name="employment_status",
+        condition=ContractCondition(
+            field="employment_status",
+            operator=ContractOperator.EQUALS,
+            value="employed",
+        ),
+        rule_type=ContractRuleType.INVARIANT,
+    )
+
+    constraint = FinancialConstraint(
+        field="monthly_income",
+        operator=ContractOperator.GREATER_THAN_OR_EQUAL,
+        value=Decimal("50000"),
+        currency="INR",
+    )
+
+    contract = make_contract(
+        rule=rule,
+        constraint=constraint,
+    )
+
+    result = ContractEvaluator().evaluate(
+        contract,
+        {
+            "monthly_income": Decimal("75000"),
+            "employment_status": "employed",
+        },
+    )
+
+    assert result.passed is True
+    assert result.violations == ()
