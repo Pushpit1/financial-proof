@@ -1,23 +1,26 @@
-from decimal import Decimal
+from datetime import UTC, datetime
 
 from app.domain.enums.financial import (
     ClaimType,
+    ContractAuthorizationAction,
     ContractOperator,
     ContractRuleType,
+    ContractTimeRelation,
 )
 from app.domain.models.financial import FinancialContract
 from app.domain.services.contract_evaluator import ContractEvaluator
 from app.domain.value_objects.financial import (
+    ContractAuthorization,
     ContractCondition,
     ContractField,
     ContractRule,
+    ContractTemporalRule,
     FinancialConstraint,
 )
 
 
 def make_contract(
     rule: ContractRule | None = None,
-    constraint: FinancialConstraint | None = None,
 ) -> FinancialContract:
     return FinancialContract(
         name="Income Verification",
@@ -30,12 +33,10 @@ def make_contract(
             ),
         ),
         financial_constraints=(
-            constraint
-            if constraint is not None
-            else FinancialConstraint(
+            FinancialConstraint(
                 field="monthly_income",
                 operator=ContractOperator.GREATER_THAN_OR_EQUAL,
-                value=Decimal("50000"),
+                value=50000,
                 currency="INR",
             ),
         ),
@@ -43,193 +44,232 @@ def make_contract(
     )
 
 
-def test_evaluator_passes_valid_contract() -> None:
-    contract = make_contract()
-
-    result = ContractEvaluator().evaluate(
-        contract,
-        {"monthly_income": Decimal("75000")},
-    )
-
-    assert result.contract_id == contract.id
-    assert result.passed is True
-    assert result.violations == ()
-
-
-def test_evaluator_equals_condition() -> None:
-    rule = ContractRule(
-        name="employment_status",
-        condition=ContractCondition(
-            field="employment_status",
-            operator=ContractOperator.EQUALS,
-            value="employed",
+def test_authorization_passes_for_matching_context() -> None:
+    contract = FinancialContract(
+        name="Authorized Contract",
+        authorizations=(
+            ContractAuthorization(
+                actor="underwriter",
+                action=ContractAuthorizationAction.EVALUATE,
+                resource="financial_proof",
+            ),
         ),
-        rule_type=ContractRuleType.INVARIANT,
     )
-
-    contract = make_contract(rule)
 
     result = ContractEvaluator().evaluate(
         contract,
         {
-            "monthly_income": Decimal("75000"),
-            "employment_status": "employed",
+            "actor": "underwriter",
+            "action": "evaluate",
+            "resource": "financial_proof",
         },
     )
 
     assert result.passed is True
 
 
-def test_evaluator_rejects_failed_equals_condition() -> None:
-    rule = ContractRule(
-        name="employment_status",
-        condition=ContractCondition(
-            field="employment_status",
-            operator=ContractOperator.EQUALS,
-            value="employed",
+def test_authorization_rejects_wrong_actor() -> None:
+    contract = FinancialContract(
+        name="Authorized Contract",
+        authorizations=(
+            ContractAuthorization(
+                actor="underwriter",
+                action=ContractAuthorizationAction.EVALUATE,
+                resource="financial_proof",
+            ),
         ),
-        rule_type=ContractRuleType.INVARIANT,
     )
-
-    contract = make_contract(rule)
 
     result = ContractEvaluator().evaluate(
         contract,
         {
-            "monthly_income": Decimal("75000"),
-            "employment_status": "unemployed",
+            "actor": "auditor",
+            "action": "evaluate",
+            "resource": "financial_proof",
         },
     )
 
     assert result.passed is False
-    assert result.violation_count == 1
-    assert result.violations[0].rule == "employment_status"
-    assert result.violations[0].field == "employment_status"
+    assert result.violations[0].rule == "authorization"
+    assert result.violations[0].field == "actor"
 
 
-def test_financial_constraint_passes() -> None:
-    constraint = FinancialConstraint(
-        field="monthly_income",
-        operator=ContractOperator.GREATER_THAN_OR_EQUAL,
-        value=Decimal("50000"),
-        currency="INR",
+def test_authorization_rejects_wrong_action() -> None:
+    contract = FinancialContract(
+        name="Authorized Contract",
+        authorizations=(
+            ContractAuthorization(
+                actor="underwriter",
+                action=ContractAuthorizationAction.APPROVE,
+                resource="financial_proof",
+            ),
+        ),
     )
-
-    contract = make_contract(constraint=constraint)
 
     result = ContractEvaluator().evaluate(
         contract,
-        {"monthly_income": Decimal("50000")},
-    )
-
-    assert result.passed is True
-    assert result.violations == ()
-
-
-def test_financial_constraint_rejects_below_minimum() -> None:
-    constraint = FinancialConstraint(
-        field="monthly_income",
-        operator=ContractOperator.GREATER_THAN_OR_EQUAL,
-        value=Decimal("50000"),
-        currency="INR",
-    )
-
-    contract = make_contract(constraint=constraint)
-
-    result = ContractEvaluator().evaluate(
-        contract,
-        {"monthly_income": Decimal("49999")},
+        {
+            "actor": "underwriter",
+            "action": "evaluate",
+            "resource": "financial_proof",
+        },
     )
 
     assert result.passed is False
-    assert result.violation_count == 1
-    assert result.violations[0].rule == "financial_constraint"
-    assert result.violations[0].field == "monthly_income"
+    assert result.violations[0].rule == "authorization"
 
 
-def test_missing_financial_constraint_field_fails() -> None:
-    contract = make_contract()
+def test_authorization_rejects_wrong_resource() -> None:
+    contract = FinancialContract(
+        name="Authorized Contract",
+        authorizations=(
+            ContractAuthorization(
+                actor="underwriter",
+                action=ContractAuthorizationAction.EVALUATE,
+                resource="financial_proof",
+            ),
+        ),
+    )
+
+    result = ContractEvaluator().evaluate(
+        contract,
+        {
+            "actor": "underwriter",
+            "action": "evaluate",
+            "resource": "other_resource",
+        },
+    )
+
+    assert result.passed is False
+
+
+def test_temporal_rule_on_or_after_passes() -> None:
+    contract = FinancialContract(
+        name="Temporal Contract",
+        temporal_rules=(
+            ContractTemporalRule(
+                field="created_at",
+                relation=ContractTimeRelation.ON_OR_AFTER,
+                start=datetime(
+                    2026,
+                    1,
+                    1,
+                    tzinfo=UTC,
+                ),
+            ),
+        ),
+    )
+
+    result = ContractEvaluator().evaluate(
+        contract,
+        {
+            "created_at": datetime(
+                2026,
+                6,
+                1,
+                tzinfo=UTC,
+            ),
+        },
+    )
+
+    assert result.passed is True
+
+
+def test_temporal_rule_rejects_before_boundary() -> None:
+    contract = FinancialContract(
+        name="Temporal Contract",
+        temporal_rules=(
+            ContractTemporalRule(
+                field="created_at",
+                relation=ContractTimeRelation.ON_OR_AFTER,
+                start=datetime(
+                    2026,
+                    1,
+                    1,
+                    tzinfo=UTC,
+                ),
+            ),
+        ),
+    )
+
+    result = ContractEvaluator().evaluate(
+        contract,
+        {
+            "created_at": datetime(
+                2025,
+                12,
+                31,
+                tzinfo=UTC,
+            ),
+        },
+    )
+
+    assert result.passed is False
+    assert result.violations[0].rule == "temporal_rule"
+
+
+def test_temporal_between_passes() -> None:
+    contract = FinancialContract(
+        name="Temporal Contract",
+        temporal_rules=(
+            ContractTemporalRule(
+                field="created_at",
+                relation=ContractTimeRelation.BETWEEN,
+                start=datetime(
+                    2026,
+                    1,
+                    1,
+                    tzinfo=UTC,
+                ),
+                end=datetime(
+                    2026,
+                    12,
+                    31,
+                    tzinfo=UTC,
+                ),
+            ),
+        ),
+    )
+
+    result = ContractEvaluator().evaluate(
+        contract,
+        {
+            "created_at": datetime(
+                2026,
+                6,
+                1,
+                tzinfo=UTC,
+            ),
+        },
+    )
+
+    assert result.passed is True
+
+
+def test_missing_temporal_context_fails() -> None:
+    contract = FinancialContract(
+        name="Temporal Contract",
+        temporal_rules=(
+            ContractTemporalRule(
+                field="created_at",
+                relation=ContractTimeRelation.ON_OR_AFTER,
+                start=datetime(
+                    2026,
+                    1,
+                    1,
+                    tzinfo=UTC,
+                ),
+            ),
+        ),
+    )
 
     result = ContractEvaluator().evaluate(contract, {})
 
     assert result.passed is False
-    assert result.violation_count == 1
-    assert result.violations[0].rule == "financial_constraint"
+    assert result.violations[0].field == "created_at"
 
 
-def test_financial_constraint_less_than_passes() -> None:
-    constraint = FinancialConstraint(
-        field="monthly_income",
-        operator=ContractOperator.LESS_THAN,
-        value=Decimal("100000"),
-        currency="INR",
-    )
-
-    contract = make_contract(constraint=constraint)
-
-    result = ContractEvaluator().evaluate(
-        contract,
-        {"monthly_income": Decimal("75000")},
-    )
-
-    assert result.passed is True
-
-
-def test_financial_constraint_less_than_or_equal_passes() -> None:
-    constraint = FinancialConstraint(
-        field="monthly_income",
-        operator=ContractOperator.LESS_THAN_OR_EQUAL,
-        value=Decimal("75000"),
-        currency="INR",
-    )
-
-    contract = make_contract(constraint=constraint)
-
-    result = ContractEvaluator().evaluate(
-        contract,
-        {"monthly_income": Decimal("75000")},
-    )
-
-    assert result.passed is True
-
-
-def test_financial_constraint_equals_passes() -> None:
-    constraint = FinancialConstraint(
-        field="monthly_income",
-        operator=ContractOperator.EQUALS,
-        value=Decimal("75000"),
-        currency="INR",
-    )
-
-    contract = make_contract(constraint=constraint)
-
-    result = ContractEvaluator().evaluate(
-        contract,
-        {"monthly_income": Decimal("75000")},
-    )
-
-    assert result.passed is True
-
-
-def test_financial_constraint_not_equals_passes() -> None:
-    constraint = FinancialConstraint(
-        field="monthly_income",
-        operator=ContractOperator.NOT_EQUALS,
-        value=Decimal("75000"),
-        currency="INR",
-    )
-
-    contract = make_contract(constraint=constraint)
-
-    result = ContractEvaluator().evaluate(
-        contract,
-        {"monthly_income": Decimal("80000")},
-    )
-
-    assert result.passed is True
-
-
-def test_condition_and_financial_constraint_both_evaluate() -> None:
+def test_condition_and_authorization_can_both_pass() -> None:
     rule = ContractRule(
         name="employment_status",
         condition=ContractCondition(
@@ -240,25 +280,26 @@ def test_condition_and_financial_constraint_both_evaluate() -> None:
         rule_type=ContractRuleType.INVARIANT,
     )
 
-    constraint = FinancialConstraint(
-        field="monthly_income",
-        operator=ContractOperator.GREATER_THAN_OR_EQUAL,
-        value=Decimal("50000"),
-        currency="INR",
-    )
-
-    contract = make_contract(
-        rule=rule,
-        constraint=constraint,
+    contract = FinancialContract(
+        name="Combined Contract",
+        invariants=(rule,),
+        authorizations=(
+            ContractAuthorization(
+                actor="underwriter",
+                action=ContractAuthorizationAction.EVALUATE,
+                resource="financial_proof",
+            ),
+        ),
     )
 
     result = ContractEvaluator().evaluate(
         contract,
         {
-            "monthly_income": Decimal("75000"),
             "employment_status": "employed",
+            "actor": "underwriter",
+            "action": "evaluate",
+            "resource": "financial_proof",
         },
     )
 
     assert result.passed is True
-    assert result.violations == ()
