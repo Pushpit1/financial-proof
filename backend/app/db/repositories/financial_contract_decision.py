@@ -1,8 +1,13 @@
+"""SQLAlchemy repository for financial contract decisions."""
+
 from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.application.ports.financial_contract_decision import (
+    FinancialContractDecisionRepository,
+)
 from app.db.mappers.financial import (
     financial_contract_decision_to_domain,
     financial_contract_decision_to_model,
@@ -11,7 +16,9 @@ from app.db.models.financial import FinancialContractDecisionModel
 from app.domain.models.financial import FinancialContractDecision
 
 
-class SqlAlchemyFinancialContractDecisionRepository:
+class SqlAlchemyFinancialContractDecisionRepository(
+    FinancialContractDecisionRepository,
+):
     """SQLAlchemy implementation of the decision persistence port."""
 
     def __init__(self, session: Session) -> None:

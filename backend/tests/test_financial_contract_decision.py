@@ -1,6 +1,7 @@
 from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Any
+from uuid import uuid4
 
 import pytest
 
@@ -228,3 +229,75 @@ def test_decision_service_rejects_persistence_without_unit_of_work() -> None:
             contract,
             persist=True,
         )
+
+
+def test_decision_service_lists_decisions_through_repository() -> None:
+    contract = FinancialContract(
+        name="Decision History Contract",
+    )
+
+    first = FinancialContractDecision(
+        contract_id=contract.id,
+        passed=True,
+    )
+    second = FinancialContractDecision(
+        contract_id=contract.id,
+        passed=False,
+        reason_codes=("authorization_failed",),
+        violation_count=1,
+    )
+
+    class HistoryRepository:
+        def list_by_contract(self, contract_id):
+            assert contract_id == contract.id
+            return [first, second]
+
+    service = FinancialContractDecisionService(
+        repository=HistoryRepository(),  # type: ignore[arg-type]
+    )
+
+    decisions = service.list_decisions(contract.id)
+
+    assert decisions == [first, second]
+
+
+def test_decision_service_lists_decisions_through_unit_of_work() -> None:
+    contract = FinancialContract(
+        name="Unit Of Work History Contract",
+    )
+
+    decision = FinancialContractDecision(
+        contract_id=contract.id,
+        passed=True,
+    )
+
+    class HistoryRepository:
+        def list_by_contract(self, contract_id):
+            assert contract_id == contract.id
+            return [decision]
+
+    class HistoryUnitOfWork:
+        def __init__(self):
+            self.decisions = HistoryRepository()
+
+    service = FinancialContractDecisionService(
+        unit_of_work=HistoryUnitOfWork(),  # type: ignore[arg-type]
+    )
+
+    decisions = service.list_decisions(contract.id)
+
+    assert decisions == [decision]
+
+
+def test_decision_service_rejects_history_without_repository() -> None:
+    service = FinancialContractDecisionService(
+        evaluator=FakeEvaluator(),
+    )
+
+    contract_id = uuid4()
+
+    with pytest.raises(
+        ValueError,
+        match="Decision repository is required",
+    ):
+        service.list_decisions(contract_id)

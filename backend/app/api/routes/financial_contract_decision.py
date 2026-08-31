@@ -25,7 +25,7 @@ router = APIRouter(
 )
 
 
-def _decision_to_response(decision):
+def _decision_to_response(decision) -> FinancialContractDecisionResponse:
     """Convert a domain decision into an API response."""
     return FinancialContractDecisionResponse(
         id=decision.id,
@@ -74,3 +74,40 @@ async def evaluate_contract(
         ) from exc
 
     return _decision_to_response(decision)
+
+
+@router.get(
+    "/{contract_id}/decisions",
+    response_model=list[FinancialContractDecisionResponse],
+    status_code=status.HTTP_200_OK,
+)
+async def list_contract_decisions(
+    contract_id: UUID,
+    contract_service: FinancialContractApplicationService = Depends(  # noqa: B008
+        get_financial_contract_service
+    ),
+    decision_service: FinancialContractDecisionService = Depends(  # noqa: B008
+        get_financial_contract_decision_service
+    ),
+) -> list[FinancialContractDecisionResponse]:
+    """Return all persisted decisions for a financial contract."""
+    contract = contract_service.get_contract(contract_id)
+
+    if contract is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Financial contract {contract_id} was not found.",
+        )
+
+    try:
+        decisions = decision_service.list_decisions(contract_id)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
+
+    return [
+        _decision_to_response(decision)
+        for decision in decisions
+    ]

@@ -1,3 +1,5 @@
+"""Application ports for financial contract decisions."""
+
 from abc import ABC, abstractmethod
 from uuid import UUID
 
@@ -12,7 +14,7 @@ class FinancialContractDecisionRepository(ABC):
         self,
         decision: FinancialContractDecision,
     ) -> FinancialContractDecision:
-        """Persist and return a decision."""
+        """Persist a financial contract decision."""
         raise NotImplementedError
 
     @abstractmethod
@@ -20,5 +22,13 @@ class FinancialContractDecisionRepository(ABC):
         self,
         decision_id: UUID,
     ) -> FinancialContractDecision | None:
-        """Retrieve a decision by identifier."""
+        """Retrieve a decision by ID."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_by_contract(
+        self,
+        contract_id: UUID,
+    ) -> list[FinancialContractDecision]:
+        """Retrieve decisions for a contract deterministically."""
         raise NotImplementedError
