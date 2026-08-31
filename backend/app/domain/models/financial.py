@@ -8,7 +8,6 @@ from app.domain.enums.financial import (
     ClaimType,
     ConfidenceLevel,
     ContractIdempotencyMode,
-    ContractRuleType,
     EvidenceStatus,
     EvidenceType,
     ProofStatus,
@@ -33,7 +32,9 @@ if TYPE_CHECKING:
 
 @dataclass
 class Evidence:
-    """A source artifact from which financial facts can be established."""
+    """
+    A source artifact from which financial facts can be established.
+    """
 
     evidence_type: EvidenceType
     source_name: str
@@ -46,7 +47,9 @@ class Evidence:
 
 @dataclass
 class FinancialClaim:
-    """A normalized financial assertion derived from evidence."""
+    """
+    A normalized financial assertion derived from one or more evidence items.
+    """
 
     claim_type: ClaimType
     subject: str
@@ -64,7 +67,9 @@ class FinancialClaim:
 
 @dataclass
 class EvidenceLink:
-    """Links a claim to evidence supporting or contradicting it."""
+    """
+    Links a claim to evidence supporting or contradicting it.
+    """
 
     claim_id: UUID
     evidence_id: UUID
@@ -76,9 +81,7 @@ class EvidenceLink:
         default_factory=lambda: ConfidenceScore(Decimal("0"))
     )
     explanation: str | None = None
-    created_at: datetime = field(
-        default_factory=lambda: datetime.now(UTC)
-    )
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
 
 
 @dataclass(frozen=True)
@@ -100,6 +103,7 @@ class FinancialContract:
     id: UUID = field(default_factory=uuid4)
     name: str = ""
     version: int = 1
+
     minimum_confidence: ConfidenceScore = field(
         default_factory=lambda: ConfidenceScore(Decimal("0"))
     )
@@ -107,6 +111,14 @@ class FinancialContract:
     required_claim_types: tuple[ClaimType, ...] = field(
         default_factory=tuple
     )
+
+    inputs: tuple[ContractField, ...] = field(default_factory=tuple)
+    outputs: tuple[ContractField, ...] = field(default_factory=tuple)
+
+    financial_constraints: tuple[FinancialConstraint, ...] = field(
+        default_factory=tuple
+    )
+
     preconditions: tuple[ContractRule, ...] = field(
         default_factory=tuple
     )
@@ -116,15 +128,7 @@ class FinancialContract:
     postconditions: tuple[ContractRule, ...] = field(
         default_factory=tuple
     )
-    inputs: tuple[ContractField, ...] = field(
-        default_factory=tuple
-    )
-    outputs: tuple[ContractField, ...] = field(
-        default_factory=tuple
-    )
-    financial_constraints: tuple[FinancialConstraint, ...] = field(
-        default_factory=tuple
-    )
+
     authorizations: tuple[ContractAuthorization, ...] = field(
         default_factory=tuple
     )
@@ -137,6 +141,8 @@ class FinancialContract:
     )
 
     def __post_init__(self) -> None:
+        """Validate contract invariants."""
+
         if not self.name.strip():
             raise ValueError("Contract name cannot be empty.")
 
@@ -152,120 +158,119 @@ class FinancialContract:
                 "Minimum supported claim ratio must be between 0 and 1."
             )
 
-        self._validate_rule_types(
-            self.preconditions,
-            ContractRuleType.PRECONDITION,
-        )
-        self._validate_rule_types(
-            self.invariants,
-            ContractRuleType.INVARIANT,
-        )
-        self._validate_rule_types(
-            self.postconditions,
-            ContractRuleType.POSTCONDITION,
-        )
+        self._validate_unique_fields()
+        self._validate_unique_rules()
+        self._validate_unique_constraints()
+        self._validate_idempotency_reference()
+        self._validate_unique_state_transitions()
 
-        self._validate_fields(self.inputs, "input")
-        self._validate_fields(self.outputs, "output")
-        self._validate_financial_constraints()
-        self._validate_state_transitions()
-        self._validate_idempotency()
+    def _validate_unique_fields(self) -> None:
+        input_names = [field.name for field in self.inputs]
+        output_names = [field.name for field in self.outputs]
 
-    @staticmethod
-    def _validate_rule_types(
-        rules: tuple[ContractRule, ...],
-        expected_type: ContractRuleType,
-    ) -> None:
-        for rule in rules:
-            if rule.rule_type != expected_type:
-                raise ValueError(
-                    "Contract rule must have type "
-                    f"'{expected_type.value}'."
-                )
+        if len(input_names) != len(set(input_names)):
+            raise ValueError(
+                "Duplicate contract input field names are not allowed."
+            )
 
-    @staticmethod
-    def _validate_fields(
-        fields: tuple[ContractField, ...],
-        field_kind: str,
-    ) -> None:
-        names: set[str] = set()
+        if len(output_names) != len(set(output_names)):
+            raise ValueError(
+                "Duplicate contract output field names are not allowed."
+            )
 
-        for contract_field in fields:
-            if contract_field.name in names:
-                raise ValueError(
-                    f"Duplicate contract {field_kind} field: "
-                    f"'{contract_field.name}'."
-                )
-
-            names.add(contract_field.name)
-
-    def _validate_financial_constraints(self) -> None:
-        fields = {contract_field.name for contract_field in self.inputs}
-        fields.update(
-            contract_field.name for contract_field in self.outputs
+    def _validate_unique_rules(self) -> None:
+        rules = (
+            *self.preconditions,
+            *self.invariants,
+            *self.postconditions,
         )
 
-        constraint_names: set[tuple[str, str]] = set()
+        names = [rule.name for rule in rules]
+
+        if len(names) != len(set(names)):
+            raise ValueError(
+                "Duplicate contract rule names are not allowed."
+            )
+
+    def _validate_unique_constraints(self) -> None:
+        fields = [
+            constraint.field
+            for constraint in self.financial_constraints
+        ]
+
+        if len(fields) != len(set(fields)):
+            raise ValueError(
+                "Duplicate financial constraints are not allowed."
+            )
+
+        declared_fields = {
+            contract_field.name
+            for contract_field in self.inputs
+        }
 
         for constraint in self.financial_constraints:
-            key = (
-                constraint.field,
-                constraint.operator.value,
+            if constraint.field not in declared_fields:
+                raise ValueError(
+                    "Financial constraint field must reference "
+                    "a declared contract field."
+                )
+
+    def _validate_unique_authorizations(self) -> None:
+        keys = [
+            (
+                authorization.actor,
+                authorization.action,
+                authorization.resource,
             )
+            for authorization in self.authorizations
+        ]
 
-            if key in constraint_names:
-                raise ValueError(
-                    "Duplicate financial constraint for field "
-                    f"'{constraint.field}' and operator "
-                    f"'{constraint.operator.value}'."
-                )
-
-            constraint_names.add(key)
-
-            if fields and constraint.field not in fields:
-                raise ValueError(
-                    "Financial constraint field must reference a "
-                    "declared contract field."
-                )
-
-    def _validate_state_transitions(self) -> None:
-        transitions: set[tuple[str, str, str]] = set()
-
-        for transition in self.state_transitions:
-            key = (
-                transition.from_state.value,
-                transition.to_state.value,
-                transition.trigger.value,
-            )
-
-            if key in transitions:
-                raise ValueError(
-                    "Duplicate contract state transition."
-                )
-
-            transitions.add(key)
-
-    def _validate_idempotency(self) -> None:
-        policy = self.idempotency_policy
-
-        if policy is None:
-            return
-
-        if policy.mode == ContractIdempotencyMode.DISABLED:
-            return
-
-        fields = {contract_field.name for contract_field in self.inputs}
-
-        if fields and policy.key_field not in fields:
+        if len(keys) != len(set(keys)):
             raise ValueError(
-                "Idempotency key field must reference a declared "
-                "contract input field."
+                "Duplicate contract authorizations are not allowed."
+            )
+
+    def _validate_idempotency_reference(self) -> None:
+        if self.idempotency_policy is None:
+            return
+
+        if self.idempotency_policy.mode == ContractIdempotencyMode.DISABLED:
+            return
+
+        input_names = {
+            contract_field.name
+            for contract_field in self.inputs
+        }
+
+        key_field = self.idempotency_policy.key_field
+
+        if key_field is not None and key_field not in input_names:
+            raise ValueError(
+                "Idempotency key field must reference "
+                "a declared contract field."
+            )
+
+    def _validate_unique_state_transitions(self) -> None:
+        keys = [
+            (
+                transition.from_state,
+                transition.to_state,
+                transition.trigger,
+            )
+            for transition in self.state_transitions
+        ]
+
+        if len(keys) != len(set(keys)):
+            raise ValueError(
+                "Duplicate contract state transition."
             )
 
 
 @dataclass
 class FinancialProof:
-    """A defensible collection of claims and supporting evidence."""
+    """
+    A defensible collection of claims and supporting evidence.
+    """
 
     subject: str
     id: UUID = field(default_factory=uuid4)
@@ -281,6 +286,35 @@ class FinancialProof:
         self,
         evaluation: "ProofEvaluation",
     ) -> None:
+        """Apply an evaluation result to this proof."""
         self.status = evaluation.status
         self.overall_confidence = evaluation.overall_confidence
         self.evaluation_reasons = list(evaluation.reasons)
+
+
+@dataclass(frozen=True)
+class FinancialContractDecision:
+    """Immutable persisted decision produced by contract evaluation."""
+
+    contract_id: UUID
+    passed: bool
+    reason_codes: tuple[str, ...] = ()
+    violation_count: int = 0
+    evaluated_at: datetime = field(
+        default_factory=lambda: datetime.now(UTC)
+    )
+    id: UUID = field(default_factory=uuid4)
+
+    def __post_init__(self) -> None:
+        if self.violation_count < 0:
+            raise ValueError(
+                "Decision violation count cannot be negative."
+            )
+
+        if self.violation_count != len(self.reason_codes):
+            raise ValueError(
+                "Decision violation count must match reason codes."
+            )
+
+
+
