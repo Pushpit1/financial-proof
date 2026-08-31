@@ -1,9 +1,9 @@
 from collections.abc import Mapping
 from typing import Any
 
-from app.domain.models.financial import FinancialContract
-from app.domain.services.contract_evaluation import (
-    ContractEvaluationResult,
+from app.domain.models.financial import (
+    FinancialContract,
+    FinancialContractDecision,
 )
 from app.domain.services.contract_evaluator import ContractEvaluator
 
@@ -21,9 +21,17 @@ class FinancialContractDecisionService:
         self,
         contract: FinancialContract,
         context: Mapping[str, Any] | None = None,
-    ) -> ContractEvaluationResult:
-        """Evaluate a financial contract against supplied context."""
-        return self._evaluator.evaluate(
+    ) -> FinancialContractDecision:
+        """Evaluate a contract and return a decision record."""
+        result = self._evaluator.evaluate(
             contract=contract,
             context=context,
+        )
+
+        return FinancialContractDecision(
+            contract_id=result.contract_id,
+            passed=result.passed,
+            reason_codes=result.reason_codes,
+            violation_count=result.violation_count,
+            evaluated_at=result.evaluated_at,
         )
