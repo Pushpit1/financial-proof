@@ -1,11 +1,11 @@
-﻿"""Application services for financial proof workflows."""
+"""Application services for financial proof workflows."""
 
 from datetime import UTC, datetime
 from uuid import UUID
 
 from app.application.dto.financial_proof import FinancialProofAggregate
+from app.application.ports.unit_of_work import FinancialUnitOfWorkPort
 from app.core.errors.domain import NotFoundError
-from app.db.unit_of_work import FinancialUnitOfWork
 from app.domain.models.financial import (
     Evidence,
     EvidenceLink,
@@ -21,7 +21,7 @@ class FinancialProofApplicationService:
 
     def __init__(
         self,
-        unit_of_work: FinancialUnitOfWork,
+        unit_of_work: FinancialUnitOfWorkPort,
         evaluator: ProofEvaluator | None = None,
     ) -> None:
         self.unit_of_work = unit_of_work
@@ -326,6 +326,8 @@ class FinancialProofApplicationService:
             self.unit_of_work.financial_proofs.add_evidence_link(link)
 
         return link
+
+
 
 
 

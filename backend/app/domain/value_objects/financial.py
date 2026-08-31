@@ -327,3 +327,25 @@ class ContractStateTransition:
             raise ValueError(
                 "Contract state transition must change state."
             )
+
+@dataclass(frozen=True)
+class ContractSourceText:
+    """Validated natural-language financial contract source."""
+
+    value: str
+
+    def __post_init__(self) -> None:
+        """Validate the contract source text."""
+        if not isinstance(self.value, str):
+            raise TypeError(
+                "Contract source text must be a string."
+            )
+
+        if not self.value.strip():
+            raise ValueError(
+                "Contract source text cannot be empty."
+            )
+
+    def normalized(self) -> str:
+        """Return normalized contract source text."""
+        return self.value.strip()

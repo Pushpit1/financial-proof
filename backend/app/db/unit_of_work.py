@@ -1,5 +1,6 @@
 ﻿from sqlalchemy.orm import Session
 
+from app.application.ports.unit_of_work import FinancialUnitOfWorkPort
 from app.db.repositories.financial_contract import (
     FinancialContractRepository,
 )
@@ -11,7 +12,7 @@ from app.db.repositories.financial_proof import (
 )
 
 
-class FinancialUnitOfWork:
+class FinancialUnitOfWork(FinancialUnitOfWorkPort):
     """Coordinate financial repositories within one database transaction."""
 
     def __init__(self, session: Session) -> None:
@@ -49,3 +50,4 @@ class FinancialUnitOfWork:
             self.rollback()
         else:
             self.commit()
+

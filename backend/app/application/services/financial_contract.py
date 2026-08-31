@@ -1,12 +1,12 @@
-﻿"""Application service for financial contract workflows."""
+"""Application service for financial contract workflows."""
 
 from uuid import UUID
 
 from app.application.ports.financial_contract import (
     FinancialContractRepository,
 )
+from app.application.ports.unit_of_work import FinancialUnitOfWorkPort
 from app.core.errors.domain import NotFoundError
-from app.db.unit_of_work import FinancialUnitOfWork
 from app.domain.models.financial import FinancialContract
 
 
@@ -15,7 +15,7 @@ class FinancialContractApplicationService:
 
     def __init__(
         self,
-        unit_of_work: FinancialUnitOfWork,
+        unit_of_work: FinancialUnitOfWorkPort,
     ) -> None:
         self.unit_of_work = unit_of_work
 
@@ -72,4 +72,6 @@ class FinancialContractApplicationService:
             )
 
         return contract
+
+
 

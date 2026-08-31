@@ -11,6 +11,7 @@ from app.api.routes.financial_contract_decision import (
 from app.api.routes.financial_proof import (
     router as financial_proof_router,
 )
+from app.api.routes.razorpay_webhook import router as razorpay_webhook_router
 
 api_router = APIRouter()
 
@@ -30,3 +31,4 @@ async def ready() -> dict[str, str]:
 api_router.include_router(financial_proof_router)
 api_router.include_router(financial_contract_router)
 api_router.include_router(financial_contract_decision_router)
+api_router.include_router(razorpay_webhook_router)

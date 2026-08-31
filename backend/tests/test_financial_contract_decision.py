@@ -1,4 +1,4 @@
-from collections.abc import Mapping
+﻿from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
@@ -231,36 +231,6 @@ def test_decision_service_rejects_persistence_without_unit_of_work() -> None:
         )
 
 
-def test_decision_service_lists_decisions_through_repository() -> None:
-    contract = FinancialContract(
-        name="Decision History Contract",
-    )
-
-    first = FinancialContractDecision(
-        contract_id=contract.id,
-        passed=True,
-    )
-    second = FinancialContractDecision(
-        contract_id=contract.id,
-        passed=False,
-        reason_codes=("authorization_failed",),
-        violation_count=1,
-    )
-
-    class HistoryRepository:
-        def list_by_contract(self, contract_id):
-            assert contract_id == contract.id
-            return [first, second]
-
-    service = FinancialContractDecisionService(
-        repository=HistoryRepository(),  # type: ignore[arg-type]
-    )
-
-    decisions = service.list_decisions(contract.id)
-
-    assert decisions == [first, second]
-
-
 def test_decision_service_lists_decisions_through_unit_of_work() -> None:
     contract = FinancialContract(
         name="Unit Of Work History Contract",
@@ -289,7 +259,7 @@ def test_decision_service_lists_decisions_through_unit_of_work() -> None:
     assert decisions == [decision]
 
 
-def test_decision_service_rejects_history_without_repository() -> None:
+def test_decision_service_rejects_history_without_unit_of_work() -> None:
     service = FinancialContractDecisionService(
         evaluator=FakeEvaluator(),
     )
@@ -298,6 +268,7 @@ def test_decision_service_rejects_history_without_repository() -> None:
 
     with pytest.raises(
         ValueError,
-        match="Decision repository is required",
+        match="Decision unit of work is required",
     ):
         service.list_decisions(contract_id)
+
