@@ -1,6 +1,8 @@
 from datetime import UTC, datetime
 from uuid import uuid4
 
+import pytest
+
 from app.db.repositories.financial_contract_decision import (
     SqlAlchemyFinancialContractDecisionRepository,
 )
@@ -89,4 +91,54 @@ def test_repository_lists_decisions_deterministically(db) -> None:
         first.id,
         second.id,
     ]
+
+
+def test_decision_persistence_commits_through_real_unit_of_work(db) -> None:
+    from app.db.unit_of_work import FinancialUnitOfWork
+    from app.domain.models.financial import FinancialContract
+
+    contract = FinancialContract(
+        name="Real Transaction Commit Contract",
+    )
+
+    decision = FinancialContractDecision(
+        contract_id=contract.id,
+        passed=True,
+        reason_codes=(),
+        violation_count=0,
+    )
+
+    with FinancialUnitOfWork(db) as unit_of_work:
+        unit_of_work.decisions.save(decision)
+
+    repository = SqlAlchemyFinancialContractDecisionRepository(db)
+
+    loaded = repository.get_by_id(decision.id)
+
+    assert loaded is not None
+    assert loaded.id == decision.id
+    assert loaded.contract_id == contract.id
+    assert loaded.passed is True
+
+
+def test_decision_persistence_rolls_back_on_unit_of_work_failure(
+    db,
+) -> None:
+    from app.db.unit_of_work import FinancialUnitOfWork
+
+    decision = make_decision(passed=True)
+
+    with pytest.raises(RuntimeError, match="force rollback"):
+        with FinancialUnitOfWork(db) as unit_of_work:
+            unit_of_work.decisions.save(decision)
+
+            raise RuntimeError("force rollback")
+
+    repository = SqlAlchemyFinancialContractDecisionRepository(db)
+
+    loaded = repository.get_by_id(decision.id)
+
+    assert loaded is None
+
+
 

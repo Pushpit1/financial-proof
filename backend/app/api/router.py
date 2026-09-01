@@ -29,6 +29,7 @@ async def ready() -> dict[str, str]:
 
 
 api_router.include_router(financial_proof_router)
-api_router.include_router(financial_contract_router)
 api_router.include_router(financial_contract_decision_router)
+api_router.include_router(financial_contract_router)
 api_router.include_router(razorpay_webhook_router)
+

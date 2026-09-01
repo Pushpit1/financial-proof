@@ -119,3 +119,51 @@ def test_evaluate_contract_generates_unique_decisions(client) -> None:
     assert first["id"] != second["id"]
     assert first["contract_id"] == contract_id
     assert second["contract_id"] == contract_id
+
+def test_list_contract_decisions_returns_persisted_history(client) -> None:
+    contract_id = create_contract(client)
+
+    first_response = client.post(
+        f"/contracts/{contract_id}/decisions",
+        json={"context": {}},
+    )
+    second_response = client.post(
+        f"/contracts/{contract_id}/decisions",
+        json={"context": {}},
+    )
+
+    assert first_response.status_code == 201
+    assert second_response.status_code == 201
+
+    first = first_response.json()
+    second = second_response.json()
+
+    response = client.get(
+        f"/contracts/{contract_id}/decisions",
+    )
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert len(body) == 2
+    assert body[0]["id"] == first["id"]
+    assert body[1]["id"] == second["id"]
+
+    assert body[0]["contract_id"] == contract_id
+    assert body[1]["contract_id"] == contract_id
+    assert body[0]["passed"] is True
+    assert body[1]["passed"] is True
+
+
+def test_list_contract_decisions_returns_empty_history_for_new_contract(
+    client,
+) -> None:
+    contract_id = create_contract(client)
+
+    response = client.get(
+        f"/contracts/{contract_id}/decisions",
+    )
+
+    assert response.status_code == 200
+    assert response.json() == []
