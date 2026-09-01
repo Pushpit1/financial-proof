@@ -1,4 +1,4 @@
-﻿"""Mappings between financial domain objects and persistence models."""
+"""Mappings between financial domain objects and persistence models."""
 
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
@@ -16,6 +16,9 @@ from app.db.models.financial import (
     FinancialProofModel,
     ProofEvaluationModel,
 )
+from app.db.models.financial_guardian_audit import (
+    FinancialGuardianAuditRecordModel,
+)
 from app.domain.enums.financial import (
     ClaimType,
     ConfidenceLevel,
@@ -24,6 +27,7 @@ from app.domain.enums.financial import (
     ProofStatus,
     VerificationStatus,
 )
+from app.domain.enums.financial_guardian import GuardianDecision
 from app.domain.models.financial import (
     Evidence,
     EvidenceLink,
@@ -32,6 +36,9 @@ from app.domain.models.financial import (
     FinancialContractDecision,
     FinancialProof,
     ProofEvaluationHistory,
+)
+from app.domain.models.financial_guardian_audit import (
+    FinancialGuardianAuditRecord,
 )
 from app.domain.value_objects.financial import ConfidenceScore, Money
 
@@ -321,4 +328,33 @@ def financial_contract_decision_to_domain(
 
 
 
+
+def financial_guardian_audit_to_model(
+    record: FinancialGuardianAuditRecord,
+) -> FinancialGuardianAuditRecordModel:
+    """Convert a guardian audit domain record to persistence."""
+    return FinancialGuardianAuditRecordModel(
+        id=record.id,
+        actor_id=record.actor_id,
+        operation=record.operation,
+        rule=record.rule,
+        decision=record.decision.value,
+        reason=record.reason,
+        created_at=record.created_at,
+    )
+
+
+def financial_guardian_audit_to_domain(
+    model: FinancialGuardianAuditRecordModel,
+) -> FinancialGuardianAuditRecord:
+    """Convert a persisted guardian audit record to domain."""
+    return FinancialGuardianAuditRecord(
+        id=model.id,
+        actor_id=model.actor_id,
+        operation=model.operation,
+        rule=model.rule,
+        decision=GuardianDecision(model.decision),
+        reason=model.reason,
+        created_at=model.created_at,
+    )
 
