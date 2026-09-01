@@ -84,7 +84,7 @@ class RazorpayPaymentGateway(PaymentGatewayPort):
                 "Razorpay key ID cannot be empty."
             )
 
-        if not settings.key_secret.strip():
+        if not settings.key_secret.get_secret_value().strip():
             raise RazorpayConfigurationError(
                 "Razorpay key secret cannot be empty."
             )
@@ -108,7 +108,7 @@ class RazorpayPaymentGateway(PaymentGatewayPort):
         return razorpay.Client(
             auth=(
                 self._settings.key_id,
-                self._settings.key_secret,
+                self._settings.key_secret.get_secret_value(),
             )
         )
 
@@ -332,7 +332,7 @@ class RazorpayPaymentGateway(PaymentGatewayPort):
             self._client.utility.verify_webhook_signature(
                 payload.decode("utf-8"),
                 signature,
-                self._settings.key_secret,
+                self._settings.key_secret.get_secret_value(),
             )
         except Exception:
             return False
@@ -344,3 +344,4 @@ class RazorpayPaymentGateway(PaymentGatewayPort):
         error: Exception,
     ) -> Any:
         return error
+

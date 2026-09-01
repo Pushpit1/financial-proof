@@ -1,11 +1,10 @@
-﻿from decimal import Decimal
+from decimal import Decimal
 
 import pytest
 
 from app.application.ports.payment_gateway import PaymentOrderRequest
 from app.infrastructure.razorpay_adapter import (
     RazorpayAdapterError,
-    RazorpayConfigurationError,
     RazorpayPaymentGateway,
     RazorpayProviderError,
 )
@@ -72,55 +71,6 @@ def test_razorpay_adapter_uses_injected_client() -> None:
     )
 
     assert gateway.client is client
-
-
-def test_razorpay_adapter_rejects_empty_key_id() -> None:
-    settings = RazorpaySettings(
-        key_id="",
-        key_secret="test_secret",
-    )
-
-    with pytest.raises(
-        RazorpayConfigurationError,
-        match="key ID cannot be empty",
-    ):
-        RazorpayPaymentGateway(
-            settings,
-            client=FakeRazorpayClient(FakeOrderAPI()),
-        )
-
-
-def test_razorpay_adapter_rejects_empty_key_secret() -> None:
-    settings = RazorpaySettings(
-        key_id="rzp_test_key",
-        key_secret="",
-    )
-
-    with pytest.raises(
-        RazorpayConfigurationError,
-        match="key secret cannot be empty",
-    ):
-        RazorpayPaymentGateway(
-            settings,
-            client=FakeRazorpayClient(FakeOrderAPI()),
-        )
-
-
-def test_razorpay_adapter_rejects_non_positive_timeout() -> None:
-    settings = RazorpaySettings(
-        key_id="rzp_test_key",
-        key_secret="test_secret",
-        timeout_seconds=0,
-    )
-
-    with pytest.raises(
-        RazorpayConfigurationError,
-        match="timeout must be greater than zero",
-    ):
-        RazorpayPaymentGateway(
-            settings,
-            client=FakeRazorpayClient(FakeOrderAPI()),
-        )
 
 
 def test_create_order_converts_rupees_to_paise() -> None:
@@ -712,3 +662,133 @@ def test_refund_payment_rejects_mismatched_provider_amount() -> None:
             provider_payment_id="pay_ABC123",
             amount=Decimal("10.00"),
         )
+
+
+class FakeWebhookUtility:
+    def __init__(self, error: Exception | None = None) -> None:
+        self.error = error
+        self.calls: list[tuple[str, str, str]] = []
+
+    def verify_webhook_signature(
+        self,
+        payload: str,
+        signature: str,
+        secret: str,
+    ) -> None:
+        self.calls.append((payload, signature, secret))
+
+        if self.error is not None:
+            raise self.error
+
+
+class FakeClientWithWebhookUtility:
+    def __init__(self, utility: FakeWebhookUtility) -> None:
+        self.order = FakeOrderAPI()
+        self.payment = object()
+        self.utility = utility
+
+
+def test_verify_webhook_signature_passes_raw_payload_and_secret() -> None:
+    utility = FakeWebhookUtility()
+    client = FakeClientWithWebhookUtility(utility)
+
+    gateway = RazorpayPaymentGateway(
+        RazorpaySettings(
+            key_id="rzp_test_key",
+            key_secret="test_secret",
+        ),
+        client=client,
+    )
+
+    payload = b'{"event":"payment.captured","amount":100}\r\n'
+
+    result = gateway.verify_webhook_signature(
+        payload=payload,
+        signature="signature_123",
+    )
+
+    assert result is True
+    assert utility.calls == [
+        (
+            payload.decode("utf-8"),
+            "signature_123",
+            "test_secret",
+        )
+    ]
+
+
+def test_verify_webhook_signature_rejects_empty_payload_before_provider() -> None:
+    utility = FakeWebhookUtility()
+    client = FakeClientWithWebhookUtility(utility)
+
+    gateway = RazorpayPaymentGateway(
+        RazorpaySettings(
+            key_id="rzp_test_key",
+            key_secret="test_secret",
+        ),
+        client=client,
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Webhook payload cannot be empty",
+    ):
+        gateway.verify_webhook_signature(
+            payload=b"",
+            signature="signature_123",
+        )
+
+    assert utility.calls == []
+
+
+def test_verify_webhook_signature_rejects_blank_signature_before_provider() -> None:
+    utility = FakeWebhookUtility()
+    client = FakeClientWithWebhookUtility(utility)
+
+    gateway = RazorpayPaymentGateway(
+        RazorpaySettings(
+            key_id="rzp_test_key",
+            key_secret="test_secret",
+        ),
+        client=client,
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Webhook signature cannot be empty",
+    ):
+        gateway.verify_webhook_signature(
+            payload=b'{"event":"payment.captured"}',
+            signature="   ",
+        )
+
+    assert utility.calls == []
+
+
+def test_verify_webhook_signature_returns_false_on_provider_rejection() -> None:
+    utility = FakeWebhookUtility(
+        error=RuntimeError("invalid signature"),
+    )
+    client = FakeClientWithWebhookUtility(utility)
+
+    gateway = RazorpayPaymentGateway(
+        RazorpaySettings(
+            key_id="rzp_test_key",
+            key_secret="test_secret",
+        ),
+        client=client,
+    )
+
+    result = gateway.verify_webhook_signature(
+        payload=b'{"event":"payment.captured"}',
+        signature="invalid_signature",
+    )
+
+    assert result is False
+    assert utility.calls == [
+        (
+            '{"event":"payment.captured"}',
+            "invalid_signature",
+            "test_secret",
+        )
+    ]

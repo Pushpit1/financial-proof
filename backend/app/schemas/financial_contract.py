@@ -3,25 +3,35 @@
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class FinancialContractCreateRequest(BaseModel):
     """Request body for creating a financial contract."""
 
+    model_config = ConfigDict(extra="forbid")
+
     id: UUID | None = None
     name: str = Field(min_length=1, max_length=255)
     version: int = Field(ge=1)
-    minimum_confidence: Decimal = Field(ge=Decimal("0"), le=Decimal("1"))
+    minimum_confidence: Decimal = Field(
+        ge=Decimal("0"),
+        le=Decimal("1"),
+    )
     minimum_supported_claim_ratio: Decimal = Field(
         ge=Decimal("0"),
         le=Decimal("1"),
     )
-    required_claim_types: list[str]
+    required_claim_types: list[str] = Field(
+        min_length=1,
+        max_length=50,
+    )
 
 
 class FinancialContractResponse(BaseModel):
     """API representation of a financial contract."""
+
+    model_config = ConfigDict(extra="forbid")
 
     id: UUID
     name: str

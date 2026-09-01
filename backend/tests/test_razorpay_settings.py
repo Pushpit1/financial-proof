@@ -1,4 +1,4 @@
-﻿from app.infrastructure.razorpay_settings import RazorpaySettings
+from app.infrastructure.razorpay_settings import RazorpaySettings
 
 
 def test_razorpay_settings_loads_credentials_from_environment(
@@ -10,7 +10,7 @@ def test_razorpay_settings_loads_credentials_from_environment(
     settings = RazorpaySettings()
 
     assert settings.key_id == "rzp_test_key"
-    assert settings.key_secret == "test_secret"
+    assert settings.key_secret.get_secret_value() == "test_secret"
     assert settings.timeout_seconds == 10.0
 
 
@@ -24,3 +24,12 @@ def test_razorpay_settings_supports_custom_timeout(
     settings = RazorpaySettings()
 
     assert settings.timeout_seconds == 5.5
+
+
+def test_razorpay_secret_is_masked(monkeypatch) -> None:
+    monkeypatch.setenv("RAZORPAY_KEY_ID", "rzp_test_key")
+    monkeypatch.setenv("RAZORPAY_KEY_SECRET", "test_secret")
+
+    settings = RazorpaySettings()
+
+    assert "test_secret" not in repr(settings.key_secret)

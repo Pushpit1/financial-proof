@@ -9,6 +9,10 @@ from app.application.ai_investigation.contracts import (
     InvestigationToolResult,
     ToolExecutionStatus,
 )
+from app.application.ai_investigation.security import (
+    InvestigationToolSecurityError,
+    InvestigationToolSecurityPolicy,
+)
 from app.domain.models.financial import FinancialContract
 
 ToolHandler = Callable[[InvestigationToolRequest], InvestigationToolResult]
@@ -29,12 +33,16 @@ class InvestigationToolRegistry:
         self,
         handlers: dict[InvestigationTool, ToolHandler] | None = None,
         permissions: set[InvestigationTool] | None = None,
+        security_policy: InvestigationToolSecurityPolicy | None = None,
     ) -> None:
         self._handlers = dict(handlers or {})
         self._permissions = (
             None
             if permissions is None
             else set(permissions)
+        )
+        self._security_policy = (
+            security_policy or InvestigationToolSecurityPolicy()
         )
 
     def register(
@@ -90,7 +98,8 @@ class InvestigationToolRegistry:
         self,
         request: InvestigationToolRequest,
     ) -> InvestigationToolResult:
-        """Execute a registered and permitted deterministic tool."""
+        """Execute a registered and security-approved deterministic tool."""
+
         handler = self._handlers.get(request.tool)
 
         if handler is None:
@@ -119,7 +128,48 @@ class InvestigationToolRegistry:
                 ),
             )
 
-        return handler(request)
+        try:
+            self._security_policy.validate(
+                request.tool,
+                request.arguments,
+            )
+        except InvestigationToolSecurityError as exc:
+            return InvestigationToolResult(
+                investigation_id=request.investigation_id,
+                tool=request.tool,
+                target_id=request.target_id,
+                status=ToolExecutionStatus.DENIED,
+                data={},
+                explanation=str(exc),
+            )
+
+        try:
+            result = handler(request)
+        except Exception:
+            return InvestigationToolResult(
+                investigation_id=request.investigation_id,
+                tool=request.tool,
+                target_id=request.target_id,
+                status=ToolExecutionStatus.FAILED,
+                data={},
+                explanation="Investigation tool execution failed.",
+            )
+
+        if (
+            result.investigation_id != request.investigation_id
+            or result.tool is not request.tool
+            or result.target_id != request.target_id
+        ):
+            return InvestigationToolResult(
+                investigation_id=request.investigation_id,
+                tool=request.tool,
+                target_id=request.target_id,
+                status=ToolExecutionStatus.FAILED,
+                data={},
+                explanation="Investigation tool returned an invalid result identity.",
+            )
+
+        return result
 
 
 def build_investigation_tool_registry(
@@ -148,4 +198,3 @@ def build_investigation_tool_registry(
     registry.grant(InvestigationTool.INSPECT_CONTRACT)
 
     return registry
-

@@ -3,17 +3,24 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class FinancialContractDecisionEvaluateRequest(BaseModel):
     """Request context for evaluating a financial contract."""
 
-    context: dict[str, object] = Field(default_factory=dict)
+    model_config = ConfigDict(extra="forbid")
+
+    context: dict[str, object] = Field(
+        default_factory=dict,
+        max_length=100,
+    )
 
 
 class FinancialContractDecisionResponse(BaseModel):
     """Persisted financial contract decision response."""
+
+    model_config = ConfigDict(extra="forbid")
 
     id: UUID
     contract_id: UUID

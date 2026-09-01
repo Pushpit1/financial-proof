@@ -11,6 +11,10 @@ from app.application.ai_investigation.contracts import (
     InvestigationToolResult,
     ToolExecutionStatus,
 )
+from app.application.ai_investigation.security import (
+    InvestigationToolSecurityError,
+    InvestigationToolSecurityPolicy,
+)
 
 __all__ = [
     "InMemoryInvestigationAuditSink",
@@ -19,5 +23,7 @@ __all__ = [
     "InvestigationTool",
     "InvestigationToolRequest",
     "InvestigationToolResult",
+    "InvestigationToolSecurityError",
+    "InvestigationToolSecurityPolicy",
     "ToolExecutionStatus",
 ]

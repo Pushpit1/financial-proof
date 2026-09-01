@@ -1,4 +1,4 @@
-﻿"""Dependency providers for API routes."""
+"""Dependency providers for API routes."""
 
 from typing import Annotated
 
@@ -7,6 +7,10 @@ from sqlalchemy.orm import Session
 
 from app.application.ports.payment_gateway import PaymentGatewayPort
 from app.application.ports.unit_of_work import FinancialUnitOfWorkPort
+from app.application.ports.webhook_replay import (
+    InMemoryWebhookReplayStore,
+    WebhookReplayStore,
+)
 from app.application.services.financial_contract import (
     FinancialContractApplicationService,
 )
@@ -23,6 +27,8 @@ from app.domain.services.proof_evaluator import (
 )
 from app.infrastructure.razorpay_adapter import RazorpayPaymentGateway
 from app.infrastructure.razorpay_settings import RazorpaySettings
+
+_webhook_replay_store = InMemoryWebhookReplayStore()
 
 
 def get_financial_unit_of_work(
@@ -79,11 +85,34 @@ def get_razorpay_gateway() -> PaymentGatewayPort:
     )
 
 
+def get_razorpay_webhook_replay_store() -> WebhookReplayStore:
+    """Build the shared webhook replay store."""
+    return _webhook_replay_store
+
+
 def get_razorpay_webhook_service(
     gateway: Annotated[
         PaymentGatewayPort,
         Depends(get_razorpay_gateway),
     ],
+    replay_store: Annotated[
+        WebhookReplayStore,
+        Depends(get_razorpay_webhook_replay_store),
+    ],
 ) -> RazorpayWebhookService:
     """Build the Razorpay webhook application service."""
-    return RazorpayWebhookService(gateway)
+    return RazorpayWebhookService(
+        gateway,
+        replay_store,
+    )
+
+
+__all__ = [
+    "get_financial_contract_service",
+    "get_financial_proof_service",
+    "get_financial_unit_of_work",
+    "get_razorpay_gateway",
+    "get_razorpay_settings",
+    "get_razorpay_webhook_replay_store",
+    "get_razorpay_webhook_service",
+]

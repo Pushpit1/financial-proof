@@ -1,9 +1,13 @@
+"""Structured application logging."""
+
 import logging
 import sys
 from collections.abc import Mapping
 from typing import Any
 
 import structlog
+
+from app.core.redaction import redact_sensitive_data
 
 
 def configure_logging() -> None:
@@ -41,7 +45,7 @@ def log_event(
     *,
     fields: Mapping[str, Any] | None = None,
 ) -> None:
-    """Emit a structured application event."""
+    """Emit a structured application event with sensitive data redacted."""
 
-    event_fields = dict(fields or {})
+    event_fields = redact_sensitive_data(dict(fields or {}))
     logger.info(event, **event_fields)
