@@ -1,6 +1,8 @@
 from datetime import UTC, datetime
 from uuid import uuid4
 
+import pytest
+
 from app.domain.enums.payment import OrderState, PaymentEvent, PaymentState
 from app.domain.models.payment import Payment, PaymentOrder
 from app.domain.models.payment_simulation import (
@@ -464,3 +466,58 @@ def test_simulation_result_contains_state_snapshots() -> None:
     assert result.snapshots[-1].sequence == 1
     assert result.snapshots[-1].payment == result.final_payment
     assert result.snapshots[-1].order == result.final_order
+
+def test_simulation_rejects_out_of_order_event_sequences() -> None:
+    timestamp = datetime(2026, 8, 31, tzinfo=UTC)
+
+    events = (
+        SimulationEvent(
+            sequence=1,
+            event=PaymentEvent.AUTHORIZE,
+            occurred_at=timestamp,
+        ),
+        SimulationEvent(
+            sequence=0,
+            event=PaymentEvent.CAPTURE,
+            occurred_at=timestamp.replace(second=1),
+        ),
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="contiguous and ordered",
+    ):
+        PaymentSimulation(
+            seed=42,
+            initial_payment=make_payment(),
+            initial_order=make_order(),
+            events=events,
+        )
+
+
+def test_simulation_rejects_stale_sequence_after_newer_event() -> None:
+    timestamp = datetime(2026, 8, 31, tzinfo=UTC)
+
+    events = (
+        SimulationEvent(
+            sequence=0,
+            event=PaymentEvent.AUTHORIZE,
+            occurred_at=timestamp,
+        ),
+        SimulationEvent(
+            sequence=2,
+            event=PaymentEvent.CAPTURE,
+            occurred_at=timestamp.replace(second=1),
+        ),
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="contiguous and ordered",
+    ):
+        PaymentSimulation(
+            seed=42,
+            initial_payment=make_payment(),
+            initial_order=make_order(),
+            events=events,
+        )
