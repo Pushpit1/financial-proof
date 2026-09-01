@@ -1,5 +1,7 @@
 import logging
 import sys
+from collections.abc import Mapping
+from typing import Any
 
 import structlog
 
@@ -28,4 +30,18 @@ def configure_logging() -> None:
 
 
 def get_logger(name: str) -> structlog.stdlib.BoundLogger:
+    """Return the canonical structured logger."""
+
     return structlog.get_logger(name)
+
+
+def log_event(
+    logger: structlog.stdlib.BoundLogger,
+    event: str,
+    *,
+    fields: Mapping[str, Any] | None = None,
+) -> None:
+    """Emit a structured application event."""
+
+    event_fields = dict(fields or {})
+    logger.info(event, **event_fields)

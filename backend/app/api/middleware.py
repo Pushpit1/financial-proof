@@ -26,15 +26,18 @@ class CorrelationIDMiddleware(BaseHTTPMiddleware):
             correlation_id=correlation_id,
         )
 
-        response = await call_next(request)
+        try:
+            response = await call_next(request)
 
-        response.headers["X-Correlation-ID"] = correlation_id
+            response.headers["X-Correlation-ID"] = correlation_id
 
-        logger.info(
-            "http_request_completed",
-            method=request.method,
-            path=request.url.path,
-            status_code=response.status_code,
-        )
+            logger.info(
+                "http_request_completed",
+                method=request.method,
+                path=request.url.path,
+                status_code=response.status_code,
+            )
 
-        return response
+            return response
+        finally:
+            structlog.contextvars.clear_contextvars()
