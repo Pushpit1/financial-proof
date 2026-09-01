@@ -5,6 +5,7 @@ import pytest
 from app.domain.enums.payment import PaymentEvent
 from app.domain.models.adversarial_scenario import AdversarialScenario
 from app.domain.models.adversarial_simulation import DuplicateEventAttack
+from app.domain.models.lost_response import LostResponseScenario
 from app.domain.models.payment import Payment, PaymentOrder
 from app.domain.models.payment_simulation import PaymentSimulation, SimulationEvent
 from app.domain.services.adversarial_scenario_executor import (
@@ -13,7 +14,10 @@ from app.domain.services.adversarial_scenario_executor import (
 
 
 def make_simulation() -> PaymentSimulation:
-    order = PaymentOrder(amount_minor=1000, currency="INR")
+    order = PaymentOrder(
+        amount_minor=1000,
+        currency="INR",
+    )
     payment = Payment(
         order_id=order.id,
         amount_minor=1000,
@@ -99,3 +103,113 @@ def test_executor_rejects_invalid_target() -> None:
 
     with pytest.raises(ValueError, match="nonexistent sequence"):
         AdversarialScenarioExecutor.execute(simulation, scenario)
+
+
+def test_executor_describes_effect_for_multiple_component_types() -> None:
+    order = PaymentOrder(
+        amount_minor=1000,
+        currency="INR",
+    )
+    payment = Payment(
+        order_id=order.id,
+        amount_minor=1000,
+        currency="INR",
+    )
+
+    simulation = PaymentSimulation(
+        seed=42,
+        initial_payment=payment,
+        initial_order=order,
+        events=(
+            SimulationEvent(
+                sequence=0,
+                event=PaymentEvent.AUTHORIZE,
+                occurred_at=datetime(2026, 8, 31, tzinfo=UTC),
+            ),
+            SimulationEvent(
+                sequence=1,
+                event=PaymentEvent.CAPTURE,
+                occurred_at=datetime(2026, 8, 31, 0, 1, tzinfo=UTC),
+            ),
+        ),
+    )
+
+    scenario = AdversarialScenario(
+        simulation_id=simulation.id,
+        components=(
+            DuplicateEventAttack(
+                simulation_id=simulation.id,
+                target_sequence=0,
+            ),
+            LostResponseScenario(
+                simulation_id=simulation.id,
+                target_sequence=1,
+            ),
+        ),
+    )
+
+    result = AdversarialScenarioExecutor.execute(simulation, scenario)
+
+    assert result.applied_components == (
+        "DuplicateEventAttack",
+        "LostResponseScenario",
+    )
+    assert result.attack_count == 2
+    assert result.outcomes[0].target_sequence == 0
+    assert result.outcomes[1].target_sequence == 1
+
+def test_executor_marks_each_component_as_applied() -> None:
+    order = PaymentOrder(
+        amount_minor=1000,
+        currency="INR",
+    )
+    payment = Payment(
+        order_id=order.id,
+        amount_minor=1000,
+        currency="INR",
+    )
+
+    simulation = PaymentSimulation(
+        seed=42,
+        initial_payment=payment,
+        initial_order=order,
+        events=(
+            SimulationEvent(
+                sequence=0,
+                event=PaymentEvent.AUTHORIZE,
+                occurred_at=datetime(2026, 8, 31, tzinfo=UTC),
+            ),
+            SimulationEvent(
+                sequence=1,
+                event=PaymentEvent.CAPTURE,
+                occurred_at=datetime(2026, 8, 31, 0, 1, tzinfo=UTC),
+            ),
+        ),
+    )
+
+    scenario = AdversarialScenario(
+        simulation_id=simulation.id,
+        components=(
+            DuplicateEventAttack(
+                simulation_id=simulation.id,
+                target_sequence=0,
+            ),
+            LostResponseScenario(
+                simulation_id=simulation.id,
+                target_sequence=1,
+            ),
+        ),
+    )
+
+    result = AdversarialScenarioExecutor.execute(simulation, scenario)
+
+    assert len(result.outcomes) == 2
+
+    assert result.outcomes[0].component_type == "DuplicateEventAttack"
+    assert result.outcomes[0].target_sequence == 0
+    assert result.outcomes[0].status == "applied"
+
+    assert result.outcomes[1].component_type == "LostResponseScenario"
+    assert result.outcomes[1].target_sequence == 1
+    assert result.outcomes[1].status == "applied"
+
