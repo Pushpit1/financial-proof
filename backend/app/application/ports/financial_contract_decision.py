@@ -29,6 +29,9 @@ class FinancialContractDecisionRepository(ABC):
     def list_by_contract(
         self,
         contract_id: UUID,
+        *,
+        limit: int = 50,
+        offset: int = 0,
     ) -> list[FinancialContractDecision]:
-        """Retrieve decisions for a contract deterministically."""
+        """Retrieve a page of decisions deterministically."""
         raise NotImplementedError

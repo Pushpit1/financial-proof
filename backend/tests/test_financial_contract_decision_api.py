@@ -167,3 +167,95 @@ def test_list_contract_decisions_returns_empty_history_for_new_contract(
 
     assert response.status_code == 200
     assert response.json() == []
+
+def test_list_contract_decisions_supports_limit_and_offset(client) -> None:
+    contract_id = create_contract(client)
+
+    created = []
+
+    for _ in range(5):
+        response = client.post(
+            f"/contracts/{contract_id}/decisions",
+            json={"context": {}},
+        )
+        assert response.status_code == 201
+        created.append(response.json())
+
+    response = client.get(
+        f"/contracts/{contract_id}/decisions",
+        params={
+            "limit": 2,
+            "offset": 1,
+        },
+    )
+
+    assert response.status_code == 200
+
+    body = response.json()
+
+    assert len(body) == 2
+    assert body[0]["id"] == created[1]["id"]
+    assert body[1]["id"] == created[2]["id"]
+
+
+def test_list_contract_decisions_defaults_to_first_page(client) -> None:
+    contract_id = create_contract(client)
+
+    for _ in range(3):
+        response = client.post(
+            f"/contracts/{contract_id}/decisions",
+            json={"context": {}},
+        )
+        assert response.status_code == 201
+
+    response = client.get(
+        f"/contracts/{contract_id}/decisions",
+    )
+
+    assert response.status_code == 200
+    assert len(response.json()) == 3
+
+
+def test_list_contract_decisions_rejects_invalid_limit(client) -> None:
+    contract_id = create_contract(client)
+
+    too_small = client.get(
+        f"/contracts/{contract_id}/decisions",
+        params={"limit": 0},
+    )
+    too_large = client.get(
+        f"/contracts/{contract_id}/decisions",
+        params={"limit": 101},
+    )
+
+    assert too_small.status_code == 422
+    assert too_large.status_code == 422
+
+
+def test_list_contract_decisions_rejects_negative_offset(client) -> None:
+    contract_id = create_contract(client)
+
+    response = client.get(
+        f"/contracts/{contract_id}/decisions",
+        params={"offset": -1},
+    )
+
+    assert response.status_code == 422
+
+
+def test_list_contract_decisions_preserves_missing_contract_404(client) -> None:
+    contract_id = str(uuid4())
+
+    response = client.get(
+        f"/contracts/{contract_id}/decisions",
+        params={
+            "limit": 10,
+            "offset": 0,
+        },
+    )
+
+    assert response.status_code == 404
+
+    assert response.json()["detail"] == (
+        f"Financial contract {contract_id} was not found."
+    )

@@ -2,7 +2,7 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.api.dependencies import get_financial_contract_service
 from app.api.dependencies.financial_contract_decision import (
@@ -89,8 +89,10 @@ async def list_contract_decisions(
     decision_service: FinancialContractDecisionService = Depends(  # noqa: B008
         get_financial_contract_decision_service
     ),
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
 ) -> list[FinancialContractDecisionResponse]:
-    """Return all persisted decisions for a financial contract."""
+    """Return a page of persisted decisions for a financial contract."""
     contract = contract_service.get_contract(contract_id)
 
     if contract is None:
@@ -100,7 +102,11 @@ async def list_contract_decisions(
         )
 
     try:
-        decisions = decision_service.list_decisions(contract_id)
+        decisions = decision_service.list_decisions(
+            contract_id,
+            limit=limit,
+            offset=offset,
+        )
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -111,3 +117,4 @@ async def list_contract_decisions(
         _decision_to_response(decision)
         for decision in decisions
     ]
+

@@ -1,4 +1,4 @@
-﻿from collections.abc import Mapping
+from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
@@ -242,10 +242,17 @@ def test_decision_service_lists_decisions_through_unit_of_work() -> None:
     )
 
     class HistoryRepository:
-        def list_by_contract(self, contract_id):
+        def list_by_contract(
+            self,
+            contract_id,
+            *,
+            limit=50,
+            offset=0,
+        ):
             assert contract_id == contract.id
+            assert limit == 50
+            assert offset == 0
             return [decision]
-
     class HistoryUnitOfWork:
         def __init__(self):
             self.decisions = HistoryRepository()
@@ -272,3 +279,88 @@ def test_decision_service_rejects_history_without_unit_of_work() -> None:
     ):
         service.list_decisions(contract_id)
 
+
+
+def test_decision_service_accepts_valid_pagination() -> None:
+    contract = FinancialContract(
+        name="Pagination Contract",
+    )
+
+    decision = FinancialContractDecision(
+        contract_id=contract.id,
+        passed=True,
+    )
+
+    class PaginationRepository:
+        def list_by_contract(
+            self,
+            contract_id,
+            *,
+            limit,
+            offset,
+        ):
+            assert contract_id == contract.id
+            assert limit == 10
+            assert offset == 20
+            return [decision]
+
+    class PaginationUnitOfWork:
+        def __init__(self):
+            self.decisions = PaginationRepository()
+
+    service = FinancialContractDecisionService(
+        unit_of_work=PaginationUnitOfWork(),  # type: ignore[arg-type]
+    )
+
+    decisions = service.list_decisions(
+        contract.id,
+        limit=10,
+        offset=20,
+    )
+
+    assert decisions == [decision]
+
+
+def test_decision_service_rejects_zero_limit() -> None:
+    service = FinancialContractDecisionService(
+        unit_of_work=object(),  # type: ignore[arg-type]
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="limit must be at least 1",
+    ):
+        service.list_decisions(
+            uuid4(),
+            limit=0,
+        )
+
+
+def test_decision_service_rejects_limit_above_maximum() -> None:
+    service = FinancialContractDecisionService(
+        unit_of_work=object(),  # type: ignore[arg-type]
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="limit cannot exceed 100",
+    ):
+        service.list_decisions(
+            uuid4(),
+            limit=101,
+        )
+
+
+def test_decision_service_rejects_negative_offset() -> None:
+    service = FinancialContractDecisionService(
+        unit_of_work=object(),  # type: ignore[arg-type]
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="offset cannot be negative",
+    ):
+        service.list_decisions(
+            uuid4(),
+            offset=-1,
+        )

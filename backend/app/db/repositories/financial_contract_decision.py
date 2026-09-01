@@ -52,8 +52,17 @@ class SqlAlchemyFinancialContractDecisionRepository(
     def list_by_contract(
         self,
         contract_id: UUID,
+        *,
+        limit: int = 50,
+        offset: int = 0,
     ) -> list[FinancialContractDecision]:
-        """Retrieve decisions deterministically for a contract."""
+        """Retrieve a page of decisions deterministically."""
+        if limit < 1:
+            raise ValueError("Decision history limit must be at least 1.")
+
+        if offset < 0:
+            raise ValueError("Decision history offset cannot be negative.")
+
         statement = (
             select(FinancialContractDecisionModel)
             .where(
@@ -64,6 +73,8 @@ class SqlAlchemyFinancialContractDecisionRepository(
                 FinancialContractDecisionModel.evaluated_at.asc(),
                 FinancialContractDecisionModel.id.asc(),
             )
+            .offset(offset)
+            .limit(limit)
         )
 
         return [

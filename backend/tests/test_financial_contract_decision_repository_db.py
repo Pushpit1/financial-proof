@@ -142,3 +142,66 @@ def test_decision_persistence_rolls_back_on_unit_of_work_failure(
 
 
 
+
+def test_repository_paginates_decisions_deterministically(db) -> None:
+    repository = SqlAlchemyFinancialContractDecisionRepository(db)
+
+    contract_id = uuid4()
+
+    decisions = [
+        make_decision(
+            passed=index % 2 == 0,
+            contract_id=contract_id,
+            evaluated_at=datetime(
+                2026,
+                1,
+                index + 1,
+                tzinfo=UTC,
+            ),
+        )
+        for index in range(5)
+    ]
+
+    for decision in reversed(decisions):
+        repository.save(decision)
+
+    db.commit()
+
+    page = repository.list_by_contract(
+        contract_id,
+        limit=2,
+        offset=1,
+    )
+
+    assert [decision.id for decision in page] == [
+        decisions[1].id,
+        decisions[2].id,
+    ]
+
+
+def test_repository_returns_empty_page_past_history(db) -> None:
+    repository = SqlAlchemyFinancialContractDecisionRepository(db)
+
+    contract_id = uuid4()
+
+    repository.save(
+        make_decision(
+            passed=True,
+            contract_id=contract_id,
+            evaluated_at=datetime(
+                2026,
+                1,
+                1,
+                tzinfo=UTC,
+            ),
+        )
+    )
+    db.commit()
+
+    page = repository.list_by_contract(
+        contract_id,
+        limit=10,
+        offset=10,
+    )
+
+    assert page == []

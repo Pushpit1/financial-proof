@@ -1,4 +1,4 @@
-﻿"""Application service for financial contract decisions."""
+"""Application service for financial contract decisions."""
 
 from collections.abc import Mapping
 from typing import Any
@@ -62,11 +62,25 @@ class FinancialContractDecisionService:
     def list_decisions(
         self,
         contract_id: UUID,
+        *,
+        limit: int = 50,
+        offset: int = 0,
     ) -> list[FinancialContractDecision]:
-        """Return all persisted decisions for a contract."""
+        """Return a page of persisted decisions for a contract."""
         if self._unit_of_work is None:
             raise ValueError("Decision unit of work is required")
 
+        if limit < 1:
+            raise ValueError("Decision history limit must be at least 1.")
+
+        if limit > 100:
+            raise ValueError("Decision history limit cannot exceed 100.")
+
+        if offset < 0:
+            raise ValueError("Decision history offset cannot be negative.")
+
         return self._unit_of_work.decisions.list_by_contract(
-            contract_id
+            contract_id,
+            limit=limit,
+            offset=offset,
         )
