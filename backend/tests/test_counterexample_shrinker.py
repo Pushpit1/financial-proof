@@ -1,254 +1,165 @@
 from datetime import UTC, datetime
-from uuid import uuid4
 
 import pytest
 
-from app.domain.enums.payment import PaymentEvent
-from app.domain.models.counterexample import Counterexample
+from app.domain.enums.payment import PaymentEvent, PaymentState
 from app.domain.models.payment import Payment, PaymentOrder
-from app.domain.models.payment_simulation import PaymentSimulation, SimulationEvent
+from app.domain.models.payment_simulation import (
+    PaymentSimulation,
+    SimulationEvent,
+)
 from app.domain.services.counterexample_shrinker import CounterexampleShrinker
 
 
-def make_simulation(events: tuple[PaymentEvent, ...]) -> PaymentSimulation:
-    start = datetime(2026, 8, 31, tzinfo=UTC)
+def make_simulation() -> PaymentSimulation:
+    timestamp = datetime(2026, 8, 31, tzinfo=UTC)
 
-    simulation_events = tuple(
-        SimulationEvent(
-            sequence=index,
-            event=event,
-            occurred_at=start.replace(second=index),
-        )
-        for index, event in enumerate(events)
+    order = PaymentOrder(
+        amount_minor=1000,
+        currency="INR",
+    )
+    payment = Payment(
+        order_id=order.id,
+        amount_minor=1000,
+        currency="INR",
+        state=PaymentState.CREATED,
     )
 
     return PaymentSimulation(
         seed=42,
-        initial_payment=Payment(
-            order_id=uuid4(),
-            amount_minor=1000,
-            currency="INR",
+        initial_payment=payment,
+        initial_order=order,
+        events=(
+            SimulationEvent(
+                sequence=0,
+                event=PaymentEvent.AUTHORIZE,
+                occurred_at=timestamp,
+            ),
+            SimulationEvent(
+                sequence=1,
+                event=PaymentEvent.CAPTURE,
+                occurred_at=timestamp.replace(second=1),
+            ),
+            SimulationEvent(
+                sequence=2,
+                event=PaymentEvent.REFUND,
+                occurred_at=timestamp.replace(second=2),
+            ),
         ),
-        initial_order=PaymentOrder(
-            amount_minor=1000,
-            currency="INR",
-        ),
-        events=simulation_events,
     )
 
 
-def make_counterexample(
-    events: tuple[PaymentEvent, ...],
-    violation_code: str = "target_violation",
-) -> Counterexample:
-    simulation = make_simulation(events)
+def test_shrinker_removes_events_while_failure_survives() -> None:
+    simulation = make_simulation()
 
-    return Counterexample(
-        simulation_id=simulation.id,
-        simulation=simulation,
-        violation_code=violation_code,
-        original_event_count=len(events),
-        minimized_event_count=len(events),
+    def reproduces_failure(candidate: PaymentSimulation) -> bool:
+        return len(candidate.events) >= 2
+
+    result = CounterexampleShrinker.shrink(
+        simulation,
+        reproduces_failure,
     )
 
+    assert len(result.events) == 2
+    assert [event.sequence for event in result.events] == [0, 1]
 
-def test_shrinker_removes_events_that_are_not_required() -> None:
-    counterexample = make_counterexample(
-        (
-            PaymentEvent.AUTHORIZE,
-            PaymentEvent.CAPTURE,
-            PaymentEvent.REFUND,
-        )
+
+def test_shrinker_returns_minimal_single_event_failure() -> None:
+    simulation = make_simulation()
+
+    result = CounterexampleShrinker.shrink(
+        simulation,
+        lambda candidate: len(candidate.events) >= 1,
     )
 
-    def violation(simulation: PaymentSimulation) -> bool:
-        return PaymentEvent.CAPTURE in tuple(
-            event.event for event in simulation.events
-        )
+    assert len(result.events) == 1
+    assert result.events[0].sequence == 0
+    assert result.events[0].event is PaymentEvent.AUTHORIZE
 
-    shrunk = CounterexampleShrinker.shrink(
-        counterexample,
-        violation,
+
+def test_shrinker_preserves_simulation_identity_and_metadata() -> None:
+    simulation = make_simulation()
+
+    result = CounterexampleShrinker.shrink(
+        simulation,
+        lambda candidate: len(candidate.events) >= 2,
     )
 
-    assert shrunk.violation_code == "target_violation"
-    assert shrunk.original_event_count == 3
-    assert shrunk.minimized_event_count == 1
-    assert tuple(event.event for event in shrunk.simulation.events) == (
-        PaymentEvent.CAPTURE,
+    assert result.id == simulation.id
+    assert result.seed == simulation.seed
+    assert result.initial_payment == simulation.initial_payment
+    assert result.initial_order == simulation.initial_order
+
+
+def test_shrinker_preserves_event_identity_and_timestamps() -> None:
+    simulation = make_simulation()
+
+    result = CounterexampleShrinker.shrink(
+        simulation,
+        lambda candidate: len(candidate.events) >= 2,
     )
 
+    assert result.events[0].id == simulation.events[0].id
+    assert result.events[1].id == simulation.events[1].id
+    assert result.events[0].occurred_at == simulation.events[0].occurred_at
+    assert result.events[1].occurred_at == simulation.events[1].occurred_at
 
-def test_shrinker_rebuilds_contiguous_sequences() -> None:
-    counterexample = make_counterexample(
-        (
-            PaymentEvent.AUTHORIZE,
-            PaymentEvent.CAPTURE,
-            PaymentEvent.REFUND,
-        )
+
+def test_shrinker_does_not_mutate_original_simulation() -> None:
+    simulation = make_simulation()
+    original_events = simulation.events
+
+    CounterexampleShrinker.shrink(
+        simulation,
+        lambda candidate: len(candidate.events) >= 1,
     )
 
-    def violation(simulation: PaymentSimulation) -> bool:
-        return PaymentEvent.REFUND in tuple(
-            event.event for event in simulation.events
-        )
-
-    shrunk = CounterexampleShrinker.shrink(
-        counterexample,
-        violation,
-    )
-
-    assert [event.sequence for event in shrunk.simulation.events] == [0]
-    assert shrunk.simulation.events[0].event is PaymentEvent.REFUND
-
-
-def test_shrinker_preserves_same_violation_code() -> None:
-    counterexample = make_counterexample(
-        (
-            PaymentEvent.AUTHORIZE,
-            PaymentEvent.CAPTURE,
-        ),
-        violation_code="capture_present",
-    )
-
-    def violation(simulation: PaymentSimulation) -> bool:
-        return any(
-            event.event is PaymentEvent.CAPTURE
-            for event in simulation.events
-        )
-
-    shrunk = CounterexampleShrinker.shrink(
-        counterexample,
-        violation,
-    )
-
-    assert shrunk.violation_code == "capture_present"
-    assert shrunk.minimized_event_count == 1
-
-
-def test_shrinker_rejects_non_failing_counterexample() -> None:
-    counterexample = make_counterexample(
-        (PaymentEvent.AUTHORIZE,)
-    )
-
-    with pytest.raises(
-        ValueError,
-        match="does not reproduce its violation",
-    ):
-        CounterexampleShrinker.shrink(
-            counterexample,
-            lambda simulation: False,
-        )
+    assert simulation.events == original_events
 
 
 def test_shrinker_is_deterministic() -> None:
-    events = (
-        PaymentEvent.AUTHORIZE,
-        PaymentEvent.CAPTURE,
-        PaymentEvent.REFUND,
-        PaymentEvent.FAIL,
+    simulation = make_simulation()
+
+    first = CounterexampleShrinker.shrink(
+        simulation,
+        lambda candidate: len(candidate.events) >= 2,
+    )
+    second = CounterexampleShrinker.shrink(
+        simulation,
+        lambda candidate: len(candidate.events) >= 2,
     )
 
-    first = make_counterexample(events)
-    second = make_counterexample(events)
+    assert first == second
 
-    def violation(simulation: PaymentSimulation) -> bool:
-        return PaymentEvent.REFUND in tuple(
-            event.event for event in simulation.events
+
+def test_shrinker_rejects_non_failing_input() -> None:
+    simulation = make_simulation()
+
+    with pytest.raises(
+        ValueError,
+        match="requires an input that reproduces the failure",
+    ):
+        CounterexampleShrinker.shrink(
+            simulation,
+            lambda candidate: False,
         )
 
-    first_result = CounterexampleShrinker.shrink(first, violation)
-    second_result = CounterexampleShrinker.shrink(second, violation)
 
-    assert first_result.violation_code == second_result.violation_code
-    assert first_result.original_event_count == second_result.original_event_count
-    assert first_result.minimized_event_count == second_result.minimized_event_count
-    assert [
-        (event.sequence, event.event, event.occurred_at)
-        for event in first_result.simulation.events
-    ] == [
-        (event.sequence, event.event, event.occurred_at)
-        for event in second_result.simulation.events
-    ]
+def test_shrinker_accepts_already_minimal_empty_simulation() -> None:
+    simulation = make_simulation()
 
-def test_shrinker_reports_reduction_metrics() -> None:
-    counterexample = make_counterexample(
-        (
-            PaymentEvent.AUTHORIZE,
-            PaymentEvent.CAPTURE,
-            PaymentEvent.REFUND,
-            PaymentEvent.FAIL,
-        )
+    empty_simulation = PaymentSimulation(
+        seed=simulation.seed,
+        initial_payment=simulation.initial_payment,
+        initial_order=simulation.initial_order,
+        events=(),
+        id=simulation.id,
     )
 
-    def violation(simulation: PaymentSimulation) -> bool:
-        return PaymentEvent.REFUND in tuple(
-            event.event for event in simulation.events
-        )
-
-    result = CounterexampleShrinker.shrink_with_metrics(
-        counterexample,
-        violation,
+    result = CounterexampleShrinker.shrink(
+        empty_simulation,
+        lambda candidate: len(candidate.events) == 0,
     )
 
-    assert result.reproduces_violation is True
-    assert result.metrics.original_event_count == 4
-    assert result.metrics.minimized_event_count == 1
-    assert result.metrics.removed_event_count == 3
-    assert result.metrics.reduction_ratio == 0.75
-    assert result.metrics.candidate_count == 4
-    assert result.metrics.reproduction_checks == 6
-
-
-def test_shrinker_proves_minimized_counterexample_reproduces() -> None:
-    counterexample = make_counterexample(
-        (
-            PaymentEvent.AUTHORIZE,
-            PaymentEvent.CAPTURE,
-        )
-    )
-
-    def violation(simulation: PaymentSimulation) -> bool:
-        return PaymentEvent.CAPTURE in tuple(
-            event.event for event in simulation.events
-        )
-
-    result = CounterexampleShrinker.shrink_with_metrics(
-        counterexample,
-        violation,
-    )
-
-    assert result.reproduces_violation is True
-    assert result.counterexample.minimized_event_count == 1
-
-
-def test_shrinker_result_is_deterministic_for_same_input() -> None:
-    events = (
-        PaymentEvent.AUTHORIZE,
-        PaymentEvent.CAPTURE,
-        PaymentEvent.REFUND,
-    )
-
-    counterexample = make_counterexample(events)
-
-    def violation(simulation: PaymentSimulation) -> bool:
-        return PaymentEvent.REFUND in tuple(
-            event.event for event in simulation.events
-        )
-
-    first = CounterexampleShrinker.shrink_with_metrics(
-        counterexample,
-        violation,
-    )
-    second = CounterexampleShrinker.shrink_with_metrics(
-        counterexample,
-        violation,
-    )
-
-    assert first.metrics.original_event_count == second.metrics.original_event_count
-    assert first.metrics.minimized_event_count == second.metrics.minimized_event_count
-    assert first.metrics.candidate_count == second.metrics.candidate_count
-    assert first.metrics.reproduction_checks == second.metrics.reproduction_checks
-    assert first.metrics.reduction_ratio == second.metrics.reduction_ratio
-    assert first.reproduces_violation is True
-    assert second.reproduces_violation is True
+    assert result.events == ()
+    assert result.id == simulation.id
