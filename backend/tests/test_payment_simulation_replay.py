@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+
 from app.domain.enums.payment import OrderState, PaymentEvent, PaymentState
 from app.domain.models.payment import Payment, PaymentOrder
 from app.domain.models.payment_simulation import PaymentSimulation, SimulationEvent
