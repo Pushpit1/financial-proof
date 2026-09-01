@@ -15,7 +15,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 
@@ -361,3 +361,110 @@ class FinancialContractDecisionModel(UUIDModel):
         kwargs.setdefault("violation_count", 0)
         kwargs.setdefault("evaluated_at", datetime.now(UTC))
         super().__init__(**kwargs)
+
+class FinancialBlastRadiusModel(UUIDModel):
+    """Persistence model for an immutable financial blast-radius analysis."""
+
+    __tablename__ = "financial_blast_radius"
+
+    exposures: Mapped[list["FinancialExposureModel"]] = relationship(
+        "FinancialExposureModel",
+        back_populates="analysis",
+        cascade="all, delete-orphan",
+        order_by="FinancialExposureModel.id",
+    )
+
+
+class FinancialExposureModel(UUIDModel):
+    """Persistence model for one attributed financial exposure."""
+
+    __tablename__ = "financial_exposures"
+
+    __table_args__ = (
+        Index(
+            "ix_financial_exposures_analysis_id",
+            "analysis_id",
+        ),
+        Index(
+            "ix_financial_exposures_source_violation_id",
+            "source_violation_id",
+        ),
+    )
+
+    analysis_id: Mapped[UUID] = mapped_column(
+        ForeignKey("financial_blast_radius.id"),
+        nullable=False,
+    )
+
+    source_violation_id: Mapped[UUID | None] = mapped_column(
+        nullable=True,
+    )
+
+    field: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+
+    amount: Mapped[Decimal] = mapped_column(
+        Numeric(20, 2),
+        nullable=False,
+        default=Decimal("0"),
+    )
+
+    currency: Mapped[str | None] = mapped_column(
+        String(3),
+        nullable=True,
+    )
+
+    explanation: Mapped[str] = mapped_column(
+        Text,
+        nullable=False,
+        default="",
+    )
+
+    direct_loss: Mapped[Decimal] = mapped_column(
+        Numeric(20, 2),
+        nullable=False,
+        default=Decimal("0"),
+    )
+
+    duplicate_charge_exposure: Mapped[Decimal] = mapped_column(
+        Numeric(20, 2),
+        nullable=False,
+        default=Decimal("0"),
+    )
+
+    duplicate_fulfillment_exposure: Mapped[Decimal] = mapped_column(
+        Numeric(20, 2),
+        nullable=False,
+        default=Decimal("0"),
+    )
+
+    refund_exposure: Mapped[Decimal] = mapped_column(
+        Numeric(20, 2),
+        nullable=False,
+        default=Decimal("0"),
+    )
+
+    unauthorized_action_exposure: Mapped[Decimal] = mapped_column(
+        Numeric(20, 2),
+        nullable=False,
+        default=Decimal("0"),
+    )
+
+    actual_exposure: Mapped[Decimal] = mapped_column(
+        Numeric(20, 2),
+        nullable=False,
+        default=Decimal("0"),
+    )
+
+    maximum_exposure: Mapped[Decimal] = mapped_column(
+        Numeric(20, 2),
+        nullable=False,
+        default=Decimal("0"),
+    )
+
+    analysis: Mapped["FinancialBlastRadiusModel"] = relationship(
+        "FinancialBlastRadiusModel",
+        back_populates="exposures",
+    )

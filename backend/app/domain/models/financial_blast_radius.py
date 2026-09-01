@@ -1,219 +1,111 @@
-from dataclasses import dataclass, field
 from decimal import Decimal
-from enum import StrEnum
 from uuid import UUID, uuid4
 
-
-class FinancialBlastRadiusSeverity(StrEnum):
-    """Ordered severity levels for financial exposure."""
-
-    NONE = "none"
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-    CRITICAL = "critical"
+from pydantic import BaseModel, ConfigDict, Field
 
 
-@dataclass(frozen=True)
-class FinancialExposure:
-    """One monetary exposure identified by a financial violation."""
+class FinancialExposure(BaseModel):
+    """Immutable financial exposure produced by a failed financial rule."""
 
-    field: str
-    amount: Decimal
-    currency: str
+    model_config = ConfigDict(frozen=True)
+
+    analysis_id: UUID = Field(default_factory=uuid4)
     source_violation_id: UUID | None = None
-    id: UUID = field(default_factory=uuid4)
+    field: str | None = None
+    amount: Decimal = Field(default=Decimal("0"))
+    currency: str | None = None
+    explanation: str = ""
 
-    def __post_init__(self) -> None:
-        if not self.field.strip():
-            raise ValueError("Financial exposure field cannot be empty.")
+    direct_loss: Decimal = Field(default=Decimal("0"))
+    duplicate_charge_exposure: Decimal = Field(default=Decimal("0"))
+    duplicate_fulfillment_exposure: Decimal = Field(default=Decimal("0"))
+    refund_exposure: Decimal = Field(default=Decimal("0"))
+    unauthorized_action_exposure: Decimal = Field(default=Decimal("0"))
 
-        if self.field != self.field.strip():
-            raise ValueError(
-                "Financial exposure field cannot contain surrounding whitespace."
+    actual_exposure: Decimal = Field(default=Decimal("0"))
+    maximum_exposure: Decimal = Field(default=Decimal("0"))
+
+    def __setattr__(self, name: str, value: object) -> None:
+        if name in self.__class__.model_fields:
+            raise AttributeError(
+                f"{self.__class__.__name__} is frozen and cannot be modified."
             )
+        super().__setattr__(name, value)
 
-        if self.amount < Decimal("0"):
-            raise ValueError("Financial exposure amount cannot be negative.")
-
-        normalized_currency = self.currency.upper()
-
-        if len(normalized_currency) != 3:
-            raise ValueError(
-                "Financial exposure currency must be a 3-letter ISO code."
-            )
-
-        if not normalized_currency.isalpha():
-            raise ValueError(
-                "Financial exposure currency must contain only letters."
-            )
-
-        object.__setattr__(self, "currency", normalized_currency)
-
-
-@dataclass(frozen=True)
-class FinancialBlastRadiusSeverityPolicy:
-    """Explicit deterministic thresholds for blast-radius severity."""
-
-    low_threshold: Decimal
-    medium_threshold: Decimal
-    high_threshold: Decimal
-    critical_threshold: Decimal
-
-    def __post_init__(self) -> None:
-        thresholds = (
-            self.low_threshold,
-            self.medium_threshold,
-            self.high_threshold,
-            self.critical_threshold,
+    def model_post_init(self, __context: object) -> None:
+        monetary_fields = (
+            "amount",
+            "direct_loss",
+            "duplicate_charge_exposure",
+            "duplicate_fulfillment_exposure",
+            "refund_exposure",
+            "unauthorized_action_exposure",
+            "actual_exposure",
+            "maximum_exposure",
         )
 
-        if any(threshold < Decimal("0") for threshold in thresholds):
-            raise ValueError("Severity thresholds cannot be negative.")
+        for field_name in monetary_fields:
+            value = getattr(self, field_name)
+            if value < Decimal("0"):
+                raise ValueError(f"{field_name} cannot be negative.")
 
-        if not (
-            self.low_threshold
-            <= self.medium_threshold
-            <= self.high_threshold
-            <= self.critical_threshold
-        ):
+        calculated_actual = (
+            self.direct_loss
+            + self.duplicate_charge_exposure
+            + self.duplicate_fulfillment_exposure
+            + self.refund_exposure
+            + self.unauthorized_action_exposure
+        )
+
+        if self.actual_exposure != calculated_actual:
             raise ValueError(
-                "Severity thresholds must be monotonically increasing."
+                "actual_exposure must equal the sum of exposure components."
             )
 
-    def classify(self, amount: Decimal) -> FinancialBlastRadiusSeverity:
-        if amount < self.low_threshold:
-            return FinancialBlastRadiusSeverity.NONE
-
-        if amount < self.medium_threshold:
-            return FinancialBlastRadiusSeverity.LOW
-
-        if amount < self.high_threshold:
-            return FinancialBlastRadiusSeverity.MEDIUM
-
-        if amount < self.critical_threshold:
-            return FinancialBlastRadiusSeverity.HIGH
-
-        return FinancialBlastRadiusSeverity.CRITICAL
+        if self.maximum_exposure < self.actual_exposure:
+            raise ValueError(
+                "maximum_exposure cannot be less than actual_exposure."
+            )
 
 
-_SEVERITY_RANK = {
-    FinancialBlastRadiusSeverity.NONE: 0,
-    FinancialBlastRadiusSeverity.LOW: 1,
-    FinancialBlastRadiusSeverity.MEDIUM: 2,
-    FinancialBlastRadiusSeverity.HIGH: 3,
-    FinancialBlastRadiusSeverity.CRITICAL: 4,
-}
+class FinancialBlastRadius(BaseModel):
+    """Immutable aggregate of financial exposures caused by an evaluation."""
 
+    model_config = ConfigDict(frozen=True)
 
-@dataclass(frozen=True)
-class FinancialBlastRadius:
-    """Immutable aggregate describing the financial impact of violations."""
-
-    source_id: UUID
+    analysis_id: UUID = Field(default_factory=uuid4)
     exposures: tuple[FinancialExposure, ...] = ()
-    affected_fields: tuple[str, ...] = ()
 
     @property
     def exposure_count(self) -> int:
         return len(self.exposures)
 
     @property
-    def total_exposure_by_currency(self) -> dict[str, Decimal]:
-        totals: dict[str, Decimal] = {}
-
-        for exposure in self.exposures:
-            totals[exposure.currency] = (
-                totals.get(exposure.currency, Decimal("0"))
-                + exposure.amount
-            )
-
-        return totals
+    def affected_fields(self) -> tuple[str, ...]:
+        return tuple(
+            exposure.field
+            for exposure in self.exposures
+            if exposure.field is not None
+        )
 
     @property
     def total_exposure(self) -> Decimal:
-        """Return total exposure when all exposures share one currency."""
-
-        currencies = {exposure.currency for exposure in self.exposures}
-
-        if len(currencies) > 1:
-            raise ValueError(
-                "Total exposure cannot combine multiple currencies."
-            )
-
         return sum(
             (exposure.amount for exposure in self.exposures),
             Decimal("0"),
         )
 
     @property
-    def currencies(self) -> tuple[str, ...]:
-        return tuple(
-            sorted(
-                {
-                    exposure.currency
-                    for exposure in self.exposures
-                }
-            )
-        )
+    def total_exposure_by_currency(self) -> dict[str, Decimal]:
+        totals: dict[str, Decimal] = {}
 
-    def severity(
-        self,
-        policy: FinancialBlastRadiusSeverityPolicy,
-    ) -> FinancialBlastRadiusSeverity:
-        """Classify exposure using an explicit policy."""
+        for exposure in self.exposures:
+            if exposure.currency is None:
+                continue
 
-        if self.exposure_count == 0:
-            return FinancialBlastRadiusSeverity.NONE
-
-        if len(self.currencies) != 1:
-            raise ValueError(
-                "Severity cannot combine exposures from multiple currencies."
+            totals[exposure.currency] = (
+                totals.get(exposure.currency, Decimal("0"))
+                + exposure.amount
             )
 
-        return policy.classify(self.total_exposure)
-
-    def ranked_exposures(
-        self,
-        policy: FinancialBlastRadiusSeverityPolicy,
-    ) -> tuple[FinancialExposure, ...]:
-        """Return exposures in deterministic descending impact order.
-
-        Exposures are never compared across currencies. Currency partitions
-        are sorted alphabetically, and exposures within each currency are
-        ordered by severity, amount, field, and UUID.
-        """
-
-        def sort_key(
-            exposure: FinancialExposure,
-        ) -> tuple[str, int, Decimal, str, str]:
-            severity = policy.classify(exposure.amount)
-
-            return (
-                exposure.currency,
-                -_SEVERITY_RANK[severity],
-                -exposure.amount,
-                exposure.field,
-                str(exposure.id),
-            )
-
-        return tuple(sorted(self.exposures, key=sort_key))
-
-    @classmethod
-    def from_exposures(
-        cls,
-        source_id: UUID,
-        exposures: tuple[FinancialExposure, ...],
-    ) -> "FinancialBlastRadius":
-        affected_fields = tuple(
-            dict.fromkeys(
-                exposure.field
-                for exposure in exposures
-            )
-        )
-
-        return cls(
-            source_id=source_id,
-            exposures=exposures,
-            affected_fields=affected_fields,
-        )
+        return totals

@@ -218,3 +218,98 @@ def test_analysis_is_deterministic_for_same_evaluation() -> None:
     assert first.affected_fields == second.affected_fields
     assert first.total_exposure_by_currency == second.total_exposure_by_currency
     assert first.exposure_count == second.exposure_count
+
+def test_financial_constraint_exposure_is_classified_as_direct_loss() -> None:
+    from app.domain.enums.financial import ClaimType, ContractOperator
+    from app.domain.models.financial import FinancialContract
+    from app.domain.services.contract_evaluator import ContractEvaluator
+    from app.domain.services.financial_blast_radius import (
+        FinancialBlastRadiusAnalyzer,
+    )
+    from app.domain.value_objects.financial import (
+        ContractField,
+        FinancialConstraint,
+    )
+
+    contract = FinancialContract(
+        name="Direct Loss Contract",
+        version=1,
+        required_claim_types=(ClaimType.INCOME,),
+        inputs=(
+            ContractField(
+                name="monthly_income",
+                data_type="money",
+            ),
+        ),
+        financial_constraints=(
+            FinancialConstraint(
+                field="monthly_income",
+                operator=ContractOperator.GREATER_THAN_OR_EQUAL,
+                value=Decimal("50000"),
+                currency="INR",
+            ),
+        ),
+    )
+
+    context = {"monthly_income": Decimal("10000")}
+    evaluation = ContractEvaluator().evaluate(contract, context)
+
+    result = FinancialBlastRadiusAnalyzer.analyze(
+        contract,
+        evaluation,
+        context,
+    )
+
+    exposure = result.exposures[0]
+
+    assert exposure.direct_loss == Decimal("10000")
+    assert exposure.actual_exposure == Decimal("10000")
+    assert exposure.maximum_exposure == Decimal("10000")
+
+
+def test_financial_constraint_exposure_contains_explanation() -> None:
+    from app.domain.enums.financial import ClaimType, ContractOperator
+    from app.domain.models.financial import FinancialContract
+    from app.domain.services.contract_evaluator import ContractEvaluator
+    from app.domain.services.financial_blast_radius import (
+        FinancialBlastRadiusAnalyzer,
+    )
+    from app.domain.value_objects.financial import (
+        ContractField,
+        FinancialConstraint,
+    )
+
+    contract = FinancialContract(
+        name="Explanation Contract",
+        version=1,
+        required_claim_types=(ClaimType.INCOME,),
+        inputs=(
+            ContractField(
+                name="monthly_income",
+                data_type="money",
+            ),
+        ),
+        financial_constraints=(
+            FinancialConstraint(
+                field="monthly_income",
+                operator=ContractOperator.GREATER_THAN_OR_EQUAL,
+                value=Decimal("50000"),
+                currency="INR",
+            ),
+        ),
+    )
+
+    context = {"monthly_income": Decimal("10000")}
+    evaluation = ContractEvaluator().evaluate(contract, context)
+
+    result = FinancialBlastRadiusAnalyzer.analyze(
+        contract,
+        evaluation,
+        context,
+    )
+
+    assert result.exposures[0].explanation == (
+        "Financial constraint on 'monthly_income' failed; "
+        "direct financial exposure is 10000 INR."
+    )
+

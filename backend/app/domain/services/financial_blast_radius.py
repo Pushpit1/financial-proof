@@ -11,66 +11,65 @@ from app.domain.services.contract_evaluation import ContractEvaluationResult
 
 
 class FinancialBlastRadiusAnalyzer:
-    """Derive deterministic monetary exposure from contract evaluation failures."""
+    """Analyze contract violations and deterministically calculate exposure."""
 
-    @staticmethod
+    @classmethod
     def analyze(
+        cls,
         contract: FinancialContract,
         evaluation: ContractEvaluationResult,
         context: Mapping[str, Any] | None = None,
     ) -> FinancialBlastRadius:
+        """Convert failed financial constraints into financial exposures."""
+
         values = context or {}
         exposures: list[FinancialExposure] = []
 
-        failed_fields = {
-            violation.field
-            for violation in evaluation.violations
-            if (
-                violation.reason_code == "financial_constraint_failed"
-                and violation.field is not None
-            )
+        constraints_by_field = {
+            constraint.field: constraint
+            for constraint in contract.financial_constraints
         }
 
-        for constraint in contract.financial_constraints:
-            if constraint.field not in failed_fields:
+        for violation in evaluation.violations:
+            if violation.reason_code != "financial_constraint_failed":
                 continue
 
-            actual = values.get(constraint.field)
-
-            if actual is None:
+            if violation.field is None:
                 continue
 
-            amount = Decimal(str(actual))
+            constraint = constraints_by_field.get(violation.field)
+            if constraint is None:
+                continue
 
-            if amount < Decimal("0"):
-                amount = abs(amount)
+            actual = values.get(violation.field)
 
-            currency = constraint.currency or "UNK"
+            if not isinstance(actual, Decimal):
+                continue
 
-            if currency == "UNK":
-                raise ValueError(
-                    "Financial exposure requires a currency for "
-                    f"field '{constraint.field}'."
-                )
+            currency = constraint.currency
+            if currency is None:
+                continue
+
+            amount = abs(actual)
+
+            explanation = (
+                f"Financial constraint on '{violation.field}' failed; "
+                f"direct financial exposure is {amount} {currency}."
+            )
 
             exposures.append(
                 FinancialExposure(
-                    field=constraint.field,
+                    source_violation_id=violation.id,
+                    field=violation.field,
                     amount=amount,
                     currency=currency,
-                    source_violation_id=next(
-                        violation.id
-                        for violation in evaluation.violations
-                        if (
-                            violation.reason_code
-                            == "financial_constraint_failed"
-                            and violation.field == constraint.field
-                        )
-                    ),
+                    explanation=explanation,
+                    direct_loss=amount,
+                    actual_exposure=amount,
+                    maximum_exposure=amount,
                 )
             )
 
-        return FinancialBlastRadius.from_exposures(
-            evaluation.contract_id,
-            tuple(exposures),
+        return FinancialBlastRadius(
+            exposures=tuple(exposures),
         )
