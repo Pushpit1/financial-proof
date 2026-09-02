@@ -1,4 +1,4 @@
-"""Dependency providers for API routes."""
+﻿"""Dependency providers for API routes."""
 
 from typing import Annotated
 
@@ -11,8 +11,14 @@ from app.application.ports.webhook_replay import (
     InMemoryWebhookReplayStore,
     WebhookReplayStore,
 )
+from app.application.services.deterministic_contract_compiler import (
+    DeterministicFinancialContractCompiler,
+)
 from app.application.services.financial_contract import (
     FinancialContractApplicationService,
+)
+from app.application.services.financial_contract_compiler import (
+    FinancialContractCompilerService,
 )
 from app.application.services.financial_proof import (
     FinancialProofApplicationService,
@@ -73,6 +79,13 @@ def get_financial_contract_service(
     )
 
 
+def get_financial_contract_compiler_service() -> FinancialContractCompilerService:
+    """Build the natural-language financial contract compiler service."""
+    return FinancialContractCompilerService(
+        compiler=DeterministicFinancialContractCompiler(),
+    )
+
+
 def get_razorpay_settings() -> RazorpaySettings:
     """Build Razorpay infrastructure settings from environment configuration."""
     return RazorpaySettings()
@@ -108,6 +121,7 @@ def get_razorpay_webhook_service(
 
 
 __all__ = [
+    "get_financial_contract_compiler_service",
     "get_financial_contract_service",
     "get_financial_proof_service",
     "get_financial_unit_of_work",
