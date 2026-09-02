@@ -1,4 +1,4 @@
-"""Application configuration."""
+﻿"""Application configuration."""
 
 from decimal import Decimal
 from functools import lru_cache
@@ -12,7 +12,8 @@ class Settings(BaseSettings):
 
     app_name: str = "Financial Proof API"
     app_version: str = "0.1.0"
-    debug: bool = True
+    app_env: str = "development"
+    debug: bool = False
 
     proof_minimum_review_confidence: Decimal = Decimal("0.00")
     proof_minimum_ready_confidence: Decimal = Decimal("0.70")
@@ -33,8 +34,20 @@ class Settings(BaseSettings):
     )
 
     @model_validator(mode="after")
-    def validate_proof_evaluation_policy(self) -> "Settings":
-        """Validate proof evaluation thresholds."""
+    def validate_configuration(self) -> "Settings":
+        """Validate application and proof-evaluation configuration."""
+
+        normalized_environment = self.app_env.strip().lower()
+
+        if normalized_environment not in {
+            "development",
+            "test",
+            "staging",
+            "production",
+        }:
+            raise ValueError(
+                "APP_ENV must be one of: development, test, staging, production."
+            )
 
         if not (
             Decimal("0") <= self.proof_minimum_review_confidence <= Decimal("1")
@@ -66,6 +79,18 @@ class Settings(BaseSettings):
                 "proof minimum ready confidence."
             )
 
+        if normalized_environment == "production":
+            if self.debug:
+                raise ValueError(
+                    "DEBUG must be false in production."
+                )
+
+            if self.api_auth_token is None:
+                raise ValueError(
+                    "API_AUTH_TOKEN is required in production."
+                )
+
+        self.app_env = normalized_environment
         return self
 
 

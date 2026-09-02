@@ -1,0 +1,81 @@
+﻿name: Financial Proof CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend Quality
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+
+      - name: Install backend
+        run: python -m pip install --upgrade pip && python -m pip install ".[dev]"
+
+      - name: Ruff
+        run: python -m ruff check .
+
+      - name: Compile
+        run: python -m compileall -q app tests
+
+      - name: Tests with coverage
+        env:
+          DATABASE_URL: sqlite:///./ci.db
+          APP_ENV: test
+          DEBUG: "false"
+        run: >
+          python -m pytest
+          --cov=app
+          --cov-report=term-missing
+          --cov-fail-under=80
+          -q
+
+  frontend:
+    name: Frontend Quality
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend/frontend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: backend/frontend/package-lock.json
+
+      - name: Install frontend
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Production build
+        run: npm run build

@@ -16,17 +16,17 @@ depends_on: str | Sequence[str] | None = None
 
 def upgrade() -> None:
     """Add uniqueness constraint for contract name and version."""
-    op.create_unique_constraint(
-        "uq_financial_contract_name_version",
-        "financial_contracts",
-        ["name", "version"],
-    )
+    with op.batch_alter_table("financial_contracts") as batch_op:
+        batch_op.create_unique_constraint(
+            "uq_financial_contract_name_version",
+            ["name", "version"],
+        )
 
 
 def downgrade() -> None:
     """Remove uniqueness constraint for contract name and version."""
-    op.drop_constraint(
-        "uq_financial_contract_name_version",
-        "financial_contracts",
-        type_="unique",
-    )
+    with op.batch_alter_table("financial_contracts") as batch_op:
+        batch_op.drop_constraint(
+            "uq_financial_contract_name_version",
+            type_="unique",
+        )

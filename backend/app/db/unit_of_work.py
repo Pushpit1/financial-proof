@@ -1,4 +1,4 @@
-﻿from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session
 
 from app.application.ports.unit_of_work import FinancialUnitOfWorkPort
 from app.db.repositories.financial_contract import (
@@ -45,9 +45,13 @@ class FinancialUnitOfWork(FinancialUnitOfWorkPort):
         exc_value: BaseException | None,
         traceback: object | None,
     ) -> None:
-        """Commit on success and roll back on failure."""
+        """Commit on success and roll back on every failure."""
         if exc_type is not None:
             self.rollback()
-        else:
-            self.commit()
+            return
 
+        try:
+            self.commit()
+        except BaseException:
+            self.rollback()
+            raise

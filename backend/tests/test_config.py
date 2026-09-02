@@ -19,7 +19,7 @@ def test_settings_have_expected_application_defaults(monkeypatch) -> None:
 
     assert settings.app_name == "Financial Proof API"
     assert settings.app_version == "0.1.0"
-    assert settings.debug is True
+    assert settings.debug is False
 
 
 def test_settings_require_database_url(monkeypatch) -> None:

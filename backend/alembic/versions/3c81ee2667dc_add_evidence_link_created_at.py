@@ -1,12 +1,4 @@
-"""add evidence link created at
-
-Revision ID: 3c81ee2667dc
-Revises: 0854158e4256
-Create Date: 2026-08-30 22:25:35.819615
-
-"""
-
-from collections.abc import Sequence
+﻿from collections.abc import Sequence
 
 import sqlalchemy as sa
 
@@ -30,11 +22,11 @@ def upgrade() -> None:
         ),
     )
 
-    op.alter_column(
-        "evidence_links",
-        "created_at",
-        server_default=None,
-    )
+    with op.batch_alter_table("evidence_links") as batch_op:
+        batch_op.alter_column(
+            "created_at",
+            server_default=None,
+        )
 
 
 def downgrade() -> None:

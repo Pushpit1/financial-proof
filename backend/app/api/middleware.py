@@ -21,6 +21,8 @@ class CorrelationIDMiddleware(BaseHTTPMiddleware):
         if not correlation_id:
             correlation_id = str(uuid.uuid4())
 
+        request.state.correlation_id = correlation_id
+
         structlog.contextvars.clear_contextvars()
         structlog.contextvars.bind_contextvars(
             correlation_id=correlation_id,

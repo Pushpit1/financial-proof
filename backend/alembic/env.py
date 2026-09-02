@@ -16,7 +16,7 @@ target_metadata = Base.metadata
 
 config.set_main_option(
     "sqlalchemy.url",
-    settings.database_url.replace("%", "%%"),
+    settings.database_url.get_secret_value().replace("%", "%%"),
 )
 
 
@@ -47,6 +47,7 @@ def run_migrations_online() -> None:
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
+            render_as_batch=True,
         )
 
         with context.begin_transaction():

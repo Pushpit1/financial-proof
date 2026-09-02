@@ -1,9 +1,14 @@
-﻿"""FastAPI application entrypoint."""
+"""FastAPI application entry point."""
 
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.exception_handlers import domain_error_handler
+from app.api.exception_handlers import (
+    domain_error_handler,
+    request_validation_error_handler,
+    unhandled_exception_handler,
+)
 from app.api.middleware import CorrelationIDMiddleware
 from app.api.router import api_router
 from app.core.config import settings
@@ -11,21 +16,35 @@ from app.core.errors.domain import DomainError
 
 
 def create_app() -> FastAPI:
-    """Create and configure the FastAPI application."""
-
+    """Create and configure the Financial Proof API application."""
     app = FastAPI(
         title=settings.app_name,
         version=settings.app_version,
+        debug=settings.debug,
     )
+
+    @app.get("/")
+    def root() -> dict[str, str]:
+        """Return the public application identity."""
+        return {
+            "name": "Financial Proof",
+            "version": "0.1.0",
+        }
 
     app.add_exception_handler(
         DomainError,
         domain_error_handler,
     )
-
-    app.add_middleware(
-        CorrelationIDMiddleware,
+    app.add_exception_handler(
+        RequestValidationError,
+        request_validation_error_handler,
     )
+    app.add_exception_handler(
+        Exception,
+        unhandled_exception_handler,
+    )
+
+    app.add_middleware(CorrelationIDMiddleware)
 
     app.add_middleware(
         CORSMiddleware,
@@ -39,15 +58,6 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(api_router)
-
-    @app.get("/")
-    async def root() -> dict[str, str]:
-        """Return basic application metadata."""
-
-        return {
-            "name": settings.app_name,
-            "version": settings.app_version,
-        }
 
     return app
 
