@@ -1,0 +1,96 @@
+{
+  "benchmark": "M21 API DB AI latency",
+  "api": {
+    "measurements": {
+      "health_get": {
+        "name": "GET /health",
+        "workload_size": 1,
+        "warmups": 2,
+        "iterations": 5,
+        "total_seconds": 0.02334430004702881,
+        "average_seconds": 0.004668860009405762,
+        "minimum_seconds": 0.0034297999809496105,
+        "maximum_seconds": 0.005515299970284104,
+        "throughput_per_second": 214.18504688198541
+      },
+      "ready_get": {
+        "name": "GET /ready",
+        "workload_size": 1,
+        "warmups": 2,
+        "iterations": 5,
+        "total_seconds": 0.017278899962548167,
+        "average_seconds": 0.0034557799925096335,
+        "minimum_seconds": 0.002382499980740249,
+        "maximum_seconds": 0.004187599988654256,
+        "throughput_per_second": 289.37027304038145
+      },
+      "contract_get_by_id": {
+        "name": "GET /contracts/f3dfadd1-43ff-43c4-9517-76cb6d909bd2",
+        "workload_size": 1,
+        "warmups": 2,
+        "iterations": 5,
+        "total_seconds": 0.03648859995882958,
+        "average_seconds": 0.007297719991765916,
+        "minimum_seconds": 0.00469520001206547,
+        "maximum_seconds": 0.010027599986642599,
+        "throughput_per_second": 137.0290996541809
+      },
+      "contract_create": {
+        "name": "POST /contracts",
+        "workload_size": 1,
+        "warmups": 2,
+        "iterations": 5,
+        "total_seconds": 0.04666210000868887,
+        "average_seconds": 0.009332420001737774,
+        "minimum_seconds": 0.008383800042793155,
+        "maximum_seconds": 0.0108157999929972,
+        "throughput_per_second": 107.15334284288446
+      }
+    }
+  },
+  "db": {
+    "database": "sqlite_in_memory",
+    "measurements": {
+      "select_1": {
+        "name": "SQLite SELECT 1",
+        "workload_size": 1,
+        "warmups": 2,
+        "iterations": 5,
+        "total_seconds": 1.9000028260052204e-05,
+        "average_seconds": 3.8000056520104407e-06,
+        "minimum_seconds": 2.200016751885414e-06,
+        "maximum_seconds": 5.500041879713535e-06,
+        "throughput_per_second": 263157.50332395884
+      },
+      "contract_insert_and_flush": {
+        "name": "SQLite contract insert and flush",
+        "workload_size": 1,
+        "warmups": 2,
+        "iterations": 5,
+        "total_seconds": 4.67000063508749e-05,
+        "average_seconds": 9.34000127017498e-06,
+        "minimum_seconds": 7.399998139590025e-06,
+        "maximum_seconds": 1.2899981811642647e-05,
+        "throughput_per_second": 107066.3665960364
+      }
+    }
+  },
+  "ai": {
+    "tool": "inspect_contract",
+    "measurement": {
+      "name": "AI investigation",
+      "workload_size": 1,
+      "warmups": 2,
+      "iterations": 5,
+      "total_seconds": 0.00260309997247532,
+      "average_seconds": 0.000520619994495064,
+      "minimum_seconds": 0.0003507999936118722,
+      "maximum_seconds": 0.0007069999701343477,
+      "throughput_per_second": 1920.7867745645735
+    },
+    "cost": {
+      "measurable": false,
+      "reason": "The current deterministic local AI investigation implementation exposes no provider, token, or monetary cost accounting."
+    }
+  }
+}

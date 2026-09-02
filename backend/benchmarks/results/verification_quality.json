@@ -1,0 +1,46 @@
+{
+  "benchmark": {
+    "name": "verification_detection",
+    "workload_size": 16,
+    "warmups": 0,
+    "iterations": 1,
+    "total_seconds": 0.0025600999942980707,
+    "average_seconds": 0.0025600999942980707,
+    "minimum_seconds": 0.0025600999942980707,
+    "maximum_seconds": 0.0025600999942980707,
+    "throughput_per_second": 6249.755882831009
+  },
+  "corpus": {
+    "regression_cases": 8,
+    "clean_cases": 8,
+    "case_repetitions": 2,
+    "reproducibility_repetitions": 10
+  },
+  "detection": {
+    "detected_counts": [
+      8
+    ],
+    "expected_regressions": 8,
+    "detection_rates": [
+      1.0
+    ],
+    "minimum_detection_rate": 1.0,
+    "maximum_detection_rate": 1.0
+  },
+  "false_positives": {
+    "false_positive_counts": [
+      0
+    ],
+    "expected_clean_cases": 8,
+    "false_positive_rates": [
+      0.0
+    ],
+    "minimum_false_positive_rate": 0.0,
+    "maximum_false_positive_rate": 0.0
+  },
+  "reproducibility": {
+    "reproducible_count": 10,
+    "total_comparisons": 10,
+    "reproducibility_rate": 1.0
+  }
+}

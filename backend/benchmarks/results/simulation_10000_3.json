@@ -1,0 +1,21 @@
+{
+  "benchmark": {
+    "name": "payment_simulation_batch",
+    "workload_size": 30000,
+    "warmups": 2,
+    "iterations": 5,
+    "total_seconds": 15.119074500049464,
+    "average_seconds": 3.023814900009893,
+    "minimum_seconds": 2.5491574000334367,
+    "maximum_seconds": 3.6901226000045426,
+    "throughput_per_second": 9921.242202987309
+  },
+  "workload": {
+    "simulation_count": 10000,
+    "events_per_simulation": 3,
+    "total_events": 30000
+  },
+  "derived": {
+    "events_per_second": 9921.242202987309
+  }
+}

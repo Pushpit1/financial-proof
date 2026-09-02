@@ -1,0 +1,19 @@
+{
+  "benchmark": {
+    "name": "counterexample_shrink",
+    "workload_size": 100,
+    "warmups": 2,
+    "iterations": 5,
+    "total_seconds": 0.035649399971589446,
+    "average_seconds": 0.007129879994317889,
+    "minimum_seconds": 0.004966599983163178,
+    "maximum_seconds": 0.01064529997529462,
+    "throughput_per_second": 14025.48150595723
+  },
+  "workload": {
+    "event_count": 100
+  },
+  "derived": {
+    "microseconds_per_event": 71.29879994317888
+  }
+}

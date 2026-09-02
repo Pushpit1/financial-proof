@@ -1,0 +1,27 @@
+{
+  "benchmark": {
+    "name": "idempotent_concurrency",
+    "workload_size": 8,
+    "warmups": 0,
+    "iterations": 1,
+    "total_seconds": 0.0038092000177130103,
+    "average_seconds": 0.0038092000177130103,
+    "minimum_seconds": 0.0038092000177130103,
+    "maximum_seconds": 0.0038092000177130103,
+    "throughput_per_second": 2100.1785054078327
+  },
+  "workload": {
+    "worker_count": 4,
+    "same_key_operations": 4,
+    "independent_key_operations": 4,
+    "total_operations_per_iteration": 8
+  },
+  "correctness": {
+    "same_key_executions": [
+      1
+    ],
+    "independent_key_executions": [
+      4
+    ]
+  }
+}

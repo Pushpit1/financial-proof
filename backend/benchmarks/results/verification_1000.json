@@ -1,0 +1,27 @@
+{
+  "workload": {
+    "verification_count": 1000
+  },
+  "clean": {
+    "name": "verification_clean",
+    "workload_size": 1000,
+    "warmups": 2,
+    "iterations": 5,
+    "total_seconds": 1.4018969000317156,
+    "average_seconds": 0.2803793800063431,
+    "minimum_seconds": 0.22681620001094416,
+    "maximum_seconds": 0.3220097000012174,
+    "throughput_per_second": 3566.5960884048486
+  },
+  "regression": {
+    "name": "verification_regression",
+    "workload_size": 1000,
+    "warmups": 2,
+    "iterations": 5,
+    "total_seconds": 0.9491655000019819,
+    "average_seconds": 0.18983310000039638,
+    "minimum_seconds": 0.1598431000020355,
+    "maximum_seconds": 0.20897859998513013,
+    "throughput_per_second": 5267.785228171019
+  }
+}

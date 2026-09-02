@@ -1,0 +1,24 @@
+{
+  "benchmark": {
+    "name": "payment_simulation_memory",
+    "iterations": 3
+  },
+  "workload": {
+    "simulation_count": 1000,
+    "events_per_simulation": 3,
+    "total_events": 3000
+  },
+  "memory_bytes": {
+    "average_current": 171069.66666666666,
+    "minimum_current": 165583,
+    "maximum_current": 181292,
+    "average_peak": 1616043.0,
+    "minimum_peak": 1606503,
+    "maximum_peak": 1634372
+  },
+  "memory_megabytes": {
+    "average_current": 0.16314474741617838,
+    "average_peak": 1.5411787033081055,
+    "maximum_peak": 1.5586585998535156
+  }
+}
