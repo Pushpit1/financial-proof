@@ -8,19 +8,24 @@ from app.api.exception_handlers import (
     domain_error_handler,
     request_validation_error_handler,
     unhandled_exception_handler,
-)
+    )
 from app.api.middleware import CorrelationIDMiddleware
 from app.api.router import api_router
 from app.core.config import settings
 from app.core.errors.domain import DomainError
 
 
-def create_app() -> FastAPI:
+def create_app(api_prefix: str = "") -> FastAPI:
     """Create and configure the Financial Proof API application."""
+    normalized_prefix = api_prefix.rstrip("/")
+
     app = FastAPI(
         title=settings.app_name,
         version=settings.app_version,
         debug=settings.debug,
+        docs_url=f"{normalized_prefix}/docs" or "/docs",
+        redoc_url=f"{normalized_prefix}/redoc" or "/redoc",
+        openapi_url=f"{normalized_prefix}/openapi.json" or "/openapi.json",
     )
 
     @app.get("/")
@@ -57,7 +62,10 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    app.include_router(api_router)
+    app.include_router(
+        api_router,
+        prefix=normalized_prefix,
+    )
 
     return app
 
