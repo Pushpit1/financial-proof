@@ -1,3 +1,9 @@
 {
-  "outputDirectory": "backend/frontend/dist"
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "outputDirectory": "backend/frontend/dist",
+  "functions": {
+    "api/index.py": {
+      "excludeFiles": "backend/tests/**"
+    }
+  }
 }
