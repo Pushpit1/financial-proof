@@ -93,26 +93,16 @@ def run_benchmark(
         iterations=iterations,
     )
 
-    same_key_executions = [
-        sum(result.executed for result in output[0])
-        for output in outputs
-    ]
-    independent_executions = [
-        sum(result.executed for result in output[1])
-        for output in outputs
-    ]
+    same_key_executions = [sum(result.executed for result in output[0]) for output in outputs]
+    independent_executions = [sum(result.executed for result in output[1]) for output in outputs]
 
     for count in same_key_executions:
         if count != 1:
-            raise RuntimeError(
-                "Concurrent same-key workload did not execute exactly once."
-            )
+            raise RuntimeError("Concurrent same-key workload did not execute exactly once.")
 
     for count in independent_executions:
         if count != worker_count:
-            raise RuntimeError(
-                "Independent-key workload did not execute every operation."
-            )
+            raise RuntimeError("Independent-key workload did not execute every operation.")
 
     payload = {
         "benchmark": result.as_dict(),
@@ -130,9 +120,7 @@ def run_benchmark(
 
     RESULTS_PATH.mkdir(parents=True, exist_ok=True)
 
-    output_path = RESULTS_PATH / (
-        f"concurrency_{worker_count}.json"
-    )
+    output_path = RESULTS_PATH / (f"concurrency_{worker_count}.json")
     output_path.write_text(
         json.dumps(payload, indent=2),
         encoding="utf-8",

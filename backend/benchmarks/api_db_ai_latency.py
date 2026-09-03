@@ -67,9 +67,7 @@ def _benchmark_api(
                 request_body["version"] = call_number + 1
 
             if "name" in request_body:
-                request_body["name"] = (
-                    f"{request_body['name']}-{call_number}"
-                )
+                request_body["name"] = f"{request_body['name']}-{call_number}"
 
             response = client.post(path, json=request_body)
         else:
@@ -77,8 +75,7 @@ def _benchmark_api(
 
         if response.status_code >= 400:
             raise RuntimeError(
-                f"Benchmark endpoint returned HTTP {response.status_code}: "
-                f"{response.text}"
+                f"Benchmark endpoint returned HTTP {response.status_code}: {response.text}"
             )
 
     result, _outputs = benchmark(
@@ -183,9 +180,7 @@ def run_db_benchmark() -> dict:
         select_result, _select_outputs = benchmark(
             name="SQLite SELECT 1",
             workload_size=1,
-            operation=lambda: connection.execute(
-                "SELECT 1"
-            ).fetchone(),
+            operation=lambda: connection.execute("SELECT 1").fetchone(),
             warmups=WARMUPS,
             iterations=ITERATIONS,
         )
@@ -234,9 +229,7 @@ def run_ai_benchmark() -> dict:
 
     contract = _build_contract()
 
-    inspect_tool = InspectContractTool(
-        {str(contract.id): contract}
-    )
+    inspect_tool = InspectContractTool({str(contract.id): contract})
 
     registry = InvestigationToolRegistry(
         handlers={
@@ -259,10 +252,7 @@ def run_ai_benchmark() -> dict:
         result = engine.investigate(request)
 
         if not result.is_success:
-            raise RuntimeError(
-                "AI benchmark investigation failed: "
-                f"{result.status.value}"
-            )
+            raise RuntimeError(f"AI benchmark investigation failed: {result.status.value}")
 
     result, _outputs = benchmark(
         name="AI investigation",
@@ -309,5 +299,3 @@ def run_benchmark() -> dict:
 
 if __name__ == "__main__":
     print(json.dumps(run_benchmark(), indent=2))
-
-

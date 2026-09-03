@@ -2,7 +2,7 @@
 
 Financial Proof is a deterministic financial correctness and verification platform designed to answer a practical question:
 
-> **Can a financial rule be proven safe before a failure becomes a financial loss?**
+> ‎ Can a financial rule be proven safe before a failure becomes a financial loss?‎ 
 
 The system turns financial business rules into executable contracts, runs deterministic payment simulations, deliberately explores adversarial behavior, detects violations, produces reproducible counterexamples, shrinks failures, estimates financial exposure, investigates failures through a constrained AI investigation engine, enforces runtime financial policies through a Guardian layer, and generates auditable financial proof artifacts.
 
@@ -30,7 +30,7 @@ Traditional application testing generally asks:
 
 Financial Proof additionally asks:
 
-> **What happens when the financial system is deliberately attacked?**
+> ‎ What happens when the financial system is deliberately attacked?‎ 
 
 The platform therefore combines deterministic verification with adversarial execution, reproducible evidence, financial impact analysis, AI investigation, and runtime enforcement.
 
@@ -40,7 +40,7 @@ The platform therefore combines deterministic verification with adversarial exec
 
 Financial Proof provides an end-to-end financial verification lifecycle:
 
-```text
+text
 Business Rule
      |
      v
@@ -91,11 +91,11 @@ Baseline Simulation    Adversarial Simulation
                 |
                 v
       Financial Proof
-```
+
 
 The important property is that the same financial behavior can move through the entire lifecycle:
 
-```text
+text
 rule
  -> contract
  -> simulation
@@ -108,7 +108,7 @@ rule
  -> verification
  -> enforcement
  -> proof
-```
+
 
 ---
 
@@ -138,26 +138,26 @@ Business-level financial rules are converted into validated financial contracts.
 
 The canonical demonstration rule is:
 
-> **A customer refund must never exceed the original payment amount.**
+> ‎ A customer refund must never exceed the original payment amount.‎ 
 
 The corresponding financial constraint is conceptually:
 
-```text
+text
 refund_amount <= original_payment_amount
-```
+
 
 For the demonstration:
 
-```text
+text
 Original payment = INR 50.00
 Refund attempt    = INR 75.00
-```
+
 
 Therefore:
 
-```text
+text
 75.00 > 50.00
-```
+
 
 and the financial constraint fails.
 
@@ -177,17 +177,17 @@ The simulator models lifecycle events including:
 
 The canonical baseline is:
 
-```text
+text
 AUTHORIZE -> CAPTURE
-```
+
 
 The simulation uses an explicit seed and deterministic identifiers.
 
 The canonical demonstration seed is:
 
-```text
+text
 20260902
-```
+
 
 Deterministic execution enables:
 
@@ -208,9 +208,9 @@ It deliberately attacks the modeled financial system.
 
 The canonical adversarial execution is:
 
-```text
+text
 AUTHORIZE -> AUTHORIZE -> CAPTURE
-```
+
 
 The second authorization is intentionally invalid.
 
@@ -226,7 +226,7 @@ Verification evaluates whether an execution satisfies the financial contract.
 
 Conceptually:
 
-```text
+text
 Contract
    +
 Execution
@@ -239,7 +239,7 @@ Evaluation
    +--> Violations
    |
    +--> Counterexamples
-```
+
 
 Verification produces structured evidence rather than only a boolean.
 
@@ -264,17 +264,17 @@ Financial Proof can compare verification states before and after a repair.
 
 Before repair:
 
-```text
+text
 violations = 1
 verification = FAIL
-```
+
 
 After repair:
 
-```text
+text
 violations = 0
 verification = PASS
-```
+
 
 The comparison can identify:
 
@@ -292,11 +292,11 @@ A counterexample is a concrete execution demonstrating that a financial invarian
 
 The canonical failure is:
 
-```text
+text
 AUTHORIZE
 AUTHORIZE
 CAPTURE
-```
+
 
 The duplicate authorization becomes a reproducible failure witness.
 
@@ -314,20 +314,20 @@ The shrinking engine attempts to remove unnecessary events while preserving fail
 
 Canonical example:
 
-```text
+text
 Original:
 
 AUTHORIZE
 AUTHORIZE
 CAPTURE
-```
+
 
 Shrunk:
 
-```text
+text
 AUTHORIZE
 AUTHORIZE
-```
+
 
 The `CAPTURE` event is unnecessary for reproducing the duplicate-authorization failure.
 
@@ -361,11 +361,11 @@ The financial blast-radius analysis can account for:
 
 For the canonical demonstration:
 
-```text
+text
 Original payment: INR 50.00
 Refund attempt:   INR 75.00
 Exposure:         INR 75.00
-```
+
 
 This connects technical verification with business impact.
 
@@ -379,7 +379,7 @@ It is deliberately constrained rather than being an unrestricted autonomous agen
 
 The architecture is:
 
-```text
+text
 Investigation Request
         |
         v
@@ -396,11 +396,11 @@ Bounded Evidence
         |
         v
 Investigation Result
-```
+
 
 Available investigation capabilities include:
 
-```text
+text
 inspect_contract
 inspect_execution
 inspect_state
@@ -408,7 +408,7 @@ inspect_violation
 inspect_financial_impact
 replay_scenario
 compare_expected_actual
-```
+
 
 Tools are explicitly registered and authorized.
 
@@ -431,17 +431,17 @@ Internal tool failures are not exposed as raw application exceptions.
 
 The architecture intentionally separates deterministic verification from AI explanation:
 
-```text
+text
 Deterministic verification establishes the failure.
 
 AI investigation explains the failure.
-```
+
 
 For the canonical attack:
 
-```text
+text
 AUTHORIZE -> AUTHORIZE -> CAPTURE
-```
+
 
 the deterministic verification system establishes the violation.
 
@@ -457,25 +457,25 @@ After investigation identifies the root cause, the system applies a repair.
 
 For the canonical refund scenario:
 
-```text
+text
 Refund before repair = INR 75.00
 Original payment     = INR 50.00
-```
+
 
 The repair caps the refund:
 
-```text
+text
 INR 75.00 -> INR 50.00
-```
+
 
 The system then re-runs verification.
 
 Expected result:
 
-```text
+text
 violations = 0
 verification = PASS
-```
+
 
 The important property is that the repair is not considered successful merely because it changed the input.
 
@@ -497,19 +497,19 @@ The Guardian evaluates policies including:
 
 For the demonstration, an unauthorized refund is attempted by:
 
-```text
+text
 demo-unauthorized-operator
-```
+
 
 The expected Guardian result is:
 
-```text
+text
 BLOCK
-```
+
 
 This creates another security boundary:
 
-```text
+text
 Financial Operation
         |
         v
@@ -523,7 +523,7 @@ Guardian
         |
         v
 ALLOW / BLOCK
-```
+
 
 The Guardian complements verification rather than replacing it.
 
@@ -571,7 +571,7 @@ Security controls include:
 
 The security architecture contains multiple trust boundaries:
 
-```text
+text
 External Client
       |
 Authentication
@@ -585,11 +585,11 @@ Application
 Domain
       |
 Financial Gateway
-```
+
 
 AI has a separate boundary:
 
-```text
+text
 Investigation Request
       |
 Tool Registry
@@ -597,11 +597,11 @@ Tool Registry
 Authorization
       |
 Bounded Evidence
-```
+
 
 Payment-provider webhooks have their own boundary:
 
-```text
+text
 Payment Provider
       |
 Signature Verification
@@ -611,13 +611,13 @@ Replay / Idempotency Controls
 Validated Event
       |
 Application
-```
+
 
 Detailed threat analysis is available in:
 
-```text
+text
 docs/security/threat-model.md
-```
+
 
 ---
 
@@ -627,43 +627,43 @@ The backend is implemented with FastAPI.
 
 Local base URL:
 
-```text
+text
 http://127.0.0.1:8000
-```
+
 
 ## Operational Endpoints
 
 ### Health
 
-```text
+text
 GET /health
-```
+
 
 The health endpoint is independent of database connectivity.
 
 Expected response:
 
-```json
+json
 {
   "status": "ok"
 }
-```
+
 
 ### Readiness
 
-```text
+text
 GET /ready
-```
+
 
 The readiness endpoint checks database connectivity.
 
 Expected response:
 
-```json
+json
 {
   "status": "ready"
 }
-```
+
 
 ## API Areas
 
@@ -700,9 +700,9 @@ Unexpected application failures are returned without exposing internal exception
 
 Requests support:
 
-```text
+text
 X-Correlation-ID
-```
+
 
 If a client does not supply one, the application generates it.
 
@@ -712,10 +712,10 @@ The correlation ID is returned in responses and supports operational tracing.
 
 Development frontend origins are explicitly configured:
 
-```text
+text
 http://localhost:5173
 http://127.0.0.1:5173
-```
+
 
 Production deployments should configure origins according to the actual trusted frontend domains.
 
@@ -729,7 +729,7 @@ The provider boundary is separate from financial correctness verification.
 
 The webhook flow is:
 
-```text
+text
 Razorpay
    |
 Webhook
@@ -741,15 +741,15 @@ Replay / Idempotency Controls
 Validated Event
    |
 Application
-```
+
 
 Provider configuration uses environment variables:
 
-```text
+text
 RAZORPAY_KEY_ID
 RAZORPAY_KEY_SECRET
 RAZORPAY_WEBHOOK_SECRET
-```
+
 
 Real credentials must never be committed to source control.
 
@@ -766,13 +766,13 @@ Provider communication does not itself establish financial correctness.
 
 The architecture deliberately separates:
 
-```text
+text
 Provider communication
 +
 Financial verification
 +
 Runtime Guardian enforcement
-```
+
 
 ---
 
@@ -782,21 +782,21 @@ The demo demonstrates the complete Financial Proof lifecycle.
 
 ## Canonical Business Rule
 
-```text
+text
 A customer refund must never exceed the original payment amount.
-```
+
 
 ## Canonical Data
 
-```text
+text
 Payment amount: INR 50.00
 Refund attempt: INR 75.00
 Seed:           20260902
-```
+
 
 ## Demo Sequence
 
-```text
+text
 1.  Enter business rule
 2.  Compile contract
 3.  Display contract
@@ -815,65 +815,65 @@ Seed:           20260902
 16. Attempt unauthorized refund
 17. Show BLOCKED
 18. Generate financial proof
-```
+
 
 ## Expected Failure
 
 Attack:
 
-```text
+text
 AUTHORIZE -> AUTHORIZE -> CAPTURE
-```
+
 
 Violation:
 
-```text
+text
 1 violation
-```
+
 
 Counterexample:
 
-```text
+text
 3 events
-```
+
 
 Shrunk counterexample:
 
-```text
+text
 2 events
-```
+
 
 Financial exposure:
 
-```text
+text
 INR 75.00
-```
+
 
 Root cause:
 
-```text
+text
 Duplicate authorization event
-```
+
 
 ## Expected Repair
 
-```text
+text
 Refund:
 INR 75.00 -> INR 50.00
-```
+
 
 After repair:
 
-```text
+text
 violations = 0
 verification = PASS
-```
+
 
 ## Expected Guardian Result
 
-```text
+text
 decision = BLOCK
-```
+
 
 ## Demo Properties
 
@@ -904,30 +904,30 @@ Frontend:
 
 ## Backend Installation
 
-```powershell
+powershell
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
-```
+
 
 ## Environment
 
 Copy:
 
-```text
+text
 .env.example
-```
+
 
 to:
 
-```text
+text
 .env
-```
+
 
 Important configuration includes:
 
-```text
+text
 APP_NAME
 APP_VERSION
 APP_ENV
@@ -942,25 +942,25 @@ RAZORPAY_WEBHOOK_SECRET
 PROOF_MINIMUM_REVIEW_CONFIDENCE
 PROOF_MINIMUM_READY_CONFIDENCE
 PROOF_MINIMUM_SUPPORTED_CLAIM_RATIO
-```
+
 
 Never commit real secrets.
 
 Production configuration requires:
 
-```text
+text
 APP_ENV=production
 DEBUG=false
 API_AUTH_TOKEN=<configured secret>
-```
+
 
 ## Database
 
 Apply migrations:
 
-```powershell
+powershell
 python -m alembic upgrade head
-```
+
 
 Application startup also applies pending migrations before starting the server.
 
@@ -968,30 +968,30 @@ Application startup also applies pending migrations before starting the server.
 
 Development:
 
-```powershell
+powershell
 uvicorn app.main:app --reload
-```
+
 
 Production-style startup:
 
-```powershell
+powershell
 python -m app.startup
 uvicorn app.main:app --host 0.0.0.0 --port 8000
-```
+
 
 ## Frontend
 
-```powershell
+powershell
 cd frontend
 npm ci
 npm run dev
-```
+
 
 Production build:
 
-```powershell
+powershell
 npm run build
-```
+
 
 ---
 
@@ -1010,9 +1010,9 @@ The backend Docker image:
 
 The container healthcheck uses:
 
-```text
+text
 GET /health
-```
+
 
 This provides an independent liveness signal.
 
@@ -1024,19 +1024,19 @@ The project includes CI validation for backend and frontend quality.
 
 Backend CI checks:
 
-```text
+text
 Ruff
 Python compilation
 pytest
 coverage
-```
+
 
 Frontend CI checks:
 
-```text
+text
 Oxlint
 production build
-```
+
 
 Backend coverage is enforced with the configured project threshold.
 
@@ -1075,42 +1075,42 @@ Representative measurements:
 
 Simulation throughput was approximately:
 
-```text
+text
 1K events:  ~6.8K events/s
 10K events: ~9.9K events/s
 50K events: ~6.7K events/s
-```
+
 
 Representative concurrency measurements:
 
-```text
+text
 2 workers:   ~7.5K ops/s
 10 workers:  ~9.7K ops/s
 50 workers:  ~17.7K ops/s
 100 workers: ~24.4K ops/s
-```
+
 
 Representative local API measurements:
 
-```text
+text
 GET /health:   ~4.7 ms
 GET /ready:    ~3.5 ms
 GET contract:  ~7.3 ms
 POST contract: ~9.3 ms
-```
+
 
 Representative SQLite measurements:
 
-```text
+text
 SELECT:                ~3.8 µs
 contract insert+flush: ~9.3 µs
-```
+
 
 The deterministic local AI implementation measured approximately:
 
-```text
+text
 inspect_contract: ~0.52 ms
-```
+
 
 No external provider-token or monetary AI cost was measured because the current implementation does not depend on an external token-billed model provider.
 
@@ -1118,9 +1118,9 @@ Benchmark results depend on hardware, operating system, Python version, workload
 
 Detailed results are available in:
 
-```text
+text
 docs/benchmarks.md
-```
+
 
 ---
 
@@ -1128,7 +1128,7 @@ docs/benchmarks.md
 
 The project includes multiple testing layers:
 
-```text
+text
 Unit Tests
     |
 Integration Tests
@@ -1146,30 +1146,30 @@ Regression Tests
 Performance Benchmarks
     |
 End-to-End Demo Tests
-```
+
 
 The final M24 API/deployment review and current project validation include:
 
-```text
+text
 1177 passed
-```
+
 
 with the existing dependency/deprecation warnings described by the test runner.
 
 Backend quality commands:
 
-```powershell
+powershell
 python -m ruff check .
 python -m compileall -q app tests
 python -m pytest -q
-```
+
 
 Frontend quality commands:
 
-```powershell
+powershell
 npm run lint
 npm run build
-```
+
 
 ---
 
@@ -1179,9 +1179,9 @@ Reproducibility is a core architectural requirement.
 
 The demonstration uses:
 
-```text
+text
 Seed = 20260902
-```
+
 
 Canonical identifiers are derived deterministically from a fixed namespace.
 
@@ -1204,7 +1204,7 @@ This is particularly important for financial failures because a failure that can
 
 The system is organized around clear boundaries:
 
-```text
+text
 API
  |
 Application Services
@@ -1212,17 +1212,17 @@ Application Services
 Domain Models / Domain Services
  |
 Persistence / External Integrations
-```
+
 
 Cross-cutting capabilities include:
 
-```text
+text
 Security
 Observability
 Auditability
 Configuration
 Error Handling
-```
+
 
 The design intentionally avoids putting financial correctness exclusively inside route handlers.
 
@@ -1350,10 +1350,10 @@ A policy that is not modeled cannot automatically be enforced.
 
 The demonstration intentionally uses a controlled scenario:
 
-```text
+text
 Payment = INR 50.00
 Refund  = INR 75.00
-```
+
 
 It demonstrates the architecture but does not represent every real-world payment pattern.
 
@@ -1363,7 +1363,7 @@ Financial Proof should not be interpreted as mathematically proving arbitrary fi
 
 Its goal is stronger engineering assurance through:
 
-```text
+text
 explicit contracts
 +
 deterministic execution
@@ -1375,7 +1375,7 @@ reproducible evidence
 financial impact analysis
 +
 runtime enforcement
-```
+
 
 within the modeled system boundary.
 
@@ -1408,13 +1408,13 @@ Detailed technical documentation is organized as follows:
 
 The central principle of Financial Proof is:
 
-> **Financial correctness should be executable, reproducible, observable, explainable, enforceable, and auditable.**
+> ‎ Financial correctness should be executable, reproducible, observable, explainable, enforceable, and auditable.‎ 
 
 A financial rule should not disappear into application code.
 
 It should become an explicit artifact that can move through the entire lifecycle:
 
-```text
+text
 DEFINE
   |
 COMPILE
@@ -1440,6 +1440,6 @@ RE-VERIFY
 ENFORCE
   |
 PROVE
-```
+
 
 Financial Proof is built around that lifecycle.

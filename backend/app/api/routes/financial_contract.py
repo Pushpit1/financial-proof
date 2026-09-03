@@ -1,4 +1,4 @@
-"""Financial contract API routes."""
+﻿"""Financial contract API routes."""
 
 from uuid import UUID, uuid4
 
@@ -52,7 +52,7 @@ def _request_to_domain(
         )
     except ValueError as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Invalid claim type in required_claim_types.",
         ) from exc
 

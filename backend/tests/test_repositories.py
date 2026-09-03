@@ -22,13 +22,14 @@ from app.db.repositories.financial import (
     FinancialProofRepository,
     ProofEvaluationRepository,
 )
+from tests.support_database_lifecycle import register_session
 
 
 def create_session() -> Session:
     """Create an isolated in-memory database session."""
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
-    return Session(engine)
+    return register_session(Session(engine), engine)
 
 
 def test_evidence_repository_add_and_get() -> None:
@@ -411,3 +412,5 @@ def test_repository_changes_can_be_rolled_back() -> None:
     session.rollback()
 
     assert session.get(FinancialProofModel, proof_id) is None
+
+

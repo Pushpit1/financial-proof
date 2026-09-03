@@ -39,13 +39,14 @@ from app.domain.services.proof_evaluator import (
     ProofEvaluator,
 )
 from app.domain.value_objects.financial import ConfidenceScore
+from tests.support_database_lifecycle import register_session
 
 
 def create_session() -> Session:
     """Create an isolated in-memory database session."""
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
-    return Session(engine)
+    return register_session(Session(engine), engine)
 
 
 def make_claim(subject: str, confidence: str) -> FinancialClaim:
@@ -1172,3 +1173,6 @@ def test_list_evaluation_history_is_scoped_to_requested_proof(
 
     assert history_one[0].overall_confidence == first.overall_confidence
     assert history_two[0].overall_confidence == second.overall_confidence
+
+
+

@@ -29,13 +29,14 @@ from app.domain.models.financial import (
     EvidenceLink,
     FinancialClaim,
 )
+from tests.support_database_lifecycle import register_session
 
 
 def create_session() -> Session:
     """Create an isolated in-memory database session."""
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
-    return Session(engine)
+    return register_session(Session(engine), engine)
 
 
 def test_add_evidence_persists_and_returns_evidence() -> None:
@@ -593,5 +594,8 @@ def test_attach_evidence_to_claim_rejects_duplicate_link() -> None:
             )
 
     assert len(service.list_evidence_links(claim.id)) == 1
+
+
+
 
 

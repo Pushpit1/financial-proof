@@ -197,7 +197,7 @@ async def create_simulation(
         result = PaymentSimulationRunner.run(simulation)
     except (IndexError, ValueError, KeyError, TypeError) as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=str(exc),
         ) from exc
 
@@ -231,7 +231,7 @@ async def get_simulation(simulation_id: UUID) -> SimulationResponse:
         result = PaymentSimulationRunner.run(simulation)
     except Exception as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=str(exc),
         ) from exc
 
@@ -281,7 +281,7 @@ async def execute_attack(
         InvalidPaymentTransition,
     ) as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=str(exc),
         ) from exc
 
@@ -300,6 +300,7 @@ async def execute_attack(
         baseline=_result_response(result.baseline),
         adversarial=_result_response(adversarial_result),
     )
+
 
 
 

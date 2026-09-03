@@ -1,4 +1,4 @@
-﻿from datetime import date
+from datetime import date
 
 import pytest
 from sqlalchemy import create_engine
@@ -11,13 +11,14 @@ from app.db.models.financial import (
     FinancialProofModel,
 )
 from app.db.unit_of_work import FinancialUnitOfWork
+from tests.support_database_lifecycle import register_session
 
 
 def create_session() -> Session:
     """Create an isolated in-memory database session."""
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
-    return Session(engine)
+    return register_session(Session(engine), engine)
 
 
 def test_unit_of_work_exposes_financial_proof_repository() -> None:
@@ -114,3 +115,6 @@ def test_unit_of_work_can_coordinate_multiple_financial_proof_records() -> None:
     assert claim_id is not None
     assert session.get(FinancialProofModel, proof_id) is not None
     assert session.get(FinancialClaimModel, claim_id) is not None
+
+
+

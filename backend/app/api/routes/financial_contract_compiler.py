@@ -57,7 +57,7 @@ async def compile_contract(
         )
     except (TypeError, ValueError) as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=str(exc),
         ) from exc
 
@@ -65,3 +65,4 @@ async def compile_contract(
         source_text=result.source_text.normalized(),
         contract=_contract_to_response(result.contract),
     )
+

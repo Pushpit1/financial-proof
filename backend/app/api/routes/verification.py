@@ -121,7 +121,7 @@ async def verify(
         result = VerificationService.verify(comparison)
     except (TypeError, ValueError) as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=str(exc),
         ) from exc
 
@@ -140,3 +140,4 @@ async def verify(
         after=_snapshot_response(after),
         comparison=_comparison_response(comparison),
     )
+

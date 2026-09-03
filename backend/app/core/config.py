@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     api_host: str = "0.0.0.0"
     api_port: int = 8000
 
-    database_url: SecretStr
+    database_url: SecretStr = SecretStr("sqlite:///./financial_proof.db")
 
     api_auth_token: SecretStr | None = None
 

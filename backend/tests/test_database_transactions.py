@@ -5,11 +5,12 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 
 from app.db.unit_of_work import FinancialUnitOfWork
+from tests.support_database_lifecycle import register_engine
 
 
 @pytest.fixture
 def sqlite_session():
-    engine = create_engine("sqlite:///:memory:")
+    engine = register_engine(create_engine("sqlite:///:memory:"))
     with engine.connect() as connection:
         connection.execute(
             text(
@@ -98,3 +99,7 @@ def test_failed_unit_of_work_rolls_back_once() -> None:
 
     session.rollback.assert_called_once_with()
     session.commit.assert_not_called()
+
+
+
+
