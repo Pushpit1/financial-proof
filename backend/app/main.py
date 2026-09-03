@@ -8,7 +8,7 @@ from app.api.exception_handlers import (
     domain_error_handler,
     request_validation_error_handler,
     unhandled_exception_handler,
-    )
+)
 from app.api.middleware import CorrelationIDMiddleware
 from app.api.router import api_router
 from app.core.config import settings
@@ -20,8 +20,8 @@ def create_app(api_prefix: str = "") -> FastAPI:
     normalized_prefix = api_prefix.rstrip("/")
 
     app = FastAPI(
-        title=settings.app_name,
-        version=settings.app_version,
+        title=settings.app_name or "Financial Proof API",
+        version=settings.app_version or "0.1.0",
         debug=settings.debug,
         docs_url=f"{normalized_prefix}/docs" or "/docs",
         redoc_url=f"{normalized_prefix}/redoc" or "/redoc",

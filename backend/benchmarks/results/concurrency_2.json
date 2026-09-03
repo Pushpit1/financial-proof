@@ -4,11 +4,11 @@
     "workload_size": 4,
     "warmups": 0,
     "iterations": 1,
-    "total_seconds": 0.0031633000035071746,
-    "average_seconds": 0.0031633000035071746,
-    "minimum_seconds": 0.0031633000035071746,
-    "maximum_seconds": 0.0031633000035071746,
-    "throughput_per_second": 1264.502258895827
+    "total_seconds": 0.001599700000951998,
+    "average_seconds": 0.001599700000951998,
+    "minimum_seconds": 0.001599700000951998,
+    "maximum_seconds": 0.001599700000951998,
+    "throughput_per_second": 2500.468836419053
   },
   "workload": {
     "worker_count": 2,
