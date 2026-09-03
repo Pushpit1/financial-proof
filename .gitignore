@@ -94,3 +94,4 @@ docker/volumes/
 
 secrets/
 credentials/
+.vercel
