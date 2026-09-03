@@ -1,4 +1,4 @@
-﻿"""Vercel entrypoint for the Financial Proof FastAPI application."""
+"""Vercel entrypoint for the Financial Proof FastAPI application."""
 
 from __future__ import annotations
 
