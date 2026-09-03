@@ -1,0 +1,8 @@
+{
+  "name": "financial-proof-vercel",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "build": "npm --prefix backend/frontend install && npm --prefix backend/frontend run build"
+  }
+}

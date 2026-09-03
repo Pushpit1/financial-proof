@@ -4,11 +4,11 @@
     "workload_size": 16,
     "warmups": 0,
     "iterations": 1,
-    "total_seconds": 0.005998599999657017,
-    "average_seconds": 0.005998599999657017,
-    "minimum_seconds": 0.005998599999657017,
-    "maximum_seconds": 0.005998599999657017,
-    "throughput_per_second": 2667.2890342604665
+    "total_seconds": 0.023157400006311946,
+    "average_seconds": 0.023157400006311946,
+    "minimum_seconds": 0.023157400006311946,
+    "maximum_seconds": 0.023157400006311946,
+    "throughput_per_second": 690.9238513666874
   },
   "corpus": {
     "regression_cases": 8,
