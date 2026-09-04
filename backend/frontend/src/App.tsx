@@ -118,6 +118,11 @@ function App() {
   const [attackType, setAttackType] = useState('duplicate')
   const [targetSequence, setTargetSequence] = useState(0)
 
+  const [scenarioSeed, setScenarioSeed] = useState(42)
+  const [scenarioAmountMinor, setScenarioAmountMinor] = useState(10000)
+  const [scenarioCurrency, setScenarioCurrency] = useState('INR')
+  const [scenarioEvents, setScenarioEvents] = useState('authorize\ncapture')
+
   const [beforeContractVersion, setBeforeContractVersion] =
     useState('1')
   const [beforeSystemVersion, setBeforeSystemVersion] =
@@ -240,22 +245,33 @@ function App() {
     setVerification(null)
 
     try {
+      const events = scenarioEvents
+        .split(/\\r?\\n/)
+        .map((event) => event.trim())
+        .filter(Boolean)
+
+      if (events.length === 0) {
+        throw new Error('Add at least one simulation event.')
+      }
+
+      if (!scenarioCurrency.trim()) {
+        throw new Error('Currency is required.')
+      }
+
+      if (scenarioAmountMinor <= 0) {
+        throw new Error('Amount must be greater than zero.')
+      }
+
       const result = await createSimulation({
-        seed: 42,
-        amount_minor: 10000,
-        currency: 'INR',
-        events: [
-          {
-            event: 'authorize',
-            occurred_at: new Date().toISOString(),
-          },
-          {
-            event: 'capture',
-            occurred_at: new Date(
-              Date.now() + 1000,
-            ).toISOString(),
-          },
-        ],
+        seed: scenarioSeed,
+        amount_minor: scenarioAmountMinor,
+        currency: scenarioCurrency.trim().toUpperCase(),
+        events: events.map((event, index) => ({
+          event,
+          occurred_at: new Date(
+            Date.now() + index * 1000,
+          ).toISOString(),
+        })),
       })
 
       setSimulation(result)
@@ -790,6 +806,86 @@ function App() {
                   Run the same deterministic payment flow before
                   testing adversarial behavior.
                 </p>
+
+                <div className="form-grid">
+                  <div>
+                    <label
+                      className="field-label"
+                      htmlFor="scenario-seed"
+                    >
+                      Seed
+                    </label>
+                    <input
+                      id="scenario-seed"
+                      className="text-input"
+                      min={0}
+                      type="number"
+                      value={scenarioSeed}
+                      onChange={(event) =>
+                        setScenarioSeed(Number(event.target.value))
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      className="field-label"
+                      htmlFor="scenario-amount"
+                    >
+                      Amount (minor units)
+                    </label>
+                    <input
+                      id="scenario-amount"
+                      className="text-input"
+                      min={1}
+                      type="number"
+                      value={scenarioAmountMinor}
+                      onChange={(event) =>
+                        setScenarioAmountMinor(Number(event.target.value))
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      className="field-label"
+                      htmlFor="scenario-currency"
+                    >
+                      Currency
+                    </label>
+                    <input
+                      id="scenario-currency"
+                      className="text-input"
+                      maxLength={3}
+                      value={scenarioCurrency}
+                      onChange={(event) =>
+                        setScenarioCurrency(event.target.value)
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      className="field-label"
+                      htmlFor="scenario-events"
+                    >
+                      Event sequence
+                    </label>
+                    <textarea
+                      id="scenario-events"
+                      className="json-input"
+                      rows={5}
+                      value={scenarioEvents}
+                      onChange={(event) =>
+                        setScenarioEvents(event.target.value)
+                      }
+                      placeholder={"authorize\ncapture"}
+                    />
+                    <p className="hint">
+                      One event per line. The order is preserved.
+                    </p>
+                  </div>
+                </div>
 
                 <button
                   className="primary-button"
