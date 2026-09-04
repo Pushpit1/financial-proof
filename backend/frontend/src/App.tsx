@@ -6,16 +6,21 @@ import {
 } from './api/contracts'
 import { ApiClientError } from './api/client'
 import { createSimulation, executeAttack } from './api/simulations'
+import { shrinkCounterexample } from './api/counterexamples'
 import { verifySnapshots } from './api/verification'
+import { createProof, evaluateProof } from './api/proofs'
 import type {
   AdversarialSimulation,
+  AttackRequest,
   Simulation,
 } from './types/simulation'
 import type { FinancialContract } from './types/contract'
+import type { Counterexample } from './types/counterexample'
 import type {
   VerificationResponse,
   VerificationSnapshotRequest,
 } from './types/verification'
+import type { FinancialProofAggregate } from './types/proof'
 import './App.css'
 
 type Section =
@@ -68,26 +73,6 @@ const navigation: Array<{
   },
 ]
 
-const defaultBeforeBaseline = JSON.stringify(
-  {
-    final_payment_state: 'authorized',
-    final_order_state: 'pending',
-    trace_entries: 2,
-  },
-  null,
-  2,
-)
-
-const defaultAfterBaseline = JSON.stringify(
-  {
-    final_payment_state: 'authorized',
-    final_order_state: 'pending',
-    trace_entries: 2,
-  },
-  null,
-  2,
-)
-
 function App() {
   const [activeSection, setActiveSection] =
     useState<Section>('overview')
@@ -114,34 +99,26 @@ function App() {
 
   const [verification, setVerification] =
     useState<VerificationResponse | null>(null)
+  const [counterexample, setCounterexample] =
+    useState<Counterexample | null>(null)
+  const [counterexampleRunning, setCounterexampleRunning] =
+    useState(false)
+  const [financialProof, setFinancialProof] =
+    useState<FinancialProofAggregate | null>(null)
+  const [proofRunning, setProofRunning] = useState(false)
+
 
   const [attackType, setAttackType] = useState('duplicate')
   const [targetSequence, setTargetSequence] = useState(0)
-
+  const [sourceSequence, setSourceSequence] = useState(1)
+  const [retryCount, setRetryCount] = useState(2)
+  const [delaySeconds, setDelaySeconds] = useState(1)
+  const [workerSequence, setWorkerSequence] = useState(0)
+  const [incomingSequence, setIncomingSequence] = useState(1)
   const [scenarioSeed, setScenarioSeed] = useState(42)
   const [scenarioAmountMinor, setScenarioAmountMinor] = useState(10000)
   const [scenarioCurrency, setScenarioCurrency] = useState('INR')
   const [scenarioEvents, setScenarioEvents] = useState('authorize\ncapture')
-
-  const [beforeContractVersion, setBeforeContractVersion] =
-    useState('1')
-  const [beforeSystemVersion, setBeforeSystemVersion] =
-    useState('1.0.0')
-  const [beforeBaseline, setBeforeBaseline] =
-    useState(defaultBeforeBaseline)
-  const [beforeViolations, setBeforeViolations] = useState('')
-  const [beforeCounterexamples, setBeforeCounterexamples] =
-    useState('')
-
-  const [afterContractVersion, setAfterContractVersion] =
-    useState('2')
-  const [afterSystemVersion, setAfterSystemVersion] =
-    useState('1.1.0')
-  const [afterBaseline, setAfterBaseline] =
-    useState(defaultAfterBaseline)
-  const [afterViolations, setAfterViolations] = useState('')
-  const [afterCounterexamples, setAfterCounterexamples] =
-    useState('')
 
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -243,10 +220,12 @@ function App() {
     clearMessages()
     setAdversarialSimulation(null)
     setVerification(null)
+    setCounterexample(null)
+    setFinancialProof(null)
 
     try {
       const events = scenarioEvents
-        .split(/\\r?\\n/)
+        .split(/\r?\n/)
         .map((event) => event.trim())
         .filter(Boolean)
 
@@ -293,29 +272,198 @@ function App() {
       return
     }
 
+    if (targetSequence < 0 || targetSequence >= simulation.events.length) {
+      setError(
+        `Target sequence must be between 0 and ${
+          simulation.events.length - 1
+        }.`,
+      )
+      return
+    }
+
+    if (
+      attackType === 'out_of_order' &&
+      (sourceSequence < 0 || sourceSequence >= simulation.events.length)
+    ) {
+      setError(
+        `Source sequence must be between 0 and ${
+          simulation.events.length - 1
+        }.`,
+      )
+      return
+    }
+
+    if (attackType === 'retry' && retryCount < 1) {
+      setError('Retry count must be at least 1.')
+      return
+    }
+
+    if (attackType === 'delayed' && delaySeconds < 0) {
+      setError('Delay seconds cannot be negative.')
+      return
+    }
+
+    if (
+      (attackType === 'worker_crash' ||
+        attackType === 'stale_worker') &&
+      (workerSequence < 0 ||
+        workerSequence >= simulation.events.length)
+    ) {
+      setError(
+        `Worker sequence must be between 0 and ${
+          simulation.events.length - 1
+        }.`,
+      )
+      return
+    }
+
+    if (
+      attackType === 'stale_worker' &&
+      (incomingSequence < 0 ||
+        incomingSequence >= simulation.events.length)
+    ) {
+      setError(
+        `Incoming sequence must be between 0 and ${
+          simulation.events.length - 1
+        }.`,
+      )
+      return
+    }
+
+    const request: AttackRequest = {
+      attack_type: attackType,
+      target_sequence: targetSequence,
+    }
+
+    if (attackType === 'out_of_order') {
+      request.source_sequence = sourceSequence
+    }
+
+    if (attackType === 'retry') {
+      request.retry_count = retryCount
+    }
+
+    if (attackType === 'delayed') {
+      request.delay_seconds = delaySeconds
+    }
+
+    if (
+      attackType === 'worker_crash' ||
+      attackType === 'stale_worker'
+    ) {
+      request.worker_sequence = workerSequence
+    }
+
+    if (attackType === 'stale_worker') {
+      request.incoming_sequence = incomingSequence
+    }
+
     setAttackRunning(true)
+    setCounterexampleRunning(false)
+    setCounterexample(null)
+    setFinancialProof(null)
     clearMessages()
     setVerification(null)
 
     try {
-      const result = await executeAttack(simulation.id, {
-        attack_type: attackType,
-        target_sequence: targetSequence,
-      })
+      const result = await executeAttack(simulation.id, request)
 
       setAdversarialSimulation(result)
+
+      if (result.adversarial_status === 'failed') {
+        setCounterexampleRunning(true)
+
+        try {
+          const minimized = await shrinkCounterexample(
+            simulation.id,
+            request,
+          )
+
+          setCounterexample(minimized)
+
+          setSuccess(
+            `Attack replay failed and the counterexample was automatically minimized from ${
+              minimized.original_event_count
+            } to ${minimized.minimized_event_count} event(s).`,
+          )
+        } catch (counterexampleError) {
+          setSuccess(
+            `Attack applied, but adversarial replay failed: ${
+              result.failure?.message ?? 'unknown failure'
+            }`,
+          )
+
+          setError(
+            counterexampleError instanceof Error
+              ? `Counterexample generation failed: ${counterexampleError.message}`
+              : 'Counterexample generation failed.',
+          )
+        } finally {
+          setCounterexampleRunning(false)
+        }
+
+        return
+      }
+
       setSuccess('Adversarial simulation completed.')
     } catch (caught) {
       if (
         caught instanceof ApiClientError &&
         caught.message.includes('Cannot apply')
       ) {
-        setAdversarialSimulation(null)
-        setAfterBaseline(defaultBeforeBaseline)
-        setAfterViolations('')
-        setSuccess(
-          'Attack was correctly rejected by the payment state machine.',
-        )
+        setCounterexampleRunning(true)
+
+        try {
+          const minimized = await shrinkCounterexample(
+            simulation.id,
+            request,
+          )
+
+          setCounterexample(minimized)
+
+          setAdversarialSimulation({
+            simulation_id: simulation.id,
+            attack_count: 1,
+            applied_components: [],
+            outcomes: [],
+            baseline: simulation.result,
+            adversarial: null,
+            adversarial_status: 'failed',
+            failure: {
+              failure_type: 'InvalidPaymentTransition',
+              message: caught.message,
+            },
+          })
+
+          setSuccess(
+            `Attack was correctly rejected by the payment state machine. Counterexample automatically minimized from ${
+              minimized.original_event_count
+            } to ${minimized.minimized_event_count} event(s).`,
+          )
+        } catch (counterexampleError) {
+          setAdversarialSimulation({
+            simulation_id: simulation.id,
+            attack_count: 1,
+            applied_components: [],
+            outcomes: [],
+            baseline: simulation.result,
+            adversarial: null,
+            adversarial_status: 'failed',
+            failure: {
+              failure_type: 'InvalidPaymentTransition',
+              message: caught.message,
+            },
+          })
+
+          setError(
+            counterexampleError instanceof Error
+              ? `Attack was rejected correctly, but counterexample generation failed: ${counterexampleError.message}`
+              : 'Attack was rejected correctly, but counterexample generation failed.',
+          )
+        } finally {
+          setCounterexampleRunning(false)
+        }
+
         return
       }
 
@@ -329,76 +477,253 @@ function App() {
     }
   }
 
-  function parseJsonObject(
-    value: string,
-    label: string,
-  ): Record<string, unknown> {
-    let parsed: unknown
-
-    try {
-      parsed = JSON.parse(value)
-    } catch {
-      throw new Error(`${label} contains invalid JSON.`)
+  async function handleShrinkCounterexample() {
+    if (!simulation) {
+      setError('Run a baseline simulation first.')
+      return
     }
 
-    if (
-      typeof parsed !== 'object' ||
-      parsed === null ||
-      Array.isArray(parsed)
-    ) {
-      throw new Error(`${label} must contain a JSON object.`)
-    }
-
-    return parsed as Record<string, unknown>
-  }
-
-  function parseList(value: string): string[] {
-    return value
-      .split(',')
-      .map((item) => item.trim())
-      .filter(Boolean)
-  }
-
-  async function handleVerification() {
-    setVerificationRunning(true)
+    setCounterexampleRunning(true)
     clearMessages()
 
     try {
+      const request: AttackRequest = {
+        attack_type: attackType,
+        target_sequence: targetSequence,
+      }
+
+      if (attackType === 'out_of_order') {
+        request.source_sequence = sourceSequence
+      }
+
+      if (attackType === 'retry') {
+        request.retry_count = retryCount
+      }
+
+      if (attackType === 'delayed') {
+        request.delay_seconds = delaySeconds
+      }
+
+      if (
+        attackType === 'worker_crash' ||
+        attackType === 'stale_worker'
+      ) {
+        request.worker_sequence = workerSequence
+      }
+
+      if (attackType === 'stale_worker') {
+        request.incoming_sequence = incomingSequence
+      }
+
+      const result = await shrinkCounterexample(
+        simulation.id,
+        request,
+      )
+
+      setCounterexample(result)
+      setSuccess(
+        `Counterexample shrunk from ${
+          result.original_event_count
+        } to ${result.minimized_event_count} event(s).`,
+      )
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : 'Failed to shrink counterexample.',
+      )
+    } finally {
+      setCounterexampleRunning(false)
+    }
+  }
+
+  function buildSimulationEvidence(
+    currentSimulation: Simulation,
+    stage: 'baseline' | 'adversarial',
+  ): Record<string, unknown> {
+    return {
+      simulation_id: currentSimulation.id,
+      seed: currentSimulation.seed,
+      amount_minor: currentSimulation.amount_minor,
+      currency: currentSimulation.currency,
+      event_count: currentSimulation.events.length,
+      trace_count: currentSimulation.result.trace.length,
+      final_payment_state:
+        currentSimulation.result.final_payment_state,
+      final_order_state:
+        currentSimulation.result.final_order_state,
+      trace: currentSimulation.result.trace,
+      snapshots: currentSimulation.result.snapshots,
+      stage,
+    }
+  }
+
+  async function handleVerification() {
+    if (!simulation || !adversarialSimulation) {
+      setError(
+        'Run a baseline simulation and an adversarial simulation first.',
+      )
+      return
+    }
+
+    const hasAdversarialResult =
+      adversarialSimulation.adversarial_status !== 'failed' &&
+      Boolean(adversarialSimulation.adversarial)
+
+    if (!hasAdversarialResult && !counterexample) {
+      setError(
+        'The adversarial replay failed. A reproducible counterexample is required before verification can continue.',
+      )
+      return
+    }
+
+    setVerificationRunning(true)
+    setProofRunning(false)
+    clearMessages()
+
+    try {
+      const contractVersion =
+        compiledContract?.version != null
+          ? String(compiledContract.version)
+          : 'unknown'
+
+      const contractId =
+        compiledContract?.id != null
+          ? String(compiledContract.id)
+          : undefined
+
+      const systemVersion = '0.1.0'
+
       const before: VerificationSnapshotRequest = {
-        contract_id: compiledContract?.id,
-        contract_version: beforeContractVersion.trim(),
-        system_version: beforeSystemVersion.trim(),
-        baseline: parseJsonObject(
-          beforeBaseline,
-          'Before baseline',
-        ),
-        violations: parseList(beforeViolations),
-        counterexample_ids: parseList(beforeCounterexamples),
-        simulation_id: simulation?.id,
+        ...(contractId ? { contract_id: contractId } : {}),
+        contract_version: contractVersion,
+        system_version: systemVersion,
+        baseline: buildSimulationEvidence(simulation, 'baseline'),
+        violations: [],
+        counterexample_ids: [],
+        simulation_id: simulation.id,
         reproducibility_metadata: {
-          source: 'frontend-workbench',
-          deterministic_seed: simulation?.seed ?? 42,
+          seed: simulation.seed,
+          amount_minor: simulation.amount_minor,
+          currency: simulation.currency,
+          event_count: simulation.events.length,
+          stage: 'baseline',
+          attack_type: null,
+          reproducible: true,
         },
       }
 
-      const after: VerificationSnapshotRequest = {
-        contract_id: compiledContract?.id,
-        contract_version: afterContractVersion.trim(),
-        system_version: afterSystemVersion.trim(),
-        baseline: parseJsonObject(
-          afterBaseline,
-          'After baseline',
-        ),
-        violations: parseList(afterViolations),
-        counterexample_ids: parseList(afterCounterexamples),
-        simulation_id:
-          adversarialSimulation?.simulation_id ??
-          simulation?.id,
-        reproducibility_metadata: {
-          source: 'frontend-workbench',
-          deterministic_seed: simulation?.seed ?? 42,
-        },
-      }
+      const after: VerificationSnapshotRequest = hasAdversarialResult
+        ? {
+            ...(contractId ? { contract_id: contractId } : {}),
+            contract_version: contractVersion,
+            system_version: systemVersion,
+            baseline: {
+              simulation_id:
+                adversarialSimulation.adversarial!.simulation_id,
+              seed: adversarialSimulation.adversarial!.seed,
+              amount_minor: simulation.amount_minor,
+              currency: simulation.currency,
+              event_count: simulation.events.length,
+              trace_count:
+                adversarialSimulation.adversarial!.trace.length,
+              final_payment_state:
+                adversarialSimulation.adversarial!.final_payment_state,
+              final_order_state:
+                adversarialSimulation.adversarial!.final_order_state,
+              trace: adversarialSimulation.adversarial!.trace,
+              snapshots: adversarialSimulation.adversarial!.snapshots,
+              stage: 'adversarial',
+            },
+            violations: [],
+            counterexample_ids: counterexample
+              ? [counterexample.simulation_id]
+              : [],
+            simulation_id:
+              adversarialSimulation.adversarial!.simulation_id,
+            reproducibility_metadata: {
+              seed: adversarialSimulation.adversarial!.seed,
+              amount_minor: simulation.amount_minor,
+              currency: simulation.currency,
+              event_count: simulation.events.length,
+              stage: 'adversarial',
+              attack_type: attackType,
+              target_sequence: targetSequence,
+              source_sequence:
+                attackType === 'out_of_order'
+                  ? sourceSequence
+                  : null,
+              retry_count:
+                attackType === 'retry' ? retryCount : null,
+              delay_seconds:
+                attackType === 'delayed' ? delaySeconds : null,
+              worker_sequence:
+                attackType === 'worker_crash' ||
+                attackType === 'stale_worker'
+                  ? workerSequence
+                  : null,
+              incoming_sequence:
+                attackType === 'stale_worker'
+                  ? incomingSequence
+                  : null,
+              reproducible: Boolean(counterexample),
+            },
+          }
+        : {
+            ...(contractId ? { contract_id: contractId } : {}),
+            contract_version: contractVersion,
+            system_version: systemVersion,
+            baseline: {
+              simulation_id: simulation.id,
+              seed: simulation.seed,
+              amount_minor: simulation.amount_minor,
+              currency: simulation.currency,
+              event_count: counterexample!.minimized_event_count,
+              trace_count: 0,
+              final_payment_state: 'FAILED',
+              final_order_state: 'FAILED',
+              trace: [],
+              snapshots: counterexample!.events,
+              stage: 'adversarial-failure',
+              failure: adversarialSimulation.failure,
+              counterexample: counterexample!.events,
+            },
+            violations: [
+              adversarialSimulation.failure?.failure_type ??
+                'InvalidPaymentTransition',
+            ],
+            counterexample_ids: [
+              counterexample!.simulation_id,
+            ],
+            simulation_id: simulation.id,
+            reproducibility_metadata: {
+              seed: simulation.seed,
+              amount_minor: simulation.amount_minor,
+              currency: simulation.currency,
+              event_count: counterexample!.minimized_event_count,
+              stage: 'adversarial-failure',
+              attack_type: attackType,
+              target_sequence: targetSequence,
+              source_sequence:
+                attackType === 'out_of_order'
+                  ? sourceSequence
+                  : null,
+              retry_count:
+                attackType === 'retry' ? retryCount : null,
+              delay_seconds:
+                attackType === 'delayed' ? delaySeconds : null,
+              worker_sequence:
+                attackType === 'worker_crash' ||
+                attackType === 'stale_worker'
+                  ? workerSequence
+                  : null,
+              incoming_sequence:
+                attackType === 'stale_worker'
+                  ? incomingSequence
+                  : null,
+              reproducible: true,
+            },
+          }
 
       const result = await verifySnapshots({
         before,
@@ -407,23 +732,88 @@ function App() {
 
       setVerification(result)
 
-      if (result.result.regression_detected) {
-        setSuccess('Verification complete: regression detected.')
+      setProofRunning(true)
+
+      const claimId = crypto.randomUUID()
+      const evidenceId = crypto.randomUUID()
+      const evidenceLinkId = crypto.randomUUID()
+
+      const passed = result.result.passed
+      const confidence = passed ? 1 : 0
+
+      const proof = await createProof({
+        subject: simulation.id,
+        claims: [
+          {
+            id: claimId,
+            claim_type: 'transaction',
+            subject: simulation.id,
+            amount: simulation.amount_minor,
+            currency: simulation.currency,
+            verification_status: passed
+              ? 'verified'
+              : 'contradicted',
+            confidence,
+            confidence_level: passed
+              ? 'very_high'
+              : 'very_low',
+          },
+        ],
+        evidence: [
+          {
+            id: evidenceId,
+            evidence_type: 'payment_record',
+            source_name: 'Financial Proof Workbench V2',
+            received_at: new Date().toISOString().slice(0, 10),
+            status: passed ? 'verified' : 'rejected',
+            source_reference: result.result.verification_id,
+          },
+        ],
+        evidence_links: [
+          {
+            id: evidenceLinkId,
+            claim_id: claimId,
+            evidence_id: evidenceId,
+            verification_status: passed
+              ? 'verified'
+              : 'contradicted',
+            confidence,
+            explanation:
+              `Deterministic verification ${result.result.verification_id} ` +
+              `compared baseline and adversarial evidence. ` +
+              `Regression detected: ${result.result.regression_detected}.`,
+          },
+        ],
+      })
+
+      const evaluatedProof = await evaluateProof(proof.proof.id)
+
+      setFinancialProof(evaluatedProof)
+
+      if (result.result.passed) {
+        setSuccess(
+          'Verification passed and the Financial Proof was created and evaluated successfully.',
+        )
       } else {
-        setSuccess('Verification complete: no regression detected.')
+        setError(
+          `Verification detected a regression${
+            result.comparison.introduced_violations.length > 0
+              ? `: ${result.comparison.introduced_violations.join(', ')}`
+              : '.'
+          } Financial Proof evaluation completed.`,
+        )
       }
     } catch (caught) {
       setError(
         caught instanceof Error
           ? caught.message
-          : 'Failed to execute verification.',
+          : 'Failed to verify simulation evidence and create the Financial Proof.',
       )
     } finally {
+      setProofRunning(false)
       setVerificationRunning(false)
     }
-  }
-
-  function goTo(section: Section) {
+  }  function goTo(section: Section) {
     clearMessages()
     setActiveSection(section)
   }
@@ -789,30 +1179,26 @@ function App() {
               <section className="panel">
                 <div className="panel-header">
                   <div>
-                    <span className="panel-kicker">
-                      STEP 02
-                    </span>
+                    <span className="panel-kicker">STEP 02</span>
                     <h3>Establish a baseline</h3>
                   </div>
-
-                  {simulation && (
-                    <span className="panel-badge success">
-                      Executed
-                    </span>
-                  )}
+                  <span
+                    className={`panel-badge ${
+                      simulation ? 'success' : ''
+                    }`}
+                  >
+                    {simulation ? 'EXECUTED' : 'WAITING'}
+                  </span>
                 </div>
 
                 <p className="panel-description">
-                  Run the same deterministic payment flow before
-                  testing adversarial behavior.
+                  Configure real deterministic payment data. Nothing is
+                  fabricated for verification.
                 </p>
 
                 <div className="form-grid">
                   <div>
-                    <label
-                      className="field-label"
-                      htmlFor="scenario-seed"
-                    >
+                    <label className="field-label" htmlFor="scenario-seed">
                       Seed
                     </label>
                     <input
@@ -828,10 +1214,7 @@ function App() {
                   </div>
 
                   <div>
-                    <label
-                      className="field-label"
-                      htmlFor="scenario-amount"
-                    >
+                    <label className="field-label" htmlFor="scenario-amount">
                       Amount (minor units)
                     </label>
                     <input
@@ -841,7 +1224,9 @@ function App() {
                       type="number"
                       value={scenarioAmountMinor}
                       onChange={(event) =>
-                        setScenarioAmountMinor(Number(event.target.value))
+                        setScenarioAmountMinor(
+                          Number(event.target.value),
+                        )
                       }
                     />
                   </div>
@@ -903,32 +1288,15 @@ function App() {
                       <span>Simulation</span>
                       <code>{simulation.id}</code>
                     </div>
-
                     <div className="detail-row">
-                      <span>Seed</span>
-                      <strong>{simulation.seed}</strong>
-                    </div>
-
-                    <div className="detail-row">
-                      <span>Amount</span>
-                      <strong>
-                        {simulation.amount_minor}{' '}
-                        {simulation.currency}
-                      </strong>
-                    </div>
-
-                    <div className="detail-row">
-                      <span>Payment state</span>
+                      <span>Result</span>
                       <strong>
                         {simulation.result.final_payment_state}
                       </strong>
                     </div>
-
                     <div className="detail-row">
-                      <span>Order state</span>
-                      <strong>
-                        {simulation.result.final_order_state}
-                      </strong>
+                      <span>Events</span>
+                      <strong>{simulation.events.length}</strong>
                     </div>
                   </div>
                 )}
@@ -937,33 +1305,28 @@ function App() {
               <section className="panel">
                 <div className="panel-header">
                   <div>
-                    <span className="panel-kicker">
-                      STEP 03
-                    </span>
-                    <h3>Introduce an attack</h3>
+                    <span className="panel-kicker">STEP 03</span>
+                    <h3>Attack the payment system</h3>
                   </div>
-
-                  {adversarialSimulation && (
-                    <span className="panel-badge success">
-                      Executed
-                    </span>
-                  )}
+                  <span
+                    className={`panel-badge ${
+                      adversarialSimulation ? 'success' : ''
+                    }`}
+                  >
+                    {adversarialSimulation ? 'EXECUTED' : 'WAITING'}
+                  </span>
                 </div>
 
                 <p className="panel-description">
-                  Test how the payment flow behaves when an adversarial
-                  event is introduced.
+                  Every configured attack is sent to the real adversarial
+                  simulation API.
                 </p>
 
                 <div className="form-grid">
                   <div>
-                    <label
-                      className="field-label"
-                      htmlFor="attack-type"
-                    >
+                    <label className="field-label" htmlFor="attack-type">
                       Attack type
                     </label>
-
                     <select
                       id="attack-type"
                       className="select-input"
@@ -972,9 +1335,7 @@ function App() {
                         setAttackType(event.target.value)
                       }
                     >
-                      <option value="duplicate">
-                        Duplicate event
-                      </option>
+                      <option value="duplicate">Duplicate event</option>
                       <option value="out_of_order">
                         Out-of-order event
                       </option>
@@ -987,12 +1348,8 @@ function App() {
                       <option value="worker_crash">
                         Worker crash
                       </option>
-                      <option value="delayed">
-                        Delayed event
-                      </option>
-                      <option value="retry">
-                        Retry
-                      </option>
+                      <option value="delayed">Delayed event</option>
+                      <option value="retry">Retry</option>
                       <option value="stale_worker">
                         Stale worker
                       </option>
@@ -1006,13 +1363,13 @@ function App() {
                     >
                       Target sequence
                     </label>
-
                     <input
                       id="target-sequence"
                       className="text-input"
                       min={0}
                       type="number"
                       value={targetSequence}
+                      onFocus={(event) => event.currentTarget.select()}
                       onChange={(event) =>
                         setTargetSequence(
                           Number(event.target.value),
@@ -1020,15 +1377,131 @@ function App() {
                       }
                     />
                   </div>
+
+                  {attackType === 'out_of_order' && (
+                    <div>
+                      <label
+                        className="field-label"
+                        htmlFor="source-sequence"
+                      >
+                        Source sequence
+                      </label>
+                      <input
+                        id="source-sequence"
+                        className="text-input"
+                        min={0}
+                        type="number"
+                        value={sourceSequence}
+                        onFocus={(event) => event.currentTarget.select()}
+                        onChange={(event) =>
+                          setSourceSequence(
+                            Number(event.target.value),
+                          )
+                        }
+                      />
+                    </div>
+                  )}
+
+                  {attackType === 'retry' && (
+                    <div>
+                      <label
+                        className="field-label"
+                        htmlFor="retry-count"
+                      >
+                        Retry count
+                      </label>
+                      <input
+                        id="retry-count"
+                        className="text-input"
+                        min={1}
+                        type="number"
+                        value={retryCount}
+                        onFocus={(event) => event.currentTarget.select()}
+                        onChange={(event) =>
+                          setRetryCount(Number(event.target.value))
+                        }
+                      />
+                    </div>
+                  )}
+
+                  {attackType === 'delayed' && (
+                    <div>
+                      <label
+                        className="field-label"
+                        htmlFor="delay-seconds"
+                      >
+                        Delay seconds
+                      </label>
+                      <input
+                        id="delay-seconds"
+                        className="text-input"
+                        min={0}
+                        step="0.1"
+                        type="number"
+                        value={delaySeconds}
+                        onFocus={(event) => event.currentTarget.select()}
+                        onChange={(event) =>
+                          setDelaySeconds(
+                            Number(event.target.value),
+                          )
+                        }
+                      />
+                    </div>
+                  )}
+
+                  {(attackType === 'worker_crash' ||
+                    attackType === 'stale_worker') && (
+                    <div>
+                      <label
+                        className="field-label"
+                        htmlFor="worker-sequence"
+                      >
+                        Worker sequence
+                      </label>
+                      <input
+                        id="worker-sequence"
+                        className="text-input"
+                        min={0}
+                        type="number"
+                        value={workerSequence}
+                        onFocus={(event) => event.currentTarget.select()}
+                        onChange={(event) =>
+                          setWorkerSequence(
+                            Number(event.target.value),
+                          )
+                        }
+                      />
+                    </div>
+                  )}
+
+                  {attackType === 'stale_worker' && (
+                    <div>
+                      <label
+                        className="field-label"
+                        htmlFor="incoming-sequence"
+                      >
+                        Incoming sequence
+                      </label>
+                      <input
+                        id="incoming-sequence"
+                        className="text-input"
+                        min={0}
+                        type="number"
+                        value={incomingSequence}
+                        onFocus={(event) => event.currentTarget.select()}
+                        onChange={(event) =>
+                          setIncomingSequence(
+                            Number(event.target.value),
+                          )
+                        }
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <button
                   className="primary-button"
-                  disabled={
-                    attackRunning ||
-                    !simulation ||
-                    attackType !== 'duplicate'
-                  }
+                  disabled={attackRunning || !simulation}
                   onClick={() => void handleAttack()}
                 >
                   {attackRunning
@@ -1036,11 +1509,9 @@ function App() {
                     : 'Execute Attack'}
                 </button>
 
-                {attackType !== 'duplicate' && (
+                {!simulation && (
                   <p className="hint">
-                    Duplicate events are enabled in this first
-                    workbench path. Other attacks require additional
-                    parameters.
+                    Run the baseline simulation before executing an attack.
                   </p>
                 )}
 
@@ -1054,32 +1525,34 @@ function App() {
                     </div>
 
                     <div className="detail-row">
-                      <span>Applied component</span>
+                      <span>Status</span>
                       <strong>
-                        {adversarialSimulation.applied_components.join(
-                          ', ',
-                        )}
+                        {adversarialSimulation.adversarial_status}
                       </strong>
                     </div>
 
-                    <div className="outcome-list">
-                      {adversarialSimulation.outcomes.map(
-                        (outcome, index) => (
-                          <div
-                            className="outcome-row"
-                            key={`${outcome.component_type}-${index}`}
-                          >
-                            <span>
-                              {outcome.component_type}
-                            </span>
-                            <span>
-                              sequence {outcome.target_sequence}
-                            </span>
-                            <strong>{outcome.status}</strong>
-                          </div>
-                        ),
-                      )}
-                    </div>
+                    {adversarialSimulation.failure && (
+                      <div className="error-banner">
+                        <strong>
+                          {adversarialSimulation.failure.failure_type}
+                        </strong>
+                        <span>
+                          {adversarialSimulation.failure.message}
+                        </span>
+                      </div>
+                    )}
+
+                    {adversarialSimulation.outcomes.map(
+                      (outcome, index) => (
+                        <div
+                          className="outcome-row"
+                          key={`${outcome.component_type}-${index}`}
+                        >
+                          <span>{outcome.component_type}</span>
+                          <strong>{outcome.status}</strong>
+                        </div>
+                      ),
+                    )}
                   </div>
                 )}
               </section>
@@ -1087,260 +1560,171 @@ function App() {
               <section className="panel">
                 <div className="panel-header">
                   <div>
-                    <span className="panel-kicker">
-                      STEP 04
-                    </span>
-                    <h3>Compare before and after</h3>
+                    <span className="panel-kicker">STEP 04</span>
+                    <h3>Verify real evidence</h3>
                   </div>
-
-                  {verification && (
-                    <span
-                      className={`panel-badge ${
-                        verification.result
-                          .regression_detected
-                          ? 'error'
-                          : 'success'
-                      }`}
-                    >
-                      {verification.result.regression_detected
-                        ? 'Regression'
-                        : 'Passed'}
-                    </span>
-                  )}
+                  <span
+                    className={`panel-badge ${
+                      verification
+                        ? verification.result.passed
+                          ? 'success'
+                          : 'error'
+                        : ''
+                    }`}
+                  >
+                    {verification
+                      ? verification.result.passed
+                        ? 'PASS'
+                        : 'REGRESSION'
+                      : 'WAITING'}
+                  </span>
                 </div>
 
                 <p className="panel-description">
-                  Compare immutable snapshots to determine whether a
-                  regression was introduced.
+                  Before/after evidence is generated directly from the
+                  executed simulation and attack. No manual JSON or IDs.
                 </p>
 
                 <div className="verification-grid">
                   <div className="snapshot-card">
                     <div className="snapshot-heading">
-                      <span className="panel-kicker">
-                        BEFORE
-                      </span>
-                      <strong>Known-good state</strong>
+                      <span className="panel-kicker">BEFORE</span>
+                      <strong>Baseline evidence</strong>
                     </div>
 
-                    <label
-                      className="field-label"
-                      htmlFor="before-contract-version"
-                    >
-                      Contract version
-                    </label>
-                    <input
-                      id="before-contract-version"
-                      className="text-input"
-                      value={beforeContractVersion}
-                      onChange={(event) =>
-                        setBeforeContractVersion(
-                          event.target.value,
-                        )
-                      }
-                    />
-
-                    <label
-                      className="field-label"
-                      htmlFor="before-system-version"
-                    >
-                      System version
-                    </label>
-                    <input
-                      id="before-system-version"
-                      className="text-input"
-                      value={beforeSystemVersion}
-                      onChange={(event) =>
-                        setBeforeSystemVersion(
-                          event.target.value,
-                        )
-                      }
-                    />
-
-                    <label
-                      className="field-label"
-                      htmlFor="before-baseline"
-                    >
-                      Baseline JSON
-                    </label>
-                    <textarea
-                      id="before-baseline"
-                      className="json-input"
-                      value={beforeBaseline}
-                      onChange={(event) =>
-                        setBeforeBaseline(event.target.value)
-                      }
-                    />
-
-                    <label
-                      className="field-label"
-                      htmlFor="before-violations"
-                    >
-                      Violations
-                    </label>
-                    <input
-                      id="before-violations"
-                      className="text-input"
-                      value={beforeViolations}
-                      onChange={(event) =>
-                        setBeforeViolations(event.target.value)
-                      }
-                      placeholder="code_a, code_b"
-                    />
-
-                    <label
-                      className="field-label"
-                      htmlFor="before-counterexamples"
-                    >
-                      Counterexample IDs
-                    </label>
-                    <input
-                      id="before-counterexamples"
-                      className="text-input"
-                      value={beforeCounterexamples}
-                      onChange={(event) =>
-                        setBeforeCounterexamples(
-                          event.target.value,
-                        )
-                      }
-                      placeholder="UUID, UUID"
-                    />
+                    {!simulation ? (
+                      <p className="muted">
+                        Run a baseline simulation first.
+                      </p>
+                    ) : (
+                      <div className="outcome-list">
+                        <div className="outcome-row">
+                          <span>Simulation ID</span>
+                          <code>{simulation.id}</code>
+                        </div>
+                        <div className="outcome-row">
+                          <span>Seed</span>
+                          <strong>{simulation.seed}</strong>
+                        </div>
+                        <div className="outcome-row">
+                          <span>Payment</span>
+                          <strong>
+                            {simulation.result.final_payment_state}
+                          </strong>
+                        </div>
+                        <div className="outcome-row">
+                          <span>Order</span>
+                          <strong>
+                            {simulation.result.final_order_state}
+                          </strong>
+                        </div>
+                        <div className="outcome-row">
+                          <span>Trace entries</span>
+                          <strong>
+                            {simulation.result.trace.length}
+                          </strong>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="snapshot-card">
                     <div className="snapshot-heading">
-                      <span className="panel-kicker">
-                        AFTER
-                      </span>
-                      <strong>Candidate state</strong>
+                      <span className="panel-kicker">AFTER</span>
+                      <strong>Adversarial evidence</strong>
                     </div>
 
-                    <label
-                      className="field-label"
-                      htmlFor="after-contract-version"
-                    >
-                      Contract version
-                    </label>
-                    <input
-                      id="after-contract-version"
-                      className="text-input"
-                      value={afterContractVersion}
-                      onChange={(event) =>
-                        setAfterContractVersion(
-                          event.target.value,
-                        )
-                      }
-                    />
-
-                    <label
-                      className="field-label"
-                      htmlFor="after-system-version"
-                    >
-                      System version
-                    </label>
-                    <input
-                      id="after-system-version"
-                      className="text-input"
-                      value={afterSystemVersion}
-                      onChange={(event) =>
-                        setAfterSystemVersion(
-                          event.target.value,
-                        )
-                      }
-                    />
-
-                    <label
-                      className="field-label"
-                      htmlFor="after-baseline"
-                    >
-                      Baseline JSON
-                    </label>
-                    <textarea
-                      id="after-baseline"
-                      className="json-input"
-                      value={afterBaseline}
-                      onChange={(event) =>
-                        setAfterBaseline(event.target.value)
-                      }
-                    />
-
-                    <label
-                      className="field-label"
-                      htmlFor="after-violations"
-                    >
-                      Violations
-                    </label>
-                    <input
-                      id="after-violations"
-                      className="text-input"
-                      value={afterViolations}
-                      onChange={(event) =>
-                        setAfterViolations(event.target.value)
-                      }
-                      placeholder="code_a, code_b"
-                    />
-
-                    <label
-                      className="field-label"
-                      htmlFor="after-counterexamples"
-                    >
-                      Counterexample IDs
-                    </label>
-                    <input
-                      id="after-counterexamples"
-                      className="text-input"
-                      value={afterCounterexamples}
-                      onChange={(event) =>
-                        setAfterCounterexamples(
-                          event.target.value,
-                        )
-                      }
-                      placeholder="UUID, UUID"
-                    />
+                    {!adversarialSimulation ? (
+                      <p className="muted">
+                        Execute an attack first.
+                      </p>
+                    ) : adversarialSimulation.adversarial_status ===
+                      'failed' ? (
+                      <div className="error-banner">
+                        <strong>Replay failed</strong>
+                        <span>
+                          {adversarialSimulation.failure?.message ??
+                            'Adversarial result unavailable.'}
+                        </span>
+                      </div>
+                    ) : adversarialSimulation.adversarial ? (
+                      <div className="outcome-list">
+                        <div className="outcome-row">
+                          <span>Simulation ID</span>
+                          <code>
+                            {adversarialSimulation.simulation_id}
+                          </code>
+                        </div>
+                        <div className="outcome-row">
+                          <span>Payment</span>
+                          <strong>
+                            {
+                              adversarialSimulation.adversarial
+                                .final_payment_state
+                            }
+                          </strong>
+                        </div>
+                        <div className="outcome-row">
+                          <span>Order</span>
+                          <strong>
+                            {
+                              adversarialSimulation.adversarial
+                                .final_order_state
+                            }
+                          </strong>
+                        </div>
+                        <div className="outcome-row">
+                          <span>Trace entries</span>
+                          <strong>
+                            {
+                              adversarialSimulation.adversarial
+                                .trace.length
+                            }
+                          </strong>
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
 
                 <button
                   className="primary-button"
-                  disabled={verificationRunning}
+                  disabled={
+                    verificationRunning || proofRunning ||
+                    !simulation ||
+                    !adversarialSimulation ||
+                    (adversarialSimulation.adversarial_status ===
+                      'failed' &&
+                      !counterexample)
+                  }
                   onClick={() => void handleVerification()}
                 >
                   {verificationRunning
-                    ? 'Comparing snapshots…'
+                    ? 'Comparing evidence?'
                     : 'Run Verification'}
                 </button>
-              </section>
 
-              {verification && (
-                <section
-                  className={`verification-result ${
-                    verification.result.regression_detected
-                      ? 'regression'
-                      : 'passed'
-                  }`}
-                >
-                  <div className="result-header">
-                    <div>
-                      <span className="panel-kicker">
-                        VERIFICATION RESULT
-                      </span>
-                      <h3>
-                        {verification.result
-                          .regression_detected
-                          ? 'Regression detected'
-                          : 'No regression detected'}
-                      </h3>
+                {verification && (
+                  <div className="verification-result">
+                    <div className="detail-row">
+                      <span>Verification</span>
+                      <strong>
+                        {verification.result.passed
+                          ? 'PASSED'
+                          : 'FAILED'}
+                      </strong>
                     </div>
 
-                    <span className="result-status">
-                      {verification.result.passed
-                        ? 'PASS'
-                        : 'FAIL'}
-                    </span>
-                  </div>
+                    <div className="detail-row">
+                      <span>Regression</span>
+                      <strong>
+                        {verification.result.regression_detected
+                          ? 'Detected'
+                          : 'None'}
+                      </strong>
+                    </div>
 
-                  <div className="result-summary">
-                    <div>
+                    <div className="detail-row">
                       <span>Reproducible</span>
                       <strong>
                         {verification.result.reproducible
@@ -1349,168 +1733,24 @@ function App() {
                       </strong>
                     </div>
 
-                    <div>
-                      <span>Contract changed</span>
-                      <strong>
-                        {verification.comparison
-                          .contract_version_changed
-                          ? 'Yes'
-                          : 'No'}
-                      </strong>
-                    </div>
-
-                    <div>
-                      <span>System changed</span>
-                      <strong>
-                        {verification.comparison
-                          .system_version_changed
-                          ? 'Yes'
-                          : 'No'}
-                      </strong>
-                    </div>
-
-                    <div>
-                      <span>Changes</span>
-                      <strong>
-                        {verification.comparison.changes.length}
-                      </strong>
-                    </div>
-                  </div>
-
-                  <div className="verification-results-grid">
-                    <div className="evidence-card">
-                      <span className="panel-kicker">
-                        VIOLATIONS
-                      </span>
-
-                      <h4>Introduced</h4>
-
-                      {verification.comparison
-                        .introduced_violations.length === 0 ? (
-                        <p className="muted">
-                          None introduced.
-                        </p>
-                      ) : (
-                        <ul className="evidence-list">
-                          {verification.comparison.introduced_violations.map(
-                            (item) => (
-                              <li key={`introduced-${item}`}>
-                                <code>{item}</code>
-                              </li>
-                            ),
-                          )}
-                        </ul>
-                      )}
-
-                      <h4>Resolved</h4>
-
-                      {verification.comparison
-                        .resolved_violations.length === 0 ? (
-                        <p className="muted">
-                          None resolved.
-                        </p>
-                      ) : (
-                        <ul className="evidence-list">
-                          {verification.comparison.resolved_violations.map(
-                            (item) => (
-                              <li key={`resolved-${item}`}>
-                                <code>{item}</code>
-                              </li>
-                            ),
-                          )}
-                        </ul>
-                      )}
-                    </div>
-
-                    <div className="evidence-card">
-                      <span className="panel-kicker">
-                        BASELINE CHANGES
-                      </span>
-
-                      {verification.comparison.changes.length ===
-                      0 ? (
-                        <p className="muted">
-                          No baseline changes.
-                        </p>
-                      ) : (
-                        <div className="outcome-list">
-                          {verification.comparison.changes.map(
-                            (change, index) => (
-                              <div
-                                className="outcome-row"
-                                key={`${change.field}-${index}`}
-                              >
-                                <span>{change.field}</span>
-                                <code>
-                                  {JSON.stringify(change.before)}
-                                  {' ? '}
-                                  {JSON.stringify(change.after)}
-                                </code>
-                              </div>
-                            ),
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="evidence-card">
-                      <span className="panel-kicker">
-                        COUNTEREXAMPLES
-                      </span>
-
-                      <div className="detail-row">
-                        <span>Added</span>
-                        <strong>
-                          {
-                            verification.comparison
-                              .added_counterexample_ids.length
-                          }
-                        </strong>
+                    {verification.result.violations.length > 0 && (
+                      <div className="outcome-list">
+                        {verification.result.violations.map(
+                          (violation) => (
+                            <div
+                              className="outcome-row"
+                              key={violation}
+                            >
+                              <span>Introduced violation</span>
+                              <code>{violation}</code>
+                            </div>
+                          ),
+                        )}
                       </div>
-
-                      <div className="detail-row">
-                        <span>Removed</span>
-                        <strong>
-                          {
-                            verification.comparison
-                              .removed_counterexample_ids.length
-                          }
-                        </strong>
-                      </div>
-                    </div>
+                    )}
                   </div>
-
-                  <div className="contract-preview compact">
-                    <div className="detail-row">
-                      <span>Verification ID</span>
-                      <code>
-                        {verification.result.verification_id}
-                      </code>
-                    </div>
-
-                    <div className="detail-row">
-                      <span>Comparison ID</span>
-                      <code>
-                        {verification.result.comparison_id}
-                      </code>
-                    </div>
-
-                    <div className="detail-row">
-                      <span>Before snapshot</span>
-                      <code>
-                        {verification.before.snapshot_id}
-                      </code>
-                    </div>
-
-                    <div className="detail-row">
-                      <span>After snapshot</span>
-                      <code>
-                        {verification.after.snapshot_id}
-                      </code>
-                    </div>
-                  </div>
-                </section>
-              )}
+                )}
+              </section>
             </div>
           )}
 
@@ -1584,67 +1824,97 @@ function App() {
               <section className="panel">
                 <div className="panel-header">
                   <div>
-                    <span className="panel-kicker">MINIMAL FAILING EVIDENCE</span>
-                    <h3>Counterexamples</h3>
+                    <span className="panel-kicker">
+                      MINIMAL FAILING EVIDENCE
+                    </span>
+                    <h3>Counterexample Shrinker</h3>
                   </div>
-                  <span className="panel-badge">
-                    {verification
-                      ? verification.comparison.added_counterexample_ids.length
-                      : 0}
+                  <span
+                    className={`panel-badge ${
+                      counterexample ? 'success' : ''
+                    }`}
+                  >
+                    {counterexample ? 'MINIMIZED' : 'READY'}
                   </span>
                 </div>
 
                 <p className="panel-description">
-                  Counterexample identities are preserved by verification.
-                  Detailed shrinking artifacts will appear here when exposed
-                  by the backend API.
+                  The backend removes the largest possible suffix while
+                  deterministically preserving the replay failure.
                 </p>
 
-                {!verification ||
-                verification.comparison.added_counterexample_ids.length ===
-                  0 ? (
+                {!simulation ? (
                   <div className="empty-state">
                     <span className="empty-icon">CE</span>
-                    <strong>No new counterexamples</strong>
+                    <strong>No simulation yet</strong>
                     <p>
-                      The current verification result contains no newly added
-                      counterexample IDs.
+                      Run a baseline simulation and configure an attack
+                      first.
                     </p>
+                    <button
+                      className="secondary-button"
+                      onClick={() => goTo('verification')}
+                    >
+                      Open Workbench
+                    </button>
                   </div>
                 ) : (
-                  <div className="outcome-list">
-                    {verification.comparison.added_counterexample_ids.map(
-                      (id) => (
-                        <div className="outcome-row" key={id}>
-                          <span>Added counterexample</span>
-                          <code>{id}</code>
-                          <strong>NEW</strong>
-                        </div>
-                      ),
-                    )}
-                  </div>
-                )}
-              </section>
+                  <>
+                    <button
+                      className="primary-button"
+                      disabled={
+                        counterexampleRunning ||
+                        !simulation
+                      }
+                      onClick={() =>
+                        void handleShrinkCounterexample()
+                      }
+                    >
+                      {counterexampleRunning
+                        ? 'Shrinking?'
+                        : 'Shrink Counterexample'}
+                    </button>
 
-              <section className="panel">
-                <div className="panel-header">
-                  <div>
-                    <span className="panel-kicker">SHRINKING</span>
-                    <h3>Minimal failing sequence</h3>
-                  </div>
-                </div>
-                <div className="capability-card">
-                  <span className="capability-icon">?</span>
-                  <div>
-                    <strong>Backend capability exists</strong>
-                    <p>
-                      Counterexample shrinking is part of the verification
-                      engine, but no dedicated HTTP endpoint is currently
-                      exposed to this workbench.
-                    </p>
-                  </div>
-                  <span className="panel-badge">API pending</span>
-                </div>
+                    {counterexample && (
+                      <div className="counterexample-timeline">
+                        <div className="metric-grid">
+                          <div className="metric-card">
+                            <span>Violation</span>
+                            <strong>
+                              {counterexample.violation_code}
+                            </strong>
+                          </div>
+                          <div className="metric-card">
+                            <span>Original</span>
+                            <strong>
+                              {counterexample.original_event_count}
+                            </strong>
+                          </div>
+                          <div className="metric-card">
+                            <span>Minimal</span>
+                            <strong>
+                              {counterexample.minimized_event_count}
+                            </strong>
+                          </div>
+                        </div>
+
+                        <div className="outcome-list">
+                          {counterexample.events.map((event) => (
+                            <div
+                              className="outcome-row"
+                              key={event.id}
+                            >
+                              <span>
+                                {event.sequence}: {event.event}
+                              </span>
+                              <code>{event.id}</code>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
               </section>
             </div>
           )}
@@ -1972,6 +2242,28 @@ function App() {
                   </div>
                 ) : (
                   <>
+                    {financialProof && (
+                      <div className="contract-preview compact">
+                        <div className="detail-row">
+                          <span>Financial Proof</span>
+                          <strong>{financialProof.proof.status}</strong>
+                        </div>
+                        <div className="detail-row">
+                          <span>Proof ID</span>
+                          <code>{financialProof.proof.id}</code>
+                        </div>
+                        <div className="detail-row">
+                          <span>Subject</span>
+                          <code>{financialProof.proof.subject}</code>
+                        </div>
+                        <div className="detail-row">
+                          <span>Overall confidence</span>
+                          <strong>
+                            {financialProof.proof.overall_confidence}
+                          </strong>
+                        </div>
+                      </div>
+                    )}
                     <div className="certificate-seal">
                       <span>{verification.result.passed ? '?' : '!'}</span>
                       <strong>
@@ -2082,6 +2374,3 @@ function App() {
 }
 
 export default App
-
-
-

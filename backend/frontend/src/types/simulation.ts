@@ -1,4 +1,4 @@
-﻿export interface SimulationEventRequest {
+export interface SimulationEventRequest {
   event: string
   occurred_at: string
 }
@@ -49,6 +49,7 @@ export interface Simulation {
 export interface AttackRequest {
   attack_type: string
   target_sequence: number
+  source_sequence?: number
   retry_count?: number
   delay_seconds?: number
   worker_sequence?: number
@@ -57,8 +58,18 @@ export interface AttackRequest {
 
 export interface AttackOutcome {
   component_type: string
-  target_sequence: number
+  target_sequence: number | null
   status: string
+}
+
+export interface AdversarialFailure {
+  failure_type: string
+  message: string
+}
+
+export interface AdversarialFailure {
+  failure_type: string
+  message: string
 }
 
 export interface AdversarialSimulation {
@@ -67,5 +78,7 @@ export interface AdversarialSimulation {
   applied_components: string[]
   outcomes: AttackOutcome[]
   baseline: SimulationResult
-  adversarial: SimulationResult
+  adversarial: SimulationResult | null
+  adversarial_status: string
+  failure: AdversarialFailure | null
 }

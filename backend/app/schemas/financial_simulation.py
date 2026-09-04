@@ -89,6 +89,7 @@ class AttackRequest(BaseModel):
 
     attack_type: str
     target_sequence: int = Field(ge=0)
+    source_sequence: int | None = Field(default=None, ge=0)
     retry_count: int | None = Field(default=None, ge=1)
     delay_seconds: int | None = Field(default=None, gt=0)
     worker_sequence: int | None = Field(default=None, ge=0)
@@ -101,8 +102,17 @@ class AttackOutcomeResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     component_type: str
-    target_sequence: int
+    target_sequence: int | None
     status: str
+
+
+class AdversarialFailureResponse(BaseModel):
+    """Expected failure produced while replaying an adversarial simulation."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    failure_type: str
+    message: str
 
 
 class AdversarialSimulationResponse(BaseModel):
@@ -115,4 +125,6 @@ class AdversarialSimulationResponse(BaseModel):
     applied_components: list[str]
     outcomes: list[AttackOutcomeResponse]
     baseline: SimulationResultResponse
-    adversarial: SimulationResultResponse
+    adversarial: SimulationResultResponse | None = None
+    adversarial_status: str
+    failure: AdversarialFailureResponse | None = None

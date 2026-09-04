@@ -1,4 +1,4 @@
-﻿"""Financial simulation API routes."""
+"""Financial simulation API routes."""
 
 from uuid import UUID
 
@@ -27,9 +27,12 @@ from app.domain.services.adversarial_scenario_composer import (
 from app.domain.services.adversarial_scenario_executor import (
     AdversarialScenarioExecutor,
 )
+from app.domain.services.counterexample_shrinker import CounterexampleShrinker
 from app.domain.services.payment_simulation_runner import PaymentSimulationRunner
 from app.domain.services.payment_state_machine import InvalidPaymentTransition
+from app.schemas.counterexample import CounterexampleEventResponse, CounterexampleResponse
 from app.schemas.financial_simulation import (
+    AdversarialFailureResponse,
     AdversarialSimulationResponse,
     AttackOutcomeResponse,
     AttackRequest,
@@ -124,8 +127,13 @@ def _build_attack(simulation: PaymentSimulation, request: AttackRequest):
         )
 
     if attack_type == "out_of_order":
+        if request.source_sequence is None:
+            raise ValueError(
+                "source_sequence is required for out_of_order attacks"
+            )
         return OutOfOrderEventAttack(
             simulation_id=simulation.id,
+            source_sequence=request.source_sequence,
             target_sequence=request.target_sequence,
         )
 
@@ -246,6 +254,83 @@ async def get_simulation(simulation_id: UUID) -> SimulationResponse:
 
 
 @router.post(
+    "/{simulation_id}/counterexample",
+    response_model=CounterexampleResponse,
+)
+async def create_counterexample(
+    simulation_id: UUID,
+    request: AttackRequest,
+) -> CounterexampleResponse:
+    """Create and deterministically shrink a failing adversarial simulation."""
+    simulation = _simulations.get(simulation_id)
+
+    if simulation is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Simulation not found",
+        )
+
+    try:
+        component = _build_attack(simulation, request)
+        scenario = AdversarialScenarioComposer.compose(
+            simulation,
+            component,
+        )
+        execution = AdversarialScenarioExecutor.execute(
+            simulation,
+            scenario,
+        )
+    except (
+        IndexError,
+        ValueError,
+        KeyError,
+        TypeError,
+    ) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=str(exc),
+        ) from exc
+
+    adversarial_simulation = execution.adversarial_simulation
+
+    def reproduces_failure(candidate: PaymentSimulation) -> bool:
+        try:
+            PaymentSimulationRunner.run(candidate)
+        except InvalidPaymentTransition:
+            return True
+        return False
+
+    try:
+        minimized = CounterexampleShrinker.shrink(
+            adversarial_simulation,
+            reproduces_failure,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=(
+                "Counterexample requires an adversarial simulation that "
+                "reproduces a payment transition failure."
+            ),
+        ) from exc
+
+    return CounterexampleResponse(
+        simulation_id=minimized.id,
+        violation_code="INVALID_PAYMENT_TRANSITION",
+        original_event_count=len(adversarial_simulation.events),
+        minimized_event_count=len(minimized.events),
+        events=[
+            CounterexampleEventResponse(
+                id=event.id,
+                sequence=event.sequence,
+                event=event.event.value,
+                occurred_at=event.occurred_at,
+            )
+            for event in minimized.events
+        ],
+    )
+
+@router.post(
     "/{simulation_id}/attacks",
     response_model=AdversarialSimulationResponse,
 )
@@ -272,18 +357,48 @@ async def execute_attack(
             simulation,
             scenario,
         )
-        adversarial_result = result.adversarial_result
     except (
         IndexError,
         ValueError,
         KeyError,
         TypeError,
-        InvalidPaymentTransition,
     ) as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=str(exc),
         ) from exc
+
+    try:
+        adversarial_result = result.adversarial_result
+    except InvalidPaymentTransition as exc:
+        attack_type = request.attack_type.strip().lower()
+
+        if attack_type == "duplicate":
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=str(exc),
+            ) from exc
+
+        return AdversarialSimulationResponse(
+            simulation_id=result.simulation_id,
+            attack_count=result.attack_count,
+            applied_components=list(result.applied_components),
+            outcomes=[
+                AttackOutcomeResponse(
+                    component_type=outcome.component_type,
+                    target_sequence=outcome.target_sequence,
+                    status=outcome.status,
+                )
+                for outcome in result.outcomes
+            ],
+            baseline=_result_response(result.baseline),
+            adversarial=None,
+            adversarial_status="failed",
+            failure=AdversarialFailureResponse(
+                failure_type=type(exc).__name__,
+                message=str(exc),
+            ),
+        )
 
     return AdversarialSimulationResponse(
         simulation_id=result.simulation_id,
@@ -299,11 +414,8 @@ async def execute_attack(
         ],
         baseline=_result_response(result.baseline),
         adversarial=_result_response(adversarial_result),
+        adversarial_status="completed",
+        failure=None,
     )
-
-
-
-
-
 
 
