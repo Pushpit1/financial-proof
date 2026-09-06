@@ -40,7 +40,7 @@ The platform therefore combines deterministic verification with adversarial exec
 
 Financial Proof provides an end-to-end financial verification lifecycle:
 
-text
+
 Business Rule
      |
      v
@@ -95,7 +95,7 @@ Baseline Simulation    Adversarial Simulation
 
 The important property is that the same financial behavior can move through the entire lifecycle:
 
-text
+
 rule
  -> contract
  -> simulation
