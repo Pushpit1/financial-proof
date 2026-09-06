@@ -41,75 +41,70 @@ The platform therefore combines deterministic verification with adversarial exec
 Financial Proof provides an end-to-end financial verification lifecycle:
 
 
-Business Rule
-     |
-     v
-Contract Compilation
-     |
-     v
-Financial Contract
-     |
-     +--------------------+
-     |                    |
-     v                    v
-Baseline Simulation    Adversarial Simulation
-     |                    |
-     +----------+---------+
-                |
-                v
-        Contract Evaluation
-                |
-                v
-        Violation Detection
-                |
-                v
-         Counterexample
-                |
-                v
-       Counterexample Shrinking
-                |
-                v
-     Financial Blast-Radius Analysis
-                |
-                v
-        AI Investigation
-                |
-                v
-           Root Cause
-                |
-                v
-             Repair
-                |
-                v
-        Re-run Verification
-                |
-                v
-          Zero Violations
-                |
-                v
-       Runtime Guardian
-                |
-                v
-      Financial Proof
+## Financial Proof Lifecycle
+
+```mermaid
+flowchart TD
+
+    A[Business Rule]
+    B[Contract Compilation]
+    C[Financial Contract]
+
+    A --> B
+    B --> C
+
+    C --> D[Baseline Simulation]
+    C --> E[Adversarial Simulation]
+
+    D --> F[Contract Evaluation]
+    E --> F
+
+    F --> G[Violation Detection]
+    G --> H[Counterexample]
+    H --> I[Counterexample Shrinking]
+    I --> J[Financial Blast-Radius Analysis]
+    J --> K[AI Investigation]
+    K --> L[Root Cause]
+    L --> M[Repair]
+    M --> N[Re-run Verification]
+    N --> O[Zero Violations]
+    O --> P[Runtime Guardian]
+    P --> Q[Financial Proof]
+```
+
+### The Core Property
+
+The same financial behavior can move through the **entire verification lifecycle**:
 
 
-The important property is that the same financial behavior can move through the entire lifecycle:
+Rule
+  ↓
+Contract
+  ↓
+Simulation
+  ↓
+Attack
+  ↓
+Violation
+  ↓
+Counterexample
+  ↓
+Financial Impact
+  ↓
+Investigation
+  ↓
+Repair
+  ↓
+Verification
+  ↓
+Enforcement
+  ↓
+Proof
+```
 
+This creates a continuous chain:
 
-rule
- -> contract
- -> simulation
- -> attack
- -> violation
- -> counterexample
- -> financial impact
- -> investigation
- -> repair
- -> verification
- -> enforcement
- -> proof
-
-
+business rule → executable contract → simulated behavior → adversarial attack → detected violation → minimized counterexample → quantified financial impact → AI investigation → root cause → repair → re-verification → runtime enforcement → financial proof
 ---
 
 # 3. Core Capabilities
