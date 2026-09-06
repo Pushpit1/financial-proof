@@ -76,7 +76,7 @@ flowchart TD
 
 The same financial behavior can move through the **entire verification lifecycle**:
 
-
+```text
 Rule
   ↓
 Contract
@@ -104,7 +104,8 @@ Proof
 
 This creates a continuous chain:
 
-business rule → executable contract → simulated behavior → adversarial attack → detected violation → minimized counterexample → quantified financial impact → AI investigation → root cause → repair → re-verification → runtime enforcement → financial proof
+**business rule → executable contract → simulated behavior → adversarial attack → detected violation → minimized counterexample → quantified financial impact → AI investigation → root cause → repair → re-verification → runtime enforcement → financial proof**
+
 ---
 
 # 3. Core Capabilities
