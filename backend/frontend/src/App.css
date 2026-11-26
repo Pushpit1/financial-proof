@@ -177,6 +177,16 @@ select:focus-visible {
   box-shadow: 0 0 0 3px rgba(39, 165, 109, 0.12);
 }
 
+.status-dot.checking {
+  background: #c28a24;
+  box-shadow: 0 0 0 3px rgba(194, 138, 36, 0.12);
+}
+
+.status-dot.unavailable {
+  background: #c44747;
+  box-shadow: 0 0 0 3px rgba(196, 71, 71, 0.12);
+}
+
 /* ─────────────────────────────────────────────
    SIDEBAR
    ───────────────────────────────────────────── */

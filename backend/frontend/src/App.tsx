@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   compileContract,
   createContract,
   getContractVersion,
 } from './api/contracts'
-import { ApiClientError } from './api/client'
+import { ApiClientError, apiClient } from './api/client'
 import { createSimulation, executeAttack } from './api/simulations'
 import { shrinkCounterexample } from './api/counterexamples'
 import { verifySnapshots } from './api/verification'
@@ -76,6 +76,29 @@ const navigation: Array<{
 function App() {
   const [activeSection, setActiveSection] =
     useState<Section>('overview')
+  const [systemStatus, setSystemStatus] =
+    useState<'checking' | 'ready' | 'unavailable'>('checking')
+
+  useEffect(() => {
+    let active = true
+
+    void apiClient
+      .get<{ status: string }>('/ready')
+      .then(({ status }) => {
+        if (active) {
+          setSystemStatus(status === 'ready' ? 'ready' : 'unavailable')
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setSystemStatus('unavailable')
+        }
+      })
+
+    return () => {
+      active = false
+    }
+  }, [])
 
   const [ruleText, setRuleText] = useState(
     'Customer refund must not exceed the original payment amount.',
@@ -836,9 +859,20 @@ function App() {
           <h1>Verification Workbench</h1>
         </button>
 
-        <div className="system-status">
-          <span className="status-dot" />
-          <span>Backend connected</span>
+        <div
+          className="system-status"
+          role="status"
+          aria-live="polite"
+          aria-label={`System ${systemStatus}`}
+        >
+          <span className={`status-dot ${systemStatus}`} />
+          <span>
+            {systemStatus === 'checking'
+              ? 'Checking system…'
+              : systemStatus === 'ready'
+                ? 'System ready'
+                : 'System unavailable'}
+          </span>
         </div>
       </header>
 

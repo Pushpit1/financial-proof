@@ -1,5 +1,7 @@
 ﻿from fastapi.testclient import TestClient
+from sqlalchemy.exc import OperationalError
 
+from app.db.session import get_db
 from app.main import app
 
 client = TestClient(app)
@@ -17,6 +19,28 @@ def test_readiness_reports_database_ready() -> None:
 
     assert response.status_code == 200
     assert response.json() == {"status": "ready"}
+
+
+def test_readiness_returns_service_unavailable_when_database_fails(
+    monkeypatch,
+) -> None:
+    class UnavailableSession:
+        def execute(self, statement) -> None:
+            raise OperationalError("SELECT 1", {}, OSError("database unavailable"))
+
+    def unavailable_database():
+        yield UnavailableSession()
+
+    monkeypatch.setitem(
+        app.dependency_overrides,
+        get_db,
+        unavailable_database,
+    )
+
+    response = client.get("/ready")
+
+    assert response.status_code == 503
+    assert response.json() == {"status": "unready"}
 
 
 def test_health_returns_generated_correlation_id() -> None:

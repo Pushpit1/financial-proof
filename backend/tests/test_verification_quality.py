@@ -1,11 +1,16 @@
-from benchmarks.verification_quality import (
-    run_benchmark,
-)
+import pytest
+
+import benchmarks.verification_quality as benchmark_module
+
+
+@pytest.fixture(autouse=True)
+def isolate_benchmark_output(monkeypatch, tmp_path) -> None:
+    monkeypatch.setattr(benchmark_module, "RESULTS_PATH", tmp_path)
 
 
 def test_quality_benchmark_rejects_invalid_case_repetitions() -> None:
     try:
-        run_benchmark(
+        benchmark_module.run_benchmark(
             case_repetitions=0,
             reproducibility_repetitions=1,
             warmups=0,
@@ -19,7 +24,7 @@ def test_quality_benchmark_rejects_invalid_case_repetitions() -> None:
 
 def test_quality_benchmark_rejects_invalid_reproducibility_repetitions() -> None:
     try:
-        run_benchmark(
+        benchmark_module.run_benchmark(
             case_repetitions=1,
             reproducibility_repetitions=0,
             warmups=0,
@@ -34,7 +39,7 @@ def test_quality_benchmark_rejects_invalid_reproducibility_repetitions() -> None
 
 
 def test_detection_rate_is_perfect_for_known_regressions() -> None:
-    payload = run_benchmark(
+    payload = benchmark_module.run_benchmark(
         case_repetitions=2,
         reproducibility_repetitions=2,
         warmups=0,
@@ -45,7 +50,7 @@ def test_detection_rate_is_perfect_for_known_regressions() -> None:
 
 
 def test_false_positive_rate_is_zero_for_known_clean_cases() -> None:
-    payload = run_benchmark(
+    payload = benchmark_module.run_benchmark(
         case_repetitions=2,
         reproducibility_repetitions=2,
         warmups=0,
@@ -55,8 +60,8 @@ def test_false_positive_rate_is_zero_for_known_clean_cases() -> None:
     assert payload["false_positives"]["maximum_false_positive_rate"] == 0.0
 
 
-def test_reproducibility_is_perfect() -> None:
-    payload = run_benchmark(
+def test_reproducibility_is_perfect(tmp_path) -> None:
+    payload = benchmark_module.run_benchmark(
         case_repetitions=2,
         reproducibility_repetitions=10,
         warmups=0,
@@ -64,3 +69,4 @@ def test_reproducibility_is_perfect() -> None:
     )
 
     assert payload["reproducibility"]["reproducibility_rate"] == 1.0
+    assert (tmp_path / "verification_quality.json").is_file()

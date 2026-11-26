@@ -612,7 +612,7 @@ Application
 Detailed threat analysis is available in:
 
 text
-docs/security/threat-model.md
+backend/docs/security/threat-model.md
 
 
 ---
@@ -1016,9 +1016,7 @@ This provides an independent liveness signal.
 
 # 19. CI
 
-The project includes CI validation for backend and frontend quality.
-
-Backend CI checks:
+The root GitHub Actions workflow (`.github/workflows/ci.yml`) runs backend checks with PostgreSQL:
 
 text
 Ruff
@@ -1027,16 +1025,9 @@ pytest
 coverage
 
 
-Frontend CI checks:
-
-text
-Oxlint
-production build
-
-
 Backend coverage is enforced with the configured project threshold.
 
-CI also runs against pull requests and pushes to the main branch.
+Frontend lint and production-build commands are `npm run lint` and `npm run build` in `backend/frontend`. The workflow under `backend/.github/workflows/` is not discovered by GitHub Actions; frontend checks are not currently part of the root CI workflow.
 
 ---
 
@@ -1115,7 +1106,7 @@ Benchmark results depend on hardware, operating system, Python version, workload
 Detailed results are available in:
 
 text
-docs/benchmarks.md
+backend/benchmarks/results/
 
 
 ---
@@ -1147,8 +1138,8 @@ End-to-End Demo Tests
 The final M24 API/deployment review and current project validation include:
 
 text
-1177 passed
-
+1188 passed
+90.72% coverage
 
 with the existing dependency/deprecation warnings described by the test runner.
 
@@ -1379,24 +1370,16 @@ within the modeled system boundary.
 
 # 26. Documentation Map
 
-Detailed technical documentation is organized as follows:
+Current engineering state and verified documentation:
 
-| Document                        | Purpose                       |
-| ------------------------------- | ----------------------------- |
-| `docs/architecture.md`          | System architecture           |
-| `docs/system-flow.md`           | End-to-end execution flow     |
-| `docs/contract-system.md`       | Financial contract system     |
-| `docs/simulator.md`             | Deterministic simulator       |
-| `docs/verification.md`          | Verification and snapshots    |
-| `docs/counterexamples.md`       | Counterexamples and shrinking |
-| `docs/ai-investigation.md`      | AI investigation engine       |
-| `docs/api.md`                   | API surface                   |
-| `docs/demo.md`                  | End-to-end demonstration      |
-| `docs/setup.md`                 | Setup and deployment          |
-| `docs/razorpay.md`              | Razorpay integration          |
-| `docs/benchmarks.md`            | Performance results           |
-| `docs/limitations.md`           | Limitations                   |
-| `docs/security/threat-model.md` | Security threat model         |
+- `docs/PROJECT_STATE.md` — current state, next task, and verification summary.
+- `docs/ROADMAP_STATUS.md` — M0–M25 evidence and unresolved acceptance criteria.
+- `docs/ARCHITECTURE.md` — runtime, boundaries, and verification flow.
+- `docs/DECISIONS.md` — product and architecture decisions.
+- `docs/DEPLOYMENT_STATUS.md` — existing Vercel project and release blockers.
+- `docs/KNOWN_ISSUES.md` — verified gaps and blockers.
+- `docs/QUALITY_GATES.md` — latest commands, results, and validation gaps.
+- `backend/docs/security/threat-model.md` — existing security threat model.
 
 ---
 
