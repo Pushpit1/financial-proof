@@ -7,7 +7,7 @@
 - Base commit: `80b77b8346e6b4266b46a500f907c08d9b7c7852`
 - Runtime: FastAPI/Python backend, React/Vite frontend, PostgreSQL persistence, Vercel deployment.
 - The M25 implementation and later deployment fixes are in the current Git history. Production readiness is currently blocked; see [deployment status](DEPLOYMENT_STATUS.md).
-- No application feature has been deployed from this worktree.
+- A Vercel preview was automatically created from the pushed branch. Production has not been changed.
 
 ## Milestones
 
@@ -40,7 +40,7 @@ Exact commands and limitations are in [quality gates](QUALITY_GATES.md).
 
 ## Blockers and next actions
 
-1. Investigate the production `psycopg.OperationalError`; the deployed `/api/ready` returned 500 at the last live check. The new source behavior returns 503 for SQLAlchemy readiness failures, but has not been deployed.
+1. Investigate the production `psycopg.OperationalError`; production `/api/ready` still returns 500. The latest branch preview also returns API 500 because `API_AUTH_TOKEN` is not configured in Vercel Preview.
 2. Select an approved identity provider before wiring production authentication. Business API routes currently do not depend on the existing authentication helper; do not expose the server bearer token to the browser.
 3. Recover the authoritative M0–M25 roadmap and M24 Task 10 definition if exact acceptance status or packaging work is required.
 4. Move or consolidate frontend CI under the root `.github/workflows/` directory, then add browser end-to-end coverage.
