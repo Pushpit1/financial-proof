@@ -1,23 +1,23 @@
 @import "tailwindcss";
 
 :root {
-  --fp-bg: #faf9f6;
+  --fp-bg: #f8f9fc;
   --fp-surface: #ffffff;
-  --fp-ink: #0b1f3a;
+  --fp-ink: #0a1429;
   --fp-muted: #475569;
-  --fp-border: #cbd5e1;
-  --fp-navy: #0b1f3a;
+  --fp-border: #e2e8f0;
+  --fp-navy: #0a1429;
+  --fp-coral: #ff6b57;
+  --fp-gold: #f5b74b;
+  --fp-plum: #8e2460;
+  --fp-cobalt: #1e40af;
   --fp-emerald: #047857;
 }
 
 body {
   background-color: var(--fp-bg);
-  background-image:
-    linear-gradient(to right, rgba(11, 31, 58, 0.04) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(11, 31, 58, 0.04) 1px, transparent 1px);
-  background-size: 28px 28px;
   color: var(--fp-ink);
-  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -26,15 +26,14 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-.font-serif-editorial {
-  font-family: Georgia, Cambria, "Times New Roman", Times, serif;
+.alloy-card {
+  box-shadow: 0 1px 2px rgba(10, 20, 41, 0.05), 0 14px 32px -16px rgba(10, 20, 41, 0.14);
 }
 
-.math-var {
-  font-family: Georgia, Cambria, "Times New Roman", Times, serif;
-  font-style: italic;
+.alloy-gradient-band {
+  background: linear-gradient(135deg, #0a1429 0%, #172554 52%, #581c5a 100%);
 }
 
-.distill-card {
-  box-shadow: 0 1px 2px rgba(11, 31, 58, 0.06), 0 10px 26px -14px rgba(11, 31, 58, 0.14);
+.alloy-accent-gradient {
+  background: linear-gradient(90deg, #ff6b57 0%, #f5b74b 50%, #9d2963 100%);
 }

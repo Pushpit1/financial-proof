@@ -2,8 +2,10 @@ import React, { useState } from 'react'
 import {
   ArrowRight,
   CheckCircle2,
-  FileCode2,
+  FileCheck2,
   Flame,
+  GitBranch,
+  Layers,
   Lock,
   Play,
   Scale,
@@ -19,102 +21,147 @@ interface LandingViewProps {
   onEnterWorkspace: (section?: NavSection) => void
 }
 
-const PIPELINE_STAGES: Array<{
+const PERSONAS: Record<
+  'engineering' | 'risk' | 'compliance',
+  {
+    label: string
+    headline: string
+    summary: string
+    section: NavSection
+    cta: string
+    nodes: Array<{ title: string; metric: string; accent: string }>
+  }
+> = {
+  engineering: {
+    label: 'Payment Engineers',
+    headline: 'Catch race conditions & double-refund bugs before they ship.',
+    summary:
+      'Compile natural-language payment contracts into deterministic state checks, inject 8 fault vectors, and shrink failing traces to minimal witnesses.',
+    section: 'simulations',
+    cta: 'Open Adversarial Simulator',
+    nodes: [
+      { title: 'Rule Compiler', metric: 'Typed Decimal AST', accent: 'border-[#ff6b57]' },
+      { title: 'Fault Injector', metric: '8 Replay Vectors', accent: 'border-[#f5b74b]' },
+      { title: 'Trace Shrinker', metric: 'Minimal Counterexample', accent: 'border-[#047857]' },
+    ],
+  },
+  risk: {
+    label: 'Risk & Finance Ops',
+    headline: 'Quantify worst-case monetary exposure and stop over-payouts.',
+    summary:
+      'Translate every contract breach into exact Decimal exposure bounds, reconcile internal ledgers against provider files, and block unsafe disbursements.',
+    section: 'analysis',
+    cta: 'Inspect Blast Radius & Guardian',
+    nodes: [
+      { title: 'Ledger Recon', metric: 'SHA-256 Deduplicated', accent: 'border-[#1e40af]' },
+      { title: 'Blast Radius', metric: 'Direct / Max Exposure', accent: 'border-[#ff6b57]' },
+      { title: 'Runtime Guardian', metric: 'ALLOW / BLOCK / REVIEW', accent: 'border-[#8e2460]' },
+    ],
+  },
+  compliance: {
+    label: 'Audit & Compliance',
+    headline: 'Produce deterministic, audit-ready proof dossiers without black boxes.',
+    summary:
+      'Attach cryptographic checksums to every claim, enforce zero-override boundaries on AI investigation summaries, and export JSON, CSV, or Markdown packets.',
+    section: 'verification',
+    cta: 'Launch Proof Builder',
+    nodes: [
+      { title: 'Evidence Vault', metric: '5 MB Signed Allowlist', accent: 'border-[#047857]' },
+      { title: 'AI Sandbox', metric: 'ai_advisory_only = true', accent: 'border-[#f5b74b]' },
+      { title: 'Audit Export', metric: 'JSON · CSV · Markdown', accent: 'border-[#0a1429]' },
+    ],
+  },
+}
+
+const WORKFLOW_NODES: Array<{
   step: string
   title: string
-  badge: string
+  tag: string
   endpoint: string
   detail: string
   section: NavSection
 }> = [
   {
     step: '01',
-    title: 'Rule Compile',
-    badge: 'AST',
+    title: 'Contract Rules',
+    tag: 'COMPILE',
     endpoint: 'POST /api/contracts/compile',
-    detail:
-      'Compiles business payment rules into typed Python Decimal invariants and ceiling bounds with zero ambiguity.',
+    detail: 'Turn policy text into deterministic constraints and save versioned contracts.',
     section: 'contracts',
   },
   {
     step: '02',
-    title: 'Document & Recon',
-    badge: 'SHA-256',
+    title: 'Ledger Evidence',
+    tag: 'RECONCILE',
     endpoint: 'POST /api/reconciliation/run',
-    detail:
-      'Validates CSV/JSON/TXT/PDF uploads with checksum deduplication and computes exact ledger-to-provider drift.',
+    detail: 'Verify CSV/JSON/PDF digests and flag exact penny-level drift automatically.',
     section: 'documents',
   },
   {
     step: '03',
-    title: 'Adversarial Attacks',
-    badge: '8 VECTORS',
+    title: 'Stress Replay',
+    tag: '8 ATTACKS',
     endpoint: 'POST /api/simulations/{id}/attacks',
-    detail:
-      'Injects duplicate, out-of-order, delayed, retry, lost-response, partial-failure, stale-worker, and crash sequences.',
+    detail: 'Attack payment state machines with duplicate, delayed, retry, and crash faults.',
     section: 'simulations',
   },
   {
     step: '04',
-    title: 'Trace Shrinker',
-    badge: 'MIN WITNESS',
+    title: 'Shrink Witness',
+    tag: 'MINIMIZE',
     endpoint: 'POST /api/simulations/{id}/counterexamples/shrink',
-    detail:
-      'Minimizes failing execution sequences down to the smallest deterministic counterexample that triggers the violation.',
+    detail: 'Isolate the smallest sequence of events that triggers a violation.',
     section: 'simulations',
   },
   {
     step: '05',
-    title: 'Blast Radius',
-    badge: 'DECIMAL',
+    title: 'Blast Radius & AI',
+    tag: 'EXPOSURE',
     endpoint: 'POST /api/blast-radius',
-    detail:
-      'Quantifies direct loss, actual exposure, and maximum exposure alongside read-only advisory AI root-cause tools.',
+    detail: 'Measure monetary exposure and run read-only advisory root-cause diagnostics.',
     section: 'analysis',
   },
   {
     step: '06',
-    title: 'Runtime Guardian',
-    badge: 'ALLOW / BLOCK',
+    title: 'Guardian & Proof',
+    tag: 'ENFORCE',
     endpoint: 'POST /api/guardian/evaluate',
-    detail:
-      'Enforces pre-settlement policy gates and exports signed JSON, CSV, and Markdown proof verification dossiers.',
+    detail: 'Gate live transactions with ALLOW/BLOCK/REVIEW decisions and export audit reports.',
     section: 'verification',
   },
 ]
 
 export function LandingView({ systemStatus, onEnterWorkspace }: LandingViewProps) {
   const capturedAmount = 1000
-  const [attemptedRefund, setAttemptedRefund] = useState(1250)
+  const [refundAmount, setRefundAmount] = useState(1250)
+  const [persona, setPersona] = useState<'engineering' | 'risk' | 'compliance'>('engineering')
+  const [activeNode, setActiveNode] = useState(WORKFLOW_NODES[0].step)
   const [liveResult, setLiveResult] = useState<BlastRadiusResult | null>(null)
-  const [liveGuardian, setLiveGuardian] = useState<string | null>(null)
-  const [checking, setChecking] = useState(false)
-  const [checkError, setCheckError] = useState('')
-  const [activeStage, setActiveStage] = useState(PIPELINE_STAGES[0].step)
+  const [liveDecision, setLiveDecision] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
 
-  const margin = capturedAmount - attemptedRefund
-  const isSafe = attemptedRefund <= capturedAmount
-  const localExposure = isSafe ? 0 : attemptedRefund
+  const isSafe = refundAmount <= capturedAmount
+  const localExposure = isSafe ? 0 : refundAmount
+  const activePersona = PERSONAS[persona]
+  const currentStage = WORKFLOW_NODES.find((w) => w.step === activeNode) ?? WORKFLOW_NODES[0]
 
-  const selectedStage =
-    PIPELINE_STAGES.find((s) => s.step === activeStage) ?? PIPELINE_STAGES[0]
-
-  const runLiveVerification = async () => {
-    setChecking(true)
-    setCheckError('')
+  const runLiveDecision = async () => {
+    setBusy(true)
+    setError('')
     try {
       const [br, grd] = await Promise.all([
         platformApi.analyzeBlastRadius({
           source_text: 'Customer refund must not exceed the original payment amount.',
           payment_amount: capturedAmount.toFixed(2),
-          refund_amount: attemptedRefund.toFixed(2),
+          refund_amount: refundAmount.toFixed(2),
           currency: 'USD',
           persist: false,
         }),
         platformApi.evaluateGuardian({
           operation: 'refund',
-          actor_id: 'distill-hero-probe',
-          amount_minor: attemptedRefund * 100,
+          actor_id: 'alloy-landing-sandbox',
+          amount_minor: refundAmount * 100,
           payment_amount_minor: capturedAmount * 100,
           currency: 'USD',
           actor_authorized: true,
@@ -126,44 +173,38 @@ export function LandingView({ systemStatus, onEnterWorkspace }: LandingViewProps
         }),
       ])
       setLiveResult(br)
-      setLiveGuardian(`${grd.decision.toUpperCase()} (${grd.rule})`)
+      setLiveDecision(`${grd.decision.toUpperCase()} · ${grd.rule}`)
     } catch (err) {
-      setCheckError(err instanceof Error ? err.message : 'Live API verification failed.')
+      setError(err instanceof Error ? err.message : 'Verification request failed.')
     } finally {
-      setChecking(false)
+      setBusy(false)
     }
   }
 
   return (
-    <div className="min-h-screen text-[#0B1F3A] flex flex-col">
-      {/* Masthead */}
-      <header className="bg-[#FAF9F6]/90 backdrop-blur border-b border-[#0B1F3A]/15 sticky top-0 z-30">
+    <div className="min-h-screen bg-white text-[#0a1429] flex flex-col">
+      {/* Alloy Clean Sticky Header */}
+      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded bg-[#0B1F3A] text-white flex items-center justify-center text-xs font-bold font-mono-tabular">
-              [FP]
+            <div className="w-8 h-8 rounded-lg alloy-accent-gradient text-[#0a1429] flex items-center justify-center text-xs font-extrabold font-mono-tabular">
+              FP
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm sm:text-base font-bold tracking-tight text-[#0B1F3A]">
-                  Financial Proof
-                </span>
-                <span className="hidden sm:inline-block px-2 py-0.5 rounded bg-white border border-[#0B1F3A]/20 text-[11px] font-mono-tabular text-slate-600">
-                  SPEC v2.0
-                </span>
-              </div>
-              <div className="text-[10px] font-mono-tabular uppercase tracking-wider text-slate-500">
-                Axiomatic Journal · Deterministic Financial Verification
-              </div>
-            </div>
+            <span className="text-base font-bold tracking-tight text-[#0a1429]">
+              Financial Proof
+            </span>
           </div>
+
+          <nav className="hidden md:flex items-center gap-7 text-xs font-medium text-slate-600">
+            <a href="#decisioning" className="hover:text-[#0a1429]">Platform</a>
+            <a href="#solutions" className="hover:text-[#0a1429]">Solutions</a>
+            <a href="#workflow" className="hover:text-[#0a1429]">Workflow</a>
+            <a href="#trust" className="hover:text-[#0a1429]">Assurance</a>
+          </nav>
 
           <div className="flex items-center gap-3">
             {systemStatus && (
-              <div className="hidden md:flex items-center gap-2 text-xs font-mono-tabular text-slate-600">
-                <span className="px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-emerald-800">
-                  DECIMAL EXACT
-                </span>
+              <div className="hidden lg:flex items-center gap-2 text-xs font-mono-tabular text-slate-500">
                 <span>DB</span>
                 <StatusBadge value={systemStatus.database} />
               </div>
@@ -171,9 +212,9 @@ export function LandingView({ systemStatus, onEnterWorkspace }: LandingViewProps
             <button
               type="button"
               onClick={() => onEnterWorkspace('overview')}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-[#0B1F3A] text-white text-xs font-medium hover:bg-[#14335c] transition"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#0a1429] text-white text-xs font-semibold hover:bg-slate-800 transition"
             >
-              Open Workbench
+              Launch Platform
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -181,289 +222,345 @@ export function LandingView({ systemStatus, onEnterWorkspace }: LandingViewProps
       </header>
 
       <main className="flex-1">
-        {/* Hero Interactive Publication + Alloy Margin Dossier */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 pt-10 pb-12">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            {/* Left / Center Essay & Live Parameter Widget */}
-            <div className="lg:col-span-7 space-y-5">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-[#0B1F3A]/20 text-xs font-mono-tabular text-[#0B1F3A]">
-                <ShieldCheck className="w-3.5 h-3.5 text-[#047857]" />
-                ESSAY + LIVE ENGINE · ∀ <span className="math-var">e</span> ∈ Trace : Balance(<span className="math-var">e</span>) ≥ 0
+        {/* Asymmetric Hero Section */}
+        <section id="decisioning" className="max-w-7xl mx-auto px-4 sm:px-6 pt-14 pb-16">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+            {/* Left Bold Storytelling */}
+            <div className="lg:col-span-6 space-y-6">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-50 border border-rose-200 text-xs font-semibold text-[#8e2460]">
+                <span className="w-2 h-2 rounded-full bg-[#ff6b57]" />
+                Deterministic Financial Decisioning &amp; Proof Engine
               </div>
 
-              <h1 className="font-serif-editorial text-3xl sm:text-5xl font-bold tracking-tight text-[#0B1F3A] leading-[1.12]">
-                Bounded Refund Conservation: Why <span className="math-var">R(t) ≤ C(t)</span> Must Hold Deterministically.
+              <h1 className="text-4xl sm:text-5xl lg:text-[54px] font-bold tracking-tight text-[#0a1429] leading-[1.06]">
+                Take control of payment risk before settlement moves.
               </h1>
 
-              <p className="text-sm sm:text-base text-slate-700 leading-relaxed max-w-2xl">
-                Let <span className="math-var font-semibold">C</span> denote cumulative captured settlement and <span className="math-var font-semibold">R</span> denote attempted refund principal across adversarial sequence <span className="math-var">k</span>. Adjust <span className="math-var font-semibold">R</span> below or run a live call against the FastAPI verification engine to observe Alloy&apos;s pre-settlement gate.
+              <p className="text-base sm:text-lg text-slate-600 leading-relaxed max-w-xl">
+                Connect your contracts, payment traces, and ledger feeds in one deterministic decisioning platform—built for engineering teams, finance operators, and auditors who cannot afford floating-point guesses.
               </p>
-
-              {/* Interactive Parameter Proof Card */}
-              <div className="bg-white border border-[#0B1F3A]/25 rounded-xl p-5 distill-card space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-200">
-                  <div className="text-xs font-mono-tabular font-bold text-[#0B1F3A]">
-                    SECTION 1.1 // INTERACTIVE INVARIANT EVALUATOR
-                  </div>
-                  <StatusBadge value={isSafe ? 'allow' : 'block'} />
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-mono-tabular">
-                    <label htmlFor="refund-slider" className="text-slate-700">
-                      Attempted Refund <span className="math-var font-semibold">R</span>:{' '}
-                      <strong className="text-[#0B1F3A]">${attemptedRefund.toFixed(2)}</strong>{' '}
-                      <span className="text-slate-500">(Captured C = ${capturedAmount.toFixed(2)})</span>
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => void runLiveVerification()}
-                      disabled={checking}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#0B1F3A] text-white text-xs font-medium hover:bg-[#14335c] disabled:opacity-50"
-                    >
-                      <Play className="w-3 h-3" />
-                      {checking ? 'Verifying via API...' : 'Verify with Live API'}
-                    </button>
-                  </div>
-
-                  <input
-                    id="refund-slider"
-                    type="range"
-                    min={100}
-                    max={1600}
-                    step={50}
-                    value={attemptedRefund}
-                    onChange={(e) => {
-                      setAttemptedRefund(Number(e.target.value))
-                      setLiveResult(null)
-                      setLiveGuardian(null)
-                    }}
-                    className="w-full accent-[#0B1F3A]"
-                  />
-                </div>
-
-                <div className="grid grid-cols-3 gap-3 text-xs font-mono-tabular">
-                  <div className="p-2.5 rounded bg-[#FAF9F6] border border-slate-200">
-                    <div className="text-slate-500">Margin (<span className="math-var">C - R</span>)</div>
-                    <div
-                      className={`text-sm font-bold mt-0.5 ${
-                        isSafe ? 'text-emerald-700' : 'text-rose-700'
-                      }`}
-                    >
-                      {margin < 0 ? `-$${Math.abs(margin).toFixed(2)}` : `$${margin.toFixed(2)}`}
-                    </div>
-                  </div>
-                  <div className="p-2.5 rounded bg-[#FAF9F6] border border-slate-200">
-                    <div className="text-slate-500">Direct Exposure</div>
-                    <div className="text-sm font-bold mt-0.5 text-[#0B1F3A]">
-                      ${liveResult ? liveResult.total_direct_loss : localExposure.toFixed(2)}
-                    </div>
-                  </div>
-                  <div className="p-2.5 rounded bg-[#FAF9F6] border border-slate-200">
-                    <div className="text-slate-500">Invariant Verdict</div>
-                    <div
-                      className={`text-sm font-bold mt-0.5 ${
-                        isSafe ? 'text-emerald-700' : 'text-rose-700'
-                      }`}
-                    >
-                      {isSafe ? 'VERIFIED' : 'VIOLATION'}
-                    </div>
-                  </div>
-                </div>
-
-                {checkError && (
-                  <div className="rounded border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-800">
-                    {checkError}
-                  </div>
-                )}
-
-                {liveResult && (
-                  <div className="rounded border border-emerald-200 bg-emerald-50/70 px-3 py-2 text-xs font-mono-tabular text-[#0B1F3A] flex flex-wrap items-center justify-between gap-2">
-                    <span>
-                      Live API Confirmed · analysis={liveResult.analysis_id.slice(0, 8)} · violations=
-                      {liveResult.violation_count}
-                    </span>
-                    <span className="font-bold">Guardian: {liveGuardian}</span>
-                  </div>
-                )}
-              </div>
 
               <div className="flex flex-wrap gap-3 pt-1">
                 <button
                   type="button"
                   onClick={() => onEnterWorkspace('overview')}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-[#0B1F3A] text-white text-sm font-medium hover:bg-[#14335c]"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#0a1429] text-white text-sm font-semibold hover:bg-slate-800 transition shadow-sm"
                 >
-                  Launch Verification Workbench
+                  Open Decision Workbench
                   <ArrowRight className="w-4 h-4" />
                 </button>
                 <button
                   type="button"
                   onClick={() => onEnterWorkspace('simulations')}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-white border border-[#0B1F3A]/30 text-[#0B1F3A] text-sm font-medium hover:bg-slate-50"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white border border-slate-300 text-[#0a1429] text-sm font-semibold hover:bg-slate-50 transition"
                 >
-                  Run Adversarial Attack
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onEnterWorkspace('documents')}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-white border border-[#0B1F3A]/30 text-[#0B1F3A] text-sm font-medium hover:bg-slate-50"
-                >
-                  Upload &amp; Reconcile Ledger
+                  Simulate Adversarial Attack
                 </button>
               </div>
             </div>
 
-            {/* Right Column: Margin Proof Note + Alloy Assurance Card */}
-            <aside className="lg:col-span-5 space-y-4">
-              <div className="bg-white border border-[#0B1F3A]/25 rounded-xl p-5 distill-card space-y-3.5 text-xs">
-                <div className="font-mono-tabular font-bold text-[#0B1F3A] border-b border-slate-200 pb-2.5 flex items-center justify-between">
-                  <span>MARGIN PROOF NOTE // SEC. 2.1</span>
-                  <StatusBadge value="verified" />
-                </div>
-
-                <div className="p-3.5 rounded-lg bg-[#0B1F3A] text-slate-100 font-mono-tabular space-y-1.5">
-                  <div>∀ e ∈ Trace: Balance(e) ≥ 0</div>
-                  <div className="text-emerald-300">Precision: Decimal(18, 2)</div>
-                  <div className="text-amber-300">AI Override: FORBIDDEN (advisory only)</div>
-                </div>
-
-                <p className="text-slate-600 leading-relaxed">
-                  <strong>Alloy Decision Integration:</strong> Every interactive proof threshold compiles directly into deterministic <code className="font-mono-tabular text-[#0B1F3A]">FinancialContract</code> constraints evaluated on pre-settlement hooks with immutable audit logging.
-                </p>
-
-                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 font-mono-tabular">
-                  <div className="p-2 rounded bg-[#FAF9F6] border border-slate-200">
-                    <span className="text-slate-500 block">Backend Suite</span>
-                    <strong className="text-[#0B1F3A]">1,195 Tests Passing</strong>
+            {/* Right Multi-Layered Decision Flow Visual + Live Engine Control */}
+            <div className="lg:col-span-6 relative">
+              <div className="rounded-3xl p-1 alloy-accent-gradient alloy-card">
+                <div className="bg-[#0a1429] text-white rounded-[22px] p-6 space-y-5">
+                  <div className="flex flex-wrap items-center justify-between gap-2 pb-4 border-b border-slate-800">
+                    <div className="flex items-center gap-2">
+                      <GitBranch className="w-4 h-4 text-[#ff6b57]" />
+                      <span className="text-xs font-mono-tabular font-bold uppercase tracking-wider text-slate-200">
+                        Live Decision Flow // Refund Policy
+                      </span>
+                    </div>
+                    <StatusBadge value={isSafe ? 'allow' : 'block'} />
                   </div>
-                  <div className="p-2 rounded bg-[#FAF9F6] border border-slate-200">
-                    <span className="text-slate-500 block">Report Export</span>
-                    <strong className="text-[#0B1F3A]">JSON · CSV · .MD</strong>
+
+                  {/* Layered Node Strip */}
+                  <div className="grid grid-cols-3 gap-2.5 text-xs">
+                    <div className="rounded-xl bg-slate-900/90 border border-slate-800 p-3 space-y-1">
+                      <div className="text-[10px] font-mono-tabular text-[#f5b74b]">01 INPUT</div>
+                      <div className="font-semibold">Captured</div>
+                      <div className="font-mono-tabular text-slate-300">${capturedAmount.toFixed(2)}</div>
+                    </div>
+                    <div className="rounded-xl bg-slate-900/90 border border-slate-800 p-3 space-y-1">
+                      <div className="text-[10px] font-mono-tabular text-[#ff6b57]">02 ATTEMPT</div>
+                      <div className="font-semibold">Refund Tx</div>
+                      <div className="font-mono-tabular text-white">${refundAmount.toFixed(2)}</div>
+                    </div>
+                    <div className="rounded-xl bg-slate-900/90 border border-slate-800 p-3 space-y-1">
+                      <div className="text-[10px] font-mono-tabular text-emerald-400">03 OUTCOME</div>
+                      <div className="font-semibold">{isSafe ? 'Safe Move' : 'Blocked'}</div>
+                      <div className="font-mono-tabular text-slate-300">
+                        Exp: ${liveResult ? liveResult.total_direct_loss : localExposure.toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Interactive Decision Slider + Live Engine Execution */}
+                  <div className="rounded-xl bg-slate-900 border border-slate-800 p-4 space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-mono-tabular">
+                      <label htmlFor="alloy-refund-range" className="text-slate-300">
+                        Adjust Attempted Refund: <strong className="text-white">${refundAmount.toFixed(2)}</strong>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => void runLiveDecision()}
+                        disabled={busy}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#ff6b57] text-[#0a1429] text-xs font-bold hover:bg-[#ff8170] disabled:opacity-50 transition"
+                      >
+                        <Play className="w-3 h-3" />
+                        {busy ? 'Evaluating...' : 'Test Live API'}
+                      </button>
+                    </div>
+                    <input
+                      id="alloy-refund-range"
+                      type="range"
+                      min={100}
+                      max={1600}
+                      step={50}
+                      value={refundAmount}
+                      onChange={(e) => {
+                        setRefundAmount(Number(e.target.value))
+                        setLiveResult(null)
+                        setLiveDecision(null)
+                      }}
+                      className="w-full accent-[#ff6b57]"
+                    />
+                    {error && (
+                      <div className="text-xs text-rose-300 font-mono-tabular">{error}</div>
+                    )}
+                    {liveResult && (
+                      <div className="pt-2 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono-tabular text-emerald-300">
+                        <span>API ID: {liveResult.analysis_id.slice(0, 8)}</span>
+                        <span>{liveDecision}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="text-[11px] font-mono-tabular text-slate-400 flex items-center justify-between">
+                    <span>Deterministic Python Decimal(18,2)</span>
+                    <span className="text-[#f5b74b]">AI Advisory Only · Zero Override</span>
                   </div>
                 </div>
               </div>
-
-              <div className="bg-white border-l-4 border-[#0B1F3A] border-y border-r border-slate-200 rounded-r-xl p-4 text-xs space-y-1.5">
-                <div className="font-mono-tabular font-bold text-[#0B1F3A]">
-                  MARGIN NOTE // DETERMINISTIC SEPARATION
-                </div>
-                <p className="text-slate-600 leading-relaxed">
-                  Bounded AI inspection tools summarize root causes from persisted traces and evidence, while deterministic <code className="font-mono-tabular">Decimal</code> evaluators remain the sole source of financial truth.
-                </p>
-              </div>
-            </aside>
+            </div>
           </div>
         </section>
 
-        {/* Interactive 6-Stage Proof Architecture */}
-        <section className="bg-white/85 border-y border-[#0B1F3A]/15 py-12">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-6">
-            <div className="flex flex-wrap items-end justify-between gap-4">
-              <div>
-                <div className="text-xs font-mono-tabular font-semibold uppercase tracking-wider text-[#047857]">
-                  Axiomatic Pipeline Architecture
-                </div>
-                <h2 className="font-serif-editorial text-2xl font-bold text-[#0B1F3A] mt-1">
-                  Six Verifiable Gates From Business Rule to Audit Dossier
-                </h2>
+        {/* Verified Guarantees Bar */}
+        <section className="bg-[#f8f9fc] border-y border-slate-200 py-6">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-2 md:grid-cols-5 gap-4 text-center text-xs">
+            <div className="p-2">
+              <div className="font-mono-tabular font-bold text-base text-[#0a1429]">1,198</div>
+              <div className="text-slate-500 mt-0.5">Passing Automated Tests</div>
+            </div>
+            <div className="p-2">
+              <div className="font-mono-tabular font-bold text-base text-[#0a1429]">Decimal</div>
+              <div className="text-slate-500 mt-0.5">Zero Float Monetary Drift</div>
+            </div>
+            <div className="p-2">
+              <div className="font-mono-tabular font-bold text-base text-[#0a1429]">8 Vectors</div>
+              <div className="text-slate-500 mt-0.5">Adversarial Fault Matrix</div>
+            </div>
+            <div className="p-2">
+              <div className="font-mono-tabular font-bold text-base text-[#0a1429]">SHA-256</div>
+              <div className="text-slate-500 mt-0.5">Evidence Deduplication</div>
+            </div>
+            <div className="col-span-2 md:col-span-1 p-2">
+              <div className="font-mono-tabular font-bold text-base text-[#047857]">PostgreSQL</div>
+              <div className="text-slate-500 mt-0.5">Alembic Revision b1c2d3e4f5a6</div>
+            </div>
+          </div>
+        </section>
+
+        {/* Persona-Driven Solutions Switcher (Alloy Signature Pattern) */}
+        <section id="solutions" className="max-w-7xl mx-auto px-4 sm:px-6 py-16 space-y-8">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div className="space-y-2 max-w-2xl">
+              <div className="text-xs font-semibold uppercase tracking-wider text-[#8e2460]">
+                Built for Every Verification Stakeholder
               </div>
-              <span className="text-xs font-mono-tabular text-slate-500">
-                Select any stage to inspect endpoint &amp; open module
-              </span>
+              <h2 className="text-3xl font-bold tracking-tight text-[#0a1429]">
+                One decision layer across engineering, risk, and audit.
+              </h2>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5">
-              {PIPELINE_STAGES.map((item) => {
-                const active = item.step === activeStage
+            <div className="inline-flex rounded-full bg-slate-100 p-1 border border-slate-200">
+              {(['engineering', 'risk', 'compliance'] as const).map((key) => {
+                const active = persona === key
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setPersona(key)}
+                    className={`px-4 py-2 rounded-full text-xs font-semibold transition ${
+                      active
+                        ? 'bg-[#0a1429] text-white shadow-xs'
+                        : 'text-slate-600 hover:text-[#0a1429]'
+                    }`}
+                  >
+                    {PERSONAS[key].label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          <div className="rounded-3xl bg-[#f8f9fc] border border-slate-200 p-6 sm:p-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            <div className="lg:col-span-5 space-y-4">
+              <h3 className="text-2xl font-bold text-[#0a1429] leading-snug">
+                {activePersona.headline}
+              </h3>
+              <p className="text-sm text-slate-600 leading-relaxed">
+                {activePersona.summary}
+              </p>
+              <button
+                type="button"
+                onClick={() => onEnterWorkspace(activePersona.section)}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#0a1429] text-white text-xs font-semibold hover:bg-slate-800 transition"
+              >
+                {activePersona.cta}
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {activePersona.nodes.map((node) => (
+                <div
+                  key={node.title}
+                  className={`bg-white border border-slate-200 border-t-4 ${node.accent} rounded-2xl p-5 alloy-card space-y-2`}
+                >
+                  <Layers className="w-4 h-4 text-[#0a1429]" />
+                  <div className="text-sm font-bold text-[#0a1429]">{node.title}</div>
+                  <div className="text-xs font-mono-tabular text-slate-600">{node.metric}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Alloy Deep-Gradient Multi-Step Verification Workflow */}
+        <section id="workflow" className="alloy-gradient-band text-white py-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-8">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div className="max-w-2xl space-y-2">
+                <div className="text-xs font-mono-tabular uppercase tracking-wider text-[#f5b74b]">
+                  End-to-End Decision Architecture
+                </div>
+                <h2 className="text-3xl font-bold tracking-tight">
+                  Inspect any verification node in the execution chain.
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => onEnterWorkspace(currentStage.section)}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#ff6b57] text-[#0a1429] text-xs font-bold hover:bg-[#ff8170] transition"
+              >
+                Open {currentStage.title}
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+              {WORKFLOW_NODES.map((item) => {
+                const active = item.step === activeNode
                 return (
                   <button
                     key={item.step}
                     type="button"
-                    onClick={() => setActiveStage(item.step)}
-                    className={`text-left p-3.5 rounded-lg border transition ${
+                    onClick={() => setActiveNode(item.step)}
+                    className={`text-left p-4 rounded-2xl border transition ${
                       active
-                        ? 'bg-[#0B1F3A] text-white border-[#0B1F3A]'
-                        : 'bg-[#FAF9F6] text-[#0B1F3A] border-slate-300 hover:bg-white'
+                        ? 'bg-white text-[#0a1429] border-white shadow-lg'
+                        : 'bg-white/10 text-white border-white/15 hover:bg-white/15'
                     }`}
                   >
                     <div
-                      className={`text-[11px] font-mono-tabular ${
-                        active ? 'text-emerald-300' : 'text-slate-500'
+                      className={`text-[11px] font-mono-tabular font-bold ${
+                        active ? 'text-[#8e2460]' : 'text-[#f5b74b]'
                       }`}
                     >
-                      {item.step} · {item.badge}
+                      {item.step} · {item.tag}
                     </div>
-                    <div className="text-xs font-semibold mt-1">{item.title}</div>
+                    <div className="text-sm font-bold mt-1">{item.title}</div>
                   </button>
                 )
               })}
             </div>
 
-            <div className="bg-[#0B1F3A] text-slate-100 rounded-xl p-5 flex flex-wrap items-center justify-between gap-4">
+            <div className="rounded-2xl bg-slate-950/50 border border-white/15 p-5 flex flex-wrap items-center justify-between gap-4">
               <div className="space-y-1 max-w-3xl">
-                <div className="text-xs font-mono-tabular text-emerald-300">
-                  [STAGE {selectedStage.step}] {selectedStage.endpoint}
+                <div className="text-xs font-mono-tabular text-[#ff6b57]">
+                  {currentStage.endpoint}
                 </div>
-                <div className="text-sm text-slate-100">{selectedStage.detail}</div>
+                <p className="text-sm text-slate-200">{currentStage.detail}</p>
               </div>
               <button
                 type="button"
-                onClick={() => onEnterWorkspace(selectedStage.section)}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md bg-white text-[#0B1F3A] text-xs font-semibold hover:bg-slate-100 shrink-0"
+                onClick={() => onEnterWorkspace(currentStage.section)}
+                className="px-4 py-2 rounded-full border border-white/25 text-xs font-semibold hover:bg-white/10"
               >
-                Open {selectedStage.title}
-                <ArrowRight className="w-3.5 h-3.5" />
+                Launch Module -&gt;
               </button>
             </div>
           </div>
         </section>
 
-        {/* Core Invariant Pillars */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          <PillarCard
+        {/* Assurance Pillars */}
+        <section id="trust" className="max-w-7xl mx-auto px-4 sm:px-6 py-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <FeatureCard
             icon={Scale}
+            accent="text-[#1e40af]"
             title="Decimal Monetary Math"
-            body="All monetary arithmetic uses exact Python Decimal and integer minor units—never IEEE-754 floats."
+            body="All monetary arithmetic runs on Python Decimal and integer minor units—never IEEE-754 floats."
           />
-          <PillarCard
+          <FeatureCard
             icon={Sparkles}
+            accent="text-[#8e2460]"
             title="AI Never Overrides Truth"
-            body="Bounded AI inspection tools summarize persisted evidence while deterministic evaluators remain authoritative."
+            body="Bounded AI inspection tools summarize persisted traces while deterministic contracts hold final authority."
           />
-          <PillarCard
+          <FeatureCard
             icon={Flame}
+            accent="text-[#ff6b57]"
             title="Quantified Blast Radius"
-            body="Translate constraint violations into direct loss, refund exposure, and duplicate-charge risk."
+            body="Translate constraint breaches directly into direct loss, refund overage, and duplicate-charge risk."
           />
-          <PillarCard
+          <FeatureCard
             icon={Lock}
+            accent="text-[#047857]"
             title="Fail-Closed Security"
-            body="HMAC-SHA256 webhook checks, sanitized document uploads, SHA-256 checksums, and security headers."
+            body="Strict extension allowlists, SHA-256 deduplication, Bearer auth guards, and HTTP security headers."
           />
         </section>
       </main>
 
-      <footer className="bg-white border-t border-slate-200 py-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-3.5 h-3.5 text-[#047857]" />
-            <span>Financial Proof — Axiomatic Deterministic Financial Verification</span>
+      <footer className="bg-[#0a1429] text-slate-300 border-t border-slate-800 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-wrap items-center justify-between gap-4 text-xs">
+          <div className="flex items-center gap-2.5">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <span className="font-semibold text-white">Financial Proof</span>
+            <span className="text-slate-400">· Deterministic Financial Verification &amp; Decisioning</span>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-5">
             <button
               type="button"
               onClick={() => onEnterWorkspace('contracts')}
-              className="hover:text-slate-900 inline-flex items-center gap-1"
+              className="hover:text-white inline-flex items-center gap-1"
             >
-              <FileCode2 className="w-3.5 h-3.5" /> Contracts
+              <ShieldCheck className="w-3.5 h-3.5" /> Contracts
+            </button>
+            <button
+              type="button"
+              onClick={() => onEnterWorkspace('verification')}
+              className="hover:text-white inline-flex items-center gap-1"
+            >
+              <FileCheck2 className="w-3.5 h-3.5" /> Proof Export
             </button>
             <button
               type="button"
               onClick={() => onEnterWorkspace('audit')}
-              className="hover:text-slate-900"
+              className="hover:text-white"
             >
-              Audit &amp; Security
+              Audit &amp; Access
             </button>
           </div>
         </div>
@@ -472,19 +569,21 @@ export function LandingView({ systemStatus, onEnterWorkspace }: LandingViewProps
   )
 }
 
-function PillarCard({
+function FeatureCard({
   icon: Icon,
+  accent,
   title,
   body,
 }: {
   icon: React.ComponentType<{ className?: string }>
+  accent: string
   title: string
   body: string
 }) {
   return (
-    <div className="bg-white border border-[#0B1F3A]/20 rounded-xl p-5 space-y-2 distill-card">
-      <Icon className="w-5 h-5 text-[#0B1F3A]" />
-      <h3 className="font-serif-editorial text-sm font-bold text-[#0B1F3A]">{title}</h3>
+    <div className="bg-white border border-slate-200 rounded-2xl p-6 space-y-2.5 alloy-card">
+      <Icon className={`w-5 h-5 ${accent}`} />
+      <h3 className="text-sm font-bold text-[#0a1429]">{title}</h3>
       <p className="text-xs text-slate-600 leading-relaxed">{body}</p>
     </div>
   )

@@ -14,12 +14,13 @@ export function SectionHeader({
   rightSlot,
 }: SectionHeaderProps) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-4 pb-4 border-b border-[#0B1F3A]/15">
-      <div className="space-y-1 max-w-3xl">
-        <div className="text-[11px] font-mono-tabular font-bold uppercase tracking-wider text-[#047857]">
+    <div className="flex flex-wrap items-end justify-between gap-4 pb-5 border-b border-slate-200">
+      <div className="space-y-1.5 max-w-3xl">
+        <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[#8e2460]">
+          <span className="w-2 h-2 rounded-full bg-[#ff6b57]" />
           {eyebrow}
         </div>
-        <h1 className="font-serif-editorial text-2xl sm:text-3xl font-bold tracking-tight text-[#0B1F3A]">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#0a1429]">
           {title}
         </h1>
         <p className="text-sm text-slate-600 leading-relaxed">{description}</p>
