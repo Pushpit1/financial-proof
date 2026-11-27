@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
+from app.db.bootstrap import ensure_schema_initialized
 
 _db_url = settings.database_url.get_secret_value()
 _engine_kwargs: dict[str, object] = {"pool_pre_ping": True}
@@ -28,6 +29,7 @@ SessionLocal = sessionmaker(
 
 
 def get_db() -> Generator[Session, None, None]:
+    ensure_schema_initialized(engine)
     db = SessionLocal()
 
     try:

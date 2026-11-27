@@ -47,6 +47,7 @@ class SqlAlchemyFinancialProofRepository(
     def add_proof(self, proof: FinancialProof) -> None:
         """Persist a financial proof."""
         self.session.add(proof_to_model(proof))
+        self.session.flush()
 
     def update_proof(self, proof: FinancialProof) -> None:
         """Update an existing financial proof."""
@@ -97,6 +98,7 @@ class SqlAlchemyFinancialProofRepository(
     ) -> None:
         """Persist a financial claim."""
         self.session.add(claim_to_model(claim, proof_id))
+        self.session.flush()
 
     def get_claim(
         self,
@@ -147,6 +149,7 @@ class SqlAlchemyFinancialProofRepository(
     ) -> None:
         """Persist evidence."""
         self.session.add(evidence_to_model(evidence, proof_id))
+        self.session.flush()
 
     def get_evidence(
         self,
@@ -182,6 +185,7 @@ class SqlAlchemyFinancialProofRepository(
     ) -> None:
         """Persist an evidence link."""
         self.session.add(evidence_link_to_model(link))
+        self.session.flush()
 
     def get_evidence_link(
         self,
@@ -239,6 +243,7 @@ class SqlAlchemyFinancialProofRepository(
     ) -> None:
         """Persist an evaluation history record."""
         self.session.add(proof_evaluation_to_model(evaluation))
+        self.session.flush()
 
     def list_evaluation_history(
         self,

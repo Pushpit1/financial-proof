@@ -36,16 +36,34 @@ export function OverviewSection({
       setDemoState(demo.state)
 
       if (systemStatus?.database === 'connected') {
-        const [c, p, d, a] = await Promise.all([
+        const [cRes, pRes, dRes, aRes] = await Promise.allSettled([
           platformApi.listContracts(),
           platformApi.listProofsBySubject(workspaceSubject),
           platformApi.listDocuments(),
           platformApi.listAudit(),
         ])
-        setContractsCount(c.length)
-        setProofsCount(p.length)
-        setDocsCount(d.length)
-        setAudits(a.slice(0, 8))
+        const errs: string[] = []
+        if (cRes.status === 'fulfilled') setContractsCount(cRes.value.length)
+        else {
+          setContractsCount(null)
+          errs.push(`Contracts: ${cRes.reason instanceof Error ? cRes.reason.message : 'failed'}`)
+        }
+        if (pRes.status === 'fulfilled') setProofsCount(pRes.value.length)
+        else {
+          setProofsCount(null)
+          errs.push(`Proofs: ${pRes.reason instanceof Error ? pRes.reason.message : 'failed'}`)
+        }
+        if (dRes.status === 'fulfilled') setDocsCount(dRes.value.length)
+        else {
+          setDocsCount(null)
+          errs.push(`Documents: ${dRes.reason instanceof Error ? dRes.reason.message : 'failed'}`)
+        }
+        if (aRes.status === 'fulfilled') setAudits(aRes.value.slice(0, 8))
+        else {
+          setAudits([])
+          errs.push(`Audit: ${aRes.reason instanceof Error ? aRes.reason.message : 'failed'}`)
+        }
+        if (errs.length > 0) setError(errs.join(' · '))
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to fetch telemetry.')
@@ -103,26 +121,44 @@ export function OverviewSection({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           label="Persisted Contracts"
-          value={contractsCount === null ? 'DB offline' : String(contractsCount)}
+          value={
+            contractsCount !== null
+              ? String(contractsCount)
+              : systemStatus?.database === 'connected'
+                ? 'API err'
+                : 'DB offline'
+          }
           sub="Versioned financial rules"
           onClick={() => onNavigate('contracts')}
         />
         <StatCard
           label="Subject Proofs"
-          value={proofsCount === null ? 'DB offline' : String(proofsCount)}
+          value={
+            proofsCount !== null
+              ? String(proofsCount)
+              : systemStatus?.database === 'connected'
+                ? 'API err'
+                : 'DB offline'
+          }
           sub={`Subject: ${workspaceSubject}`}
           onClick={() => onNavigate('verification')}
         />
         <StatCard
           label="Evidence Documents"
-          value={docsCount === null ? 'DB offline' : String(docsCount)}
+          value={
+            docsCount !== null
+              ? String(docsCount)
+              : systemStatus?.database === 'connected'
+                ? 'API err'
+                : 'DB offline'
+          }
           sub="SHA-256 verified files"
           onClick={() => onNavigate('documents')}
         />
         <StatCard
           label="HTTP Requests"
           value={String(systemStatus?.metrics?.counters?.['http_requests_total'] ?? 0)}
-          sub={`DB status: ${systemStatus?.database ?? 'unknown'}`}
+          sub={`DB: ${systemStatus?.database ?? 'unknown'}${systemStatus?.alembic_revision ? ` · ${systemStatus.alembic_revision}` : ''}`}
           onClick={() => onNavigate('audit')}
         />
       </div>

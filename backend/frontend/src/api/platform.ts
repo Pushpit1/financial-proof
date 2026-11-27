@@ -7,6 +7,9 @@ export interface SystemStatus {
   environment: string
   database: 'connected' | 'unreachable'
   database_error_type: string | null
+  schema_ready?: boolean
+  missing_tables?: string[]
+  alembic_revision?: string | null
   auth_configured: boolean
   metrics: {
     counters: Record<string, number>

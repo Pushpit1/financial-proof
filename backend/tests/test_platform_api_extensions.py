@@ -261,3 +261,138 @@ def test_auth_status_endpoint(client: TestClient) -> None:
     finally:
         authentication.get_authenticator.cache_clear()
         json.dumps({})
+
+
+def test_ready_returns_503_when_schema_incomplete() -> None:
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
+    from sqlalchemy.pool import StaticPool
+
+    from app.db.session import get_db
+
+    empty_engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+
+    def override_empty_db():
+        with Session(empty_engine) as session:
+            yield session
+
+    app.dependency_overrides[get_db] = override_empty_db
+    try:
+        resp = TestClient(app).get("/ready")
+        assert resp.status_code == 503
+        assert "schema" in resp.json()["detail"].lower()
+
+        status_resp = TestClient(app).get("/system/status")
+        assert status_resp.status_code == 200
+        payload = status_resp.json()
+        assert payload["database"] == "connected"
+        assert payload["schema_ready"] is False
+        assert "financial_contracts" in payload["missing_tables"]
+    finally:
+        app.dependency_overrides.clear()
+        empty_engine.dispose()
+
+
+def test_schema_bootstrap_runs_alembic_and_preserves_existing_data(tmp_path) -> None:
+    from sqlalchemy import create_engine, text
+
+    from app.db.bootstrap import (
+        ALEMBIC_HEAD_REVISION,
+        ensure_schema_initialized,
+        inspect_schema,
+    )
+
+    db_file = tmp_path / "bootstrap_preserve.db"
+    eng = create_engine(f"sqlite:///{db_file}")
+    try:
+        with eng.begin() as conn:
+            conn.execute(text("CREATE TABLE custom_user_notes (id INTEGER PRIMARY KEY, note TEXT)"))
+            conn.execute(text("INSERT INTO custom_user_notes (id, note) VALUES (1, 'preserve-me')"))
+
+        ensure_schema_initialized(eng)
+
+        with eng.connect() as conn:
+            info = inspect_schema(conn)
+            assert info["schema_ready"] is True
+            assert info["missing_tables"] == []
+            assert info["alembic_revision"] == ALEMBIC_HEAD_REVISION
+            preserved = conn.execute(
+                text("SELECT note FROM custom_user_notes WHERE id = 1")
+            ).scalar()
+            assert preserved == "preserve-me"
+    finally:
+        eng.dispose()
+
+
+def test_create_proof_respects_strict_foreign_keys() -> None:
+    from sqlalchemy import create_engine, event
+    from sqlalchemy.orm import Session
+    from sqlalchemy.pool import StaticPool
+
+    from app.db.bootstrap import ensure_schema_initialized
+    from app.db.session import get_db
+
+    fk_engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+
+    @event.listens_for(fk_engine, "connect")
+    def _enable_sqlite_fks(dbapi_connection, _connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
+    ensure_schema_initialized(fk_engine)
+
+    def override_fk_db():
+        with Session(fk_engine) as session:
+            yield session
+
+    app.dependency_overrides[get_db] = override_fk_db
+    try:
+        cid, eid = str(uuid4()), str(uuid4())
+        resp = TestClient(app).post(
+            "/proofs",
+            json={
+                "subject": "strict-fk-subject",
+                "claims": [
+                    {
+                        "id": cid,
+                        "claim_type": "balance",
+                        "subject": "strict-fk-subject",
+                        "amount": 100,
+                        "currency": "USD",
+                        "verification_status": "verified",
+                        "confidence": 0.95,
+                        "confidence_level": "high",
+                    }
+                ],
+                "evidence": [
+                    {
+                        "id": eid,
+                        "evidence_type": "accounting_record",
+                        "source_name": "fk.csv",
+                        "received_at": "2026-11-27",
+                        "status": "verified",
+                    }
+                ],
+                "evidence_links": [
+                    {
+                        "claim_id": cid,
+                        "evidence_id": eid,
+                        "verification_status": "supported",
+                        "confidence": 0.95,
+                    }
+                ],
+            },
+        )
+        assert resp.status_code == 201
+    finally:
+        app.dependency_overrides.clear()
+        fk_engine.dispose()
