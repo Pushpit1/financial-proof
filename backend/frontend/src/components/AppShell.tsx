@@ -67,15 +67,15 @@ export function AppShell({
           onClick={onOpenLanding}
           className="flex items-center gap-2.5 text-left group"
         >
-          <div className="w-7 h-7 rounded bg-[#1E3A5F] text-white flex items-center justify-center text-xs font-bold font-mono-tabular">
-            FP
+          <div className="w-7 h-7 rounded bg-[#0B1F3A] text-white flex items-center justify-center text-xs font-bold font-mono-tabular">
+            [FP]
           </div>
           <div>
-            <div className="text-sm font-semibold tracking-tight text-slate-900 group-hover:text-[#1E3A5F]">
+            <div className="text-sm font-bold tracking-tight text-[#0B1F3A] group-hover:text-[#14335c]">
               Financial Proof
             </div>
             <div className="text-[10px] font-mono-tabular uppercase tracking-wider text-slate-500">
-              Verification Engine
+              Axiomatic Workbench
             </div>
           </div>
         </button>
@@ -114,8 +114,8 @@ export function AppShell({
               }}
               className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-xs font-medium transition-colors text-left ${
                 active
-                  ? 'bg-[#1E3A5F] text-white'
-                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                  ? 'bg-[#0B1F3A] text-white'
+                  : 'text-slate-600 hover:bg-slate-100 hover:text-[#0B1F3A]'
               }`}
             >
               <Icon className="w-4 h-4 shrink-0" />
@@ -148,7 +148,7 @@ export function AppShell({
   )
 
   return (
-    <div className="min-h-screen flex bg-[#F9F8F5] text-slate-900">
+    <div className="min-h-screen flex text-[#0B1F3A]">
       <aside className="hidden lg:block w-64 shrink-0">{sidebarContent}</aside>
 
       {mobileOpen && (
