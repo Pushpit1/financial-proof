@@ -129,17 +129,17 @@ export function AppShell({
         <button
           type="button"
           onClick={onOpenLanding}
-          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs"
+          className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded border border-[#0B1F3A]/25 text-[#0B1F3A] font-medium hover:bg-[#FAF9F6] text-xs"
         >
           <Home className="w-3.5 h-3.5" />
-          Public Overview
+          Distill Journal Home
         </button>
-        <div className="px-2 py-2 rounded bg-slate-50 border border-slate-200 space-y-1">
+        <div className="p-2.5 rounded-lg bg-[#0B1F3A] text-slate-100 space-y-1.5">
           <div className="flex items-center justify-between">
-            <span className="text-slate-500">PostgreSQL / DB</span>
+            <span className="font-mono-tabular text-slate-300">PostgreSQL</span>
             <StatusBadge value={systemStatus?.database ?? 'checking'} />
           </div>
-          <div className="text-[10px] font-mono-tabular text-slate-500">
+          <div className="text-[10px] font-mono-tabular text-emerald-300">
             Deterministic core · AI advisory only
           </div>
         </div>
@@ -162,25 +162,25 @@ export function AppShell({
       )}
 
       <div className="flex-1 min-w-0 flex flex-col">
-        <header className="h-14 bg-white border-b border-slate-200 px-4 lg:px-6 flex items-center justify-between">
+        <header className="h-14 bg-[#FAF9F6]/90 backdrop-blur border-b border-[#0B1F3A]/15 px-4 lg:px-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => setMobileOpen(true)}
-              className="lg:hidden p-1.5 rounded border border-slate-200 text-slate-600"
+              className="lg:hidden p-1.5 rounded border border-[#0B1F3A]/20 text-[#0B1F3A]"
               aria-label="Open navigation"
             >
               <Menu className="w-4 h-4" />
             </button>
             <div className="text-xs font-mono-tabular text-slate-500">
-              WORKSPACE / <span className="text-slate-900 font-semibold">{workspaceSubject}</span>
+              AXIOM WORKSPACE // <span className="text-[#0B1F3A] font-semibold">{workspaceSubject}</span>
             </div>
           </div>
 
           <div className="flex items-center gap-2.5">
             {systemStatus && (
-              <span className="hidden sm:inline-flex items-center gap-1.5 text-xs font-mono-tabular text-slate-500">
-                v{systemStatus.version} · {systemStatus.environment}
+              <span className="hidden sm:inline-flex items-center gap-1.5 text-xs font-mono-tabular text-slate-600">
+                v{systemStatus.version || '2.0'} · {systemStatus.environment}
               </span>
             )}
             <StatusBadge value={systemStatus?.database === 'connected' ? 'connected' : 'unreachable'} />
@@ -188,10 +188,9 @@ export function AppShell({
         </header>
 
         {systemStatus?.database === 'unreachable' && (
-          <div className="bg-amber-50 border-b border-amber-200 px-6 py-2.5 text-xs text-amber-900 flex flex-wrap items-center justify-between gap-2">
+          <div className="bg-white/80 border-b border-[#0B1F3A]/15 px-4 sm:px-6 py-2 text-[11px] font-mono-tabular text-slate-600 flex flex-wrap items-center justify-between gap-2">
             <span>
-              <strong>Database Unreachable ({systemStatus.database_error_type || 'connection error'}):</strong>{' '}
-              Stateless compilation, adversarial simulation, snapshot verification, reconciliation, and blast-radius computation are operational. Persisted storage requires a live PostgreSQL <code className="font-mono-tabular">DATABASE_URL</code>.
+              <strong className="text-amber-800">STATELESS ENGINE MODE:</strong> Compile, simulation, repair verification, reconciliation, blast radius &amp; guardian run live. Configure PostgreSQL <code className="text-[#0B1F3A]">DATABASE_URL</code> for persistence.
             </span>
           </div>
         )}

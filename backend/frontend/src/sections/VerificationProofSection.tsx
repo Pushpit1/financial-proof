@@ -5,6 +5,8 @@ import { createProof, evaluateProof } from '../api/proofs'
 import { platformApi } from '../api/platform'
 import type { VerificationResponse } from '../types/verification'
 import type { FinancialProofAggregate } from '../types/proof'
+import { MarginProofCard } from '../components/MarginProofCard'
+import { SectionHeader } from '../components/SectionHeader'
 import { StatusBadge } from '../components/StatusBadge'
 
 export function VerificationProofSection() {
@@ -144,105 +146,105 @@ export function VerificationProofSection() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-semibold text-[#0B1F3A]">
-          Deterministic Verification & Proof Builder
-        </h2>
-        <p className="text-sm text-slate-600">
-          Compare before/after repair snapshots for zero regressions, bind claims to cryptographic
-          evidence, and export signed audit packets.
-        </p>
-      </div>
+      <SectionHeader
+        eyebrow="Section 5.0 // Repair Proof & Cryptographic Attestation"
+        title={
+          <>
+            Deterministic Verification &amp; Proof Builder (<span className="math-var">V<sub>after</sub> ⊆ V<sub>before</sub></span>)
+          </>
+        }
+        description="Compare before/after repair snapshots for zero regressions, bind claims to SHA-verified evidence, and export signed JSON, CSV, or Markdown audit dossiers."
+      />
 
       {error && (
-        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-800">
           {error}
         </div>
       )}
       {message && (
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs text-emerald-800">
           {message}
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-12 items-start">
         <form
           onSubmit={handleVerifySnapshots}
-          className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4"
+          className="lg:col-span-5 bg-white border border-[#0B1F3A]/20 rounded-xl p-5 distill-card space-y-4"
         >
-          <div className="flex items-center gap-2 text-[#0B1F3A] font-semibold">
-            <Scale className="w-4 h-4 text-emerald-600" />
-            <span>Repair Snapshot Regression Check</span>
+          <div className="flex items-center gap-2 text-xs font-mono-tabular font-bold text-[#0B1F3A] pb-2.5 border-b border-slate-200">
+            <Scale className="w-4 h-4 text-[#047857]" />
+            <span>REPAIR SNAPSHOT REGRESSION CHECK</span>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">
-                Before Net Balance (minor)
+              <label className="block text-[11px] font-mono-tabular text-slate-600 mb-1">
+                Before Net (minor)
               </label>
               <input
                 type="number"
                 value={beforeNet}
                 onChange={(e) => setBeforeNet(Number(e.target.value))}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono-tabular"
+                className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">
-                After Net Balance (minor)
+              <label className="block text-[11px] font-mono-tabular text-slate-600 mb-1">
+                After Net (minor)
               </label>
               <input
                 type="number"
                 value={afterNet}
                 onChange={(e) => setAfterNet(Number(e.target.value))}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono-tabular"
+                className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">
+              <label className="block text-[11px] font-mono-tabular text-slate-600 mb-1">
                 Before Refunded (minor)
               </label>
               <input
                 type="number"
                 value={beforeRefunded}
                 onChange={(e) => setBeforeRefunded(Number(e.target.value))}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono-tabular"
+                className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">
+              <label className="block text-[11px] font-mono-tabular text-slate-600 mb-1">
                 After Refunded (minor)
               </label>
               <input
                 type="number"
                 value={afterRefunded}
                 onChange={(e) => setAfterRefunded(Number(e.target.value))}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono-tabular"
+                className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">
-                Captured Amount (minor)
+              <label className="block text-[11px] font-mono-tabular text-slate-600 mb-1">
+                Captured (minor)
               </label>
               <input
                 type="number"
                 value={capturedAmount}
                 onChange={(e) => setCapturedAmount(Number(e.target.value))}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono-tabular"
+                className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">
-                Before Violations (CSV)
+              <label className="block text-[11px] font-mono-tabular text-slate-600 mb-1">
+                Before Violations
               </label>
               <input
                 type="text"
                 value={beforeViolations}
                 onChange={(e) => setBeforeViolations(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono-tabular"
+                className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
               />
             </div>
             <div className="col-span-2">
-              <label className="block text-xs font-medium text-slate-700 mb-1">
+              <label className="block text-[11px] font-mono-tabular text-slate-600 mb-1">
                 After Violations (CSV)
               </label>
               <input
@@ -250,34 +252,34 @@ export function VerificationProofSection() {
                 value={afterViolations}
                 onChange={(e) => setAfterViolations(e.target.value)}
                 placeholder="Empty when all violations are resolved"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono-tabular"
+                className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
               />
             </div>
           </div>
           <button
             type="submit"
             disabled={busy}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#0B1F3A] px-4 py-2 text-sm font-medium text-white hover:bg-[#132f57] disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-md bg-[#0B1F3A] px-4 py-2 text-xs font-medium text-white hover:bg-[#14335c] disabled:opacity-50"
           >
-            <Scale className="w-4 h-4" />
+            <Scale className="w-3.5 h-3.5" />
             Verify Repair
           </button>
 
           {verifyResult && (
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-2 text-xs">
+            <div className="rounded-lg border border-[#0B1F3A]/20 bg-[#FAF9F6] p-4 space-y-2 text-xs font-mono-tabular">
               <div className="flex items-center justify-between">
-                <span className="font-semibold text-[#0B1F3A]">Verification Verdict</span>
+                <span className="font-bold text-[#0B1F3A]">VERIFICATION VERDICT</span>
                 <StatusBadge value={verifyResult.result.passed ? 'passed' : 'failed'} />
               </div>
-              <p className="font-mono-tabular text-slate-700">
-                Regression Detected: {String(verifyResult.result.regression_detected)} | Resolved:{' '}
-                {verifyResult.comparison.resolved_violations.length} | Introduced:{' '}
+              <p className="text-slate-700">
+                Regression: {String(verifyResult.result.regression_detected)} · Resolved:{' '}
+                {verifyResult.comparison.resolved_violations.length} · Introduced:{' '}
                 {verifyResult.comparison.introduced_violations.length}
               </p>
               {verifyResult.result.violations.map((v, i) => (
                 <div
                   key={i}
-                  className="rounded border border-rose-200 bg-rose-50 p-2 text-rose-800 font-mono-tabular"
+                  className="rounded border border-rose-200 bg-rose-50 p-2 text-rose-800"
                 >
                   {v}
                 </div>
@@ -288,28 +290,28 @@ export function VerificationProofSection() {
 
         <form
           onSubmit={handleCreateAndEvaluateProof}
-          className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4"
+          className="lg:col-span-4 bg-white border border-[#0B1F3A]/20 rounded-xl p-5 distill-card space-y-4"
         >
-          <div className="flex items-center gap-2 text-[#0B1F3A] font-semibold">
-            <FileCheck2 className="w-4 h-4 text-emerald-600" />
-            <span>Financial Proof Builder & Export</span>
+          <div className="flex items-center gap-2 text-xs font-mono-tabular font-bold text-[#0B1F3A] pb-2.5 border-b border-slate-200">
+            <FileCheck2 className="w-4 h-4 text-[#047857]" />
+            <span>PROOF BUILDER &amp; EXPORT</span>
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">Subject</label>
+            <label className="block text-[11px] font-mono-tabular text-slate-600 mb-1">Subject</label>
             <input
               type="text"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono-tabular"
+              className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">Claim Type</label>
+              <label className="block text-[11px] font-mono-tabular text-slate-600 mb-1">Claim Type</label>
               <select
                 value={claimType}
                 onChange={(e) => setClaimType(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white"
+                className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
               >
                 <option value="balance">balance</option>
                 <option value="transaction">transaction</option>
@@ -319,13 +321,13 @@ export function VerificationProofSection() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">
+              <label className="block text-[11px] font-mono-tabular text-slate-600 mb-1">
                 Evidence Type
               </label>
               <select
                 value={evidenceType}
                 onChange={(e) => setEvidenceType(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white"
+                className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
               >
                 <option value="accounting_record">accounting_record</option>
                 <option value="bank_statement">bank_statement</option>
@@ -336,54 +338,54 @@ export function VerificationProofSection() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">Claim Amount</label>
+              <label className="block text-[11px] font-mono-tabular text-slate-600 mb-1">Claim Amount</label>
               <input
                 type="number"
                 value={claimAmount}
                 onChange={(e) => setClaimAmount(Number(e.target.value))}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono-tabular"
+                className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">Currency</label>
+              <label className="block text-[11px] font-mono-tabular text-slate-600 mb-1">Currency</label>
               <input
                 type="text"
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value.toUpperCase())}
                 maxLength={3}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono-tabular"
+                className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
               />
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">
+            <label className="block text-[11px] font-mono-tabular text-slate-600 mb-1">
               Supporting Evidence Source
             </label>
             <input
               type="text"
               value={evidenceSource}
               onChange={(e) => setEvidenceSource(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono-tabular"
+              className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
             />
           </div>
           <button
             type="submit"
             disabled={busy}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#0B1F3A] px-4 py-2 text-sm font-medium text-white hover:bg-[#132f57] disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-md bg-[#0B1F3A] px-4 py-2 text-xs font-medium text-white hover:bg-[#14335c] disabled:opacity-50"
           >
-            <FileCheck2 className="w-4 h-4" />
-            Create & Evaluate Proof
+            <FileCheck2 className="w-3.5 h-3.5" />
+            Create &amp; Evaluate Proof
           </button>
 
           {proofAgg && (
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-3 text-xs">
+            <div className="rounded-lg border border-[#0B1F3A]/20 bg-[#FAF9F6] p-4 space-y-3 text-xs font-mono-tabular">
               <div className="flex items-center justify-between">
-                <span className="font-mono-tabular font-semibold text-[#0B1F3A]">
-                  Proof {proofAgg.proof.id}
+                <span className="font-bold text-[#0B1F3A]">
+                  Proof {proofAgg.proof.id.slice(0, 8)}
                 </span>
                 <StatusBadge value={proofAgg.proof.status} />
               </div>
-              <div className="font-mono-tabular text-slate-700">
+              <div className="text-slate-700">
                 Confidence: {Number(proofAgg.proof.overall_confidence).toFixed(2)} | Claims:{' '}
                 {proofAgg.claims.length} | Evidence: {proofAgg.evidence.length}
               </div>
@@ -393,21 +395,35 @@ export function VerificationProofSection() {
                     key={fmt}
                     type="button"
                     onClick={() => void handleExport(fmt)}
-                    className="inline-flex items-center gap-1.5 rounded border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100"
+                    className="inline-flex items-center gap-1.5 rounded border border-[#0B1F3A]/25 bg-white px-2.5 py-1 text-xs font-medium text-[#0B1F3A] hover:bg-slate-50"
                   >
                     <Download className="w-3.5 h-3.5" />
-                    Export {fmt.toUpperCase()}
+                    {fmt.toUpperCase()}
                   </button>
                 ))}
               </div>
               {exportedReport && (
-                <pre className="rounded bg-white border border-slate-200 p-3 overflow-x-auto max-h-56 font-mono-tabular text-[11px]">
+                <pre className="rounded bg-white border border-slate-200 p-3 overflow-x-auto max-h-56 text-[11px]">
                   {exportedReport}
                 </pre>
               )}
             </div>
           )}
         </form>
+
+        <aside className="lg:col-span-3">
+          <MarginProofCard
+            sectionCode="SEC. 5.0"
+            axiomLines={
+              <>
+                <div>Verify(S₀, S₁) ⇒ ΔViolations ≤ 0</div>
+                <div className="text-emerald-300">Regression: Prohibited</div>
+                <div className="text-amber-300">Export: JSON · CSV · .MD</div>
+              </>
+            }
+            note="Snapshot diffing runs deterministically in-memory; persisting FinancialProof graphs uses PostgreSQL when connected."
+          />
+        </aside>
       </div>
     </div>
   )

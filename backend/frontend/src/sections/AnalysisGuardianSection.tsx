@@ -7,6 +7,8 @@ import {
   type GuardianEvaluateResponse,
   type InvestigationResponse,
 } from '../api/platform'
+import { MarginProofCard } from '../components/MarginProofCard'
+import { SectionHeader } from '../components/SectionHeader'
 import { StatusBadge } from '../components/StatusBadge'
 
 interface AnalysisGuardianSectionProps {
@@ -117,113 +119,113 @@ export function AnalysisGuardianSection({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-semibold text-[#0B1F3A]">
-          Blast Radius, Bounded AI Investigation & Runtime Guardian
-        </h2>
-        <p className="text-sm text-slate-600">
-          Quantify deterministic financial exposure, run read-only AI root-cause investigation
-          (advisory only), and enforce pre-execution Runtime Guardian policy gates.
-        </p>
-      </div>
+      <SectionHeader
+        eyebrow="Section 6.0 // Monetary Exposure, AI Advisory & Runtime Policy"
+        title={
+          <>
+            Blast Radius, AI Investigation &amp; Guardian (<span className="math-var">E<sub>max</sub></span>)
+          </>
+        }
+        description="Quantify exact Decimal exposure, execute read-only AI root-cause inspection (advisory only), and enforce pre-settlement ALLOW / BLOCK / REVIEW boundaries."
+      />
 
       {error && (
-        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-800">
           {error}
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-12 items-start">
         <form
           onSubmit={handleBlastRadius}
-          className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4"
+          className="lg:col-span-5 bg-white border border-[#0B1F3A]/20 rounded-xl p-5 distill-card space-y-4"
         >
-          <div className="flex items-center gap-2 text-[#0B1F3A] font-semibold">
+          <div className="flex items-center gap-2 text-xs font-mono-tabular font-bold text-[#0B1F3A] pb-2.5 border-b border-slate-200">
             <TriangleAlert className="w-4 h-4 text-rose-600" />
-            <span>Financial Blast Radius</span>
+            <span>FINANCIAL BLAST RADIUS</span>
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">
+            <label className="block text-[11px] font-mono-tabular text-slate-600 mb-1">
               Contract Policy Rule
             </label>
             <input
               type="text"
               value={sourceText}
               onChange={(e) => setSourceText(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs"
             />
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">
-                Payment Amount
+              <label className="block text-[11px] font-mono-tabular text-slate-600 mb-1">
+                Payment
               </label>
               <input
                 type="text"
                 value={paymentAmount}
                 onChange={(e) => setPaymentAmount(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono-tabular"
+                className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">
-                Refund Amount
+              <label className="block text-[11px] font-mono-tabular text-slate-600 mb-1">
+                Refund
               </label>
               <input
                 type="text"
                 value={refundAmount}
                 onChange={(e) => setRefundAmount(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono-tabular"
+                className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">Currency</label>
+              <label className="block text-[11px] font-mono-tabular text-slate-600 mb-1">Currency</label>
               <input
                 type="text"
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value.toUpperCase())}
                 maxLength={3}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono-tabular"
+                className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
               />
             </div>
           </div>
           <button
             type="submit"
             disabled={busy}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#0B1F3A] px-4 py-2 text-sm font-medium text-white hover:bg-[#132f57] disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-md bg-[#0B1F3A] px-4 py-2 text-xs font-medium text-white hover:bg-[#14335c] disabled:opacity-50"
           >
             Calculate Exposure
           </button>
 
           {blastResult && (
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-3 text-xs">
+            <div className="rounded-lg border border-[#0B1F3A]/20 bg-[#FAF9F6] p-4 space-y-3 text-xs">
               <div className="flex items-center justify-between">
-                <span className="font-semibold text-[#0B1F3A]">Exposure Verdict</span>
+                <span className="font-mono-tabular font-bold text-[#0B1F3A]">EXPOSURE VERDICT</span>
                 <StatusBadge value={blastResult.passed ? 'passed' : 'failed'} />
               </div>
               <div className="grid grid-cols-3 gap-2 font-mono-tabular">
                 <div>
                   <span className="text-slate-500 block">Direct Loss</span>
-                  <span className="text-sm font-semibold text-rose-700">
+                  <span className="text-sm font-bold text-rose-700">
                     {blastResult.total_direct_loss} {blastResult.currency}
                   </span>
                 </div>
                 <div>
-                  <span className="text-slate-500 block">Actual Exposure</span>
-                  <span className="text-sm font-semibold text-amber-700">
+                  <span className="text-slate-500 block">Actual</span>
+                  <span className="text-sm font-bold text-amber-700">
                     {blastResult.total_actual_exposure} {blastResult.currency}
                   </span>
                 </div>
                 <div>
-                  <span className="text-slate-500 block">Max Exposure</span>
-                  <span className="text-sm font-semibold text-[#0B1F3A]">
+                  <span className="text-slate-500 block">Max</span>
+                  <span className="text-sm font-bold text-[#0B1F3A]">
                     {blastResult.total_maximum_exposure} {blastResult.currency}
                   </span>
                 </div>
               </div>
               {blastResult.exposures.map((exp) => (
                 <div key={exp.id} className="rounded border border-slate-200 bg-white p-2">
-                  <div className="font-mono-tabular font-medium text-slate-800">
+                  <div className="font-mono-tabular font-semibold text-[#0B1F3A]">
                     {exp.field || 'contract'}: {exp.amount} {exp.currency}
                   </div>
                   <div className="text-slate-600">{exp.explanation}</div>
@@ -235,122 +237,134 @@ export function AnalysisGuardianSection({
 
         <form
           onSubmit={handleInvestigation}
-          className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4"
+          className="lg:col-span-4 bg-white border border-[#0B1F3A]/20 rounded-xl p-5 distill-card space-y-4"
         >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-[#0B1F3A] font-semibold">
-              <Bot className="w-4 h-4 text-emerald-600" />
-              <span>Bounded AI Investigation</span>
+          <div className="flex items-center justify-between pb-2.5 border-b border-slate-200">
+            <div className="flex items-center gap-2 text-xs font-mono-tabular font-bold text-[#0B1F3A]">
+              <Bot className="w-4 h-4 text-[#047857]" />
+              <span>BOUNDED AI INVESTIGATION</span>
             </div>
             <StatusBadge value="advisory" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">
+            <label className="block text-[11px] font-mono-tabular text-slate-600 mb-1">
               Violation / Anomaly Summary
             </label>
             <textarea
               rows={3}
               value={violationSummary}
               onChange={(e) => setViolationSummary(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs"
             />
           </div>
           <button
             type="submit"
             disabled={busy}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#0B1F3A] px-4 py-2 text-sm font-medium text-white hover:bg-[#132f57] disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-md bg-[#0B1F3A] px-4 py-2 text-xs font-medium text-white hover:bg-[#14335c] disabled:opacity-50"
           >
             Run Read-Only Investigation
           </button>
 
           {investigation && (
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 space-y-3 text-xs">
+            <div className="rounded-lg border border-[#0B1F3A]/20 bg-[#FAF9F6] p-4 space-y-3 text-xs">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="font-semibold text-[#0B1F3A]">
+                <span className="font-mono-tabular font-bold text-[#0B1F3A]">
                   Investigation {investigation.investigation_id.slice(0, 8)}
                 </span>
-                <span className="rounded bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-900">
-                  ai_advisory_only={String(investigation.ai_advisory_only)} | overrides_deterministic=
-                  {String(investigation.overrides_deterministic_verification)}
+                <span className="rounded bg-amber-100 px-2 py-0.5 text-[10px] font-mono-tabular font-semibold text-amber-900">
+                  ai_advisory_only={String(investigation.ai_advisory_only)}
                 </span>
               </div>
               <p className="text-slate-800">{investigation.summary}</p>
               <div className="rounded border border-slate-200 bg-white p-2.5">
-                <div className="font-semibold text-slate-700 mb-1">Root Cause Hypothesis</div>
+                <div className="font-mono-tabular font-bold text-[#0B1F3A] mb-1">Root Cause Hypothesis</div>
                 <p className="text-slate-600">{investigation.root_cause_hypothesis}</p>
               </div>
-              <div>
-                <div className="font-semibold text-slate-700 mb-1">Recommended Remediations</div>
-                <ul className="list-disc pl-4 space-y-1 text-slate-700">
-                  {investigation.recommended_actions.map((action, idx) => (
-                    <li key={idx}>{action}</li>
-                  ))}
-                </ul>
-              </div>
+              <ul className="list-disc pl-4 space-y-1 text-slate-700">
+                {investigation.recommended_actions.map((action, idx) => (
+                  <li key={idx}>{action}</li>
+                ))}
+              </ul>
             </div>
           )}
         </form>
+
+        <aside className="lg:col-span-3">
+          <MarginProofCard
+            sectionCode="SEC. 6.0"
+            badge="advisory"
+            axiomLines={
+              <>
+                <div>ai_advisory_only = true</div>
+                <div className="text-emerald-300">override_truth = false</div>
+                <div className="text-amber-300">Tools: Read-Only Sandbox</div>
+              </>
+            }
+            note="Investigation tools never mutate ledger records or override deterministic Guardian evaluations."
+          />
+        </aside>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
-        <div className="flex items-center gap-2 text-[#0B1F3A] font-semibold">
-          <ShieldCheck className="w-4 h-4 text-emerald-600" />
-          <span>Runtime Guardian Policy Gate</span>
+      <div className="bg-white border border-[#0B1F3A]/20 rounded-xl p-5 distill-card space-y-4">
+        <div className="flex items-center gap-2 text-xs font-mono-tabular font-bold text-[#0B1F3A] pb-2.5 border-b border-slate-200">
+          <ShieldCheck className="w-4 h-4 text-[#047857]" />
+          <span>RUNTIME GUARDIAN POLICY GATE</span>
         </div>
         <form onSubmit={handleGuardianEvaluate} className="grid gap-3 sm:grid-cols-5 items-end">
           <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">Operation</label>
+            <label className="block text-[11px] font-mono-tabular text-slate-600 mb-1">Operation</label>
             <input
               type="text"
               value={operation}
               onChange={(e) => setOperation(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono-tabular"
+              className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">Actor ID</label>
+            <label className="block text-[11px] font-mono-tabular text-slate-600 mb-1">Actor ID</label>
             <input
               type="text"
               value={actorId}
               onChange={(e) => setActorId(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono-tabular"
+              className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">
+            <label className="block text-[11px] font-mono-tabular text-slate-600 mb-1">
               Amount (minor)
             </label>
             <input
               type="number"
               value={amountMinor}
               onChange={(e) => setAmountMinor(Number(e.target.value))}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono-tabular"
+              className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">
+            <label className="block text-[11px] font-mono-tabular text-slate-600 mb-1">
               Original Payment
             </label>
             <input
               type="number"
               value={paymentAmountMinor}
               onChange={(e) => setPaymentAmountMinor(Number(e.target.value))}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono-tabular"
+              className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
             />
           </div>
           <div className="flex items-center gap-3">
-            <label className="inline-flex items-center gap-1.5 text-xs text-slate-700">
+            <label className="inline-flex items-center gap-1.5 text-xs text-slate-700 font-mono-tabular">
               <input
                 type="checkbox"
                 checked={duplicateDetected}
                 onChange={(e) => setDuplicateDetected(e.target.checked)}
+                className="accent-[#0B1F3A]"
               />
-              Duplicate
+              Dup
             </label>
             <button
               type="submit"
               disabled={busy}
-              className="rounded-lg bg-[#0B1F3A] px-4 py-2 text-sm font-medium text-white hover:bg-[#132f57] disabled:opacity-50"
+              className="rounded-md bg-[#0B1F3A] px-4 py-2 text-xs font-medium text-white hover:bg-[#14335c] disabled:opacity-50"
             >
               Evaluate
             </button>
@@ -358,10 +372,10 @@ export function AnalysisGuardianSection({
         </form>
 
         {guardianRes && (
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div className="rounded-lg border border-[#0B1F3A]/20 bg-[#FAF9F6] p-3 flex flex-wrap items-center justify-between gap-2 text-xs">
             <div className="flex items-center gap-2">
               <StatusBadge value={guardianRes.decision} />
-              <span className="font-mono-tabular font-semibold text-[#0B1F3A]">
+              <span className="font-mono-tabular font-bold text-[#0B1F3A]">
                 {guardianRes.rule}
               </span>
               <span className="text-slate-600">{guardianRes.reason}</span>
@@ -376,7 +390,7 @@ export function AnalysisGuardianSection({
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="border-b border-slate-200 text-left text-slate-500">
+                <tr className="border-b border-slate-200 text-left font-mono-tabular text-slate-500">
                   <th className="py-2 pr-3">Actor</th>
                   <th className="py-2 pr-3">Operation</th>
                   <th className="py-2 pr-3">Decision</th>
