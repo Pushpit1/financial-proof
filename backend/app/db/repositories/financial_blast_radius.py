@@ -1,5 +1,6 @@
 from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.application.ports.financial_blast_radius import (
@@ -39,7 +40,7 @@ class SqlAlchemyFinancialBlastRadiusRepository(
         from app.db.mappers.financial_blast_radius import (
             financial_blast_radius_to_domain,
         )
-        from app.db.models.financial_blast_radius import (
+        from app.db.models.financial import (
             FinancialBlastRadiusModel,
         )
 
@@ -52,3 +53,27 @@ class SqlAlchemyFinancialBlastRadiusRepository(
             return None
 
         return financial_blast_radius_to_domain(model)
+
+    def list_all(
+        self,
+        *,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[FinancialBlastRadius]:
+        """List persisted blast-radius analyses."""
+        from app.db.mappers.financial_blast_radius import (
+            financial_blast_radius_to_domain,
+        )
+        from app.db.models.financial import (
+            FinancialBlastRadiusModel,
+        )
+
+        statement = (
+            select(FinancialBlastRadiusModel)
+            .limit(limit)
+            .offset(offset)
+        )
+        return [
+            financial_blast_radius_to_domain(model)
+            for model in self.session.scalars(statement).all()
+        ]

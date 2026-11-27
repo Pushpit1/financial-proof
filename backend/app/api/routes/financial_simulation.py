@@ -191,6 +191,26 @@ def _build_attack(simulation: PaymentSimulation, request: AttackRequest):
     raise ValueError(f"Unsupported attack type: {request.attack_type}")
 
 
+@router.get(
+    "",
+    response_model=list[SimulationResponse],
+    status_code=status.HTTP_200_OK,
+)
+async def list_simulations() -> list[SimulationResponse]:
+    """List active in-memory deterministic payment simulations."""
+    return [
+        SimulationResponse(
+            id=sim.id,
+            seed=sim.seed,
+            amount_minor=sim.initial_payment.amount_minor,
+            currency=sim.initial_payment.currency,
+            events=[_event_response(event) for event in sim.events],
+            result=_result_response(PaymentSimulationRunner.run(sim)),
+        )
+        for sim in _simulations.values()
+    ]
+
+
 @router.post(
     "",
     response_model=SimulationResponse,

@@ -38,3 +38,12 @@ class FinancialContractRepository(ABC):
     ) -> list[FinancialContract]:
         """Retrieve all versions of a financial contract."""
         raise NotImplementedError
+
+    def list_all(
+        self,
+        *,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[FinancialContract]:
+        """Retrieve a page of persisted financial contracts."""
+        raise NotImplementedError

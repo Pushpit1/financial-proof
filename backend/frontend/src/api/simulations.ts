@@ -12,6 +12,10 @@ export function createSimulation(
   return apiClient.post<Simulation>('/simulations', request)
 }
 
+export function listSimulations(): Promise<Simulation[]> {
+  return apiClient.get<Simulation[]>('/simulations')
+}
+
 export function getSimulation(
   simulationId: string,
 ): Promise<Simulation> {

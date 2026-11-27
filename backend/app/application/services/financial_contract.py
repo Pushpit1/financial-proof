@@ -57,6 +57,15 @@ class FinancialContractApplicationService:
         """List all versions of a financial contract."""
         return self.repository.list_by_name(name)
 
+    def list_contracts(
+        self,
+        *,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[FinancialContract]:
+        """List persisted financial contracts."""
+        return self.repository.list_all(limit=limit, offset=offset)
+
     def require_contract_version(
         self,
         name: str,

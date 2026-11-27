@@ -80,3 +80,25 @@ class FinancialContractRepository(
             for model in self.session.scalars(statement).all()
         ]
 
+    def list_all(
+        self,
+        *,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[FinancialContract]:
+        """List persisted financial contracts ordered by name and version."""
+        statement = (
+            select(FinancialContractModel)
+            .order_by(
+                FinancialContractModel.name.asc(),
+                FinancialContractModel.version.desc(),
+            )
+            .limit(limit)
+            .offset(offset)
+        )
+
+        return [
+            financial_contract_to_domain(model)
+            for model in self.session.scalars(statement).all()
+        ]
+

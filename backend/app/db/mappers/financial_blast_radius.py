@@ -1,6 +1,6 @@
 """Mappings between blast-radius domain objects and persistence models."""
 
-from app.db.models.financial_blast_radius import (
+from app.db.models.financial import (
     FinancialBlastRadiusModel,
     FinancialExposureModel,
 )

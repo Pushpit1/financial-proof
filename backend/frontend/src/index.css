@@ -1,5 +1,23 @@
-html,
-body,
-#root {
-  min-height: 100%;
+@import "tailwindcss";
+
+:root {
+  --fp-bg: #f9f8f5;
+  --fp-surface: #ffffff;
+  --fp-ink: #0f172a;
+  --fp-muted: #475569;
+  --fp-border: #e2e8f0;
+  --fp-navy: #1e3a5f;
+  --fp-emerald: #047857;
+}
+
+body {
+  background-color: var(--fp-bg);
+  color: var(--fp-ink);
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-mono-tabular {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
 }

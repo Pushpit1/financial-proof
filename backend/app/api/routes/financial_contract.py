@@ -2,7 +2,7 @@
 
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.api.dependencies import get_financial_contract_service
 from app.application.services.financial_contract import (
@@ -68,6 +68,22 @@ def _request_to_domain(
         ),
         required_claim_types=required_claim_types,
     )
+
+
+@router.get(
+    "",
+    response_model=list[FinancialContractResponse],
+)
+async def list_contracts(
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    service: FinancialContractApplicationService = Depends(  # noqa: B008
+        get_financial_contract_service
+    ),
+) -> list[FinancialContractResponse]:
+    """List persisted financial contracts."""
+    contracts = service.list_contracts(limit=limit, offset=offset)
+    return [_contract_to_response(contract) for contract in contracts]
 
 
 @router.post(
