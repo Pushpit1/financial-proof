@@ -64,7 +64,6 @@ export function App() {
       byName.set(s.subject, s)
     }
     const ensure = new Set<string>([
-      ...DEFAULT_SUBJECTS,
       ...customSubjects,
       workspaceSubject.trim(),
     ])
@@ -78,6 +77,15 @@ export function App() {
           latest_confidence: '0.00',
         })
       }
+    }
+    if (byName.size === 0) {
+      byName.set('merchant-settlement-q1', {
+        subject: 'merchant-settlement-q1',
+        proof_count: 0,
+        ready_count: 0,
+        latest_status: 'new',
+        latest_confidence: '0.00',
+      })
     }
     return Array.from(byName.values()).sort((a, b) =>
       a.subject.localeCompare(b.subject),
@@ -97,22 +105,31 @@ export function App() {
     setWorkspaceSubject(clean)
   }, [])
 
-  const removeCustomSubject = useCallback(
-    (name: string) => {
-      setCustomSubjects((prev) => {
-        const next = prev.filter((item) => item !== name)
-        const finalNext = next.length > 0 ? next : DEFAULT_SUBJECTS
-        if (typeof window !== 'undefined') {
-          window.localStorage.setItem(CUSTOM_SUBJECTS_KEY, JSON.stringify(finalNext))
-        }
-        return finalNext
-      })
+  const deleteSubject = useCallback(
+    async (name: string) => {
+      await platformApi.deleteSubject(name)
+      const remainingDb = dbSubjects.filter((s) => s.subject !== name)
+      setDbSubjects(remainingDb)
+
+      const remainingCustom = customSubjects.filter((item) => item !== name)
+      const fallback =
+        remainingDb.find((s) => s.subject !== name)?.subject ||
+        remainingCustom[0] ||
+        'merchant-settlement-q1'
+      const nextCustom =
+        remainingCustom.length > 0 || remainingDb.length > 0
+          ? remainingCustom
+          : [fallback]
+
+      setCustomSubjects(nextCustom)
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(CUSTOM_SUBJECTS_KEY, JSON.stringify(nextCustom))
+      }
       if (workspaceSubject === name) {
-        const fallback = subjects.find((s) => s.subject !== name)?.subject || 'merchant-settlement-q1'
         setWorkspaceSubject(fallback)
       }
     },
-    [workspaceSubject, subjects],
+    [workspaceSubject, dbSubjects, customSubjects],
   )
 
   return view === 'landing' ? (
@@ -132,6 +149,7 @@ export function App() {
       subjects={subjects}
       onChangeSubject={setWorkspaceSubject}
       onAddSubject={addSubject}
+      onDeleteSubject={deleteSubject}
       systemStatus={systemStatus}
     >
       {activeSection === 'overview' && (
@@ -140,7 +158,7 @@ export function App() {
           subjects={subjects}
           onSelectSubject={setWorkspaceSubject}
           onAddSubject={addSubject}
-          onRemoveSubject={removeCustomSubject}
+          onRemoveSubject={deleteSubject}
           systemStatus={systemStatus}
           onRefreshSystem={async () => {
             await Promise.all([refreshSystem(), refreshSubjects()])

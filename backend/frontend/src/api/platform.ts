@@ -144,6 +144,11 @@ export interface SubjectSummary {
   latest_confidence: string
 }
 
+export interface SubjectDeleteResult {
+  subject: string
+  deleted_proofs: number
+}
+
 export const platformApi = {
   systemStatus: () => apiClient.get<SystemStatus>('/system/status'),
   listContracts: () => apiClient.get<FinancialContract[]>('/contracts'),
@@ -204,4 +209,6 @@ export const platformApi = {
       `/proofs?subject=${encodeURIComponent(subject)}`,
     ),
   listSubjects: () => apiClient.get<SubjectSummary[]>('/proofs/subjects'),
+  deleteSubject: (subject: string) =>
+    apiClient.delete<SubjectDeleteResult>(`/proofs/subjects/${encodeURIComponent(subject)}`),
 }

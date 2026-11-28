@@ -98,6 +98,12 @@ export const apiClient = {
     })
   },
 
+  delete<T>(path: string): Promise<T> {
+    return request<T>(path, {
+      method: 'DELETE',
+    })
+  },
+
   upload<T>(path: string, formData: FormData): Promise<T> {
     return request<T>(path, {
       method: 'POST',

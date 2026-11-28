@@ -190,6 +190,11 @@ class FinancialProofApplicationService:
         """Retrieve aggregated summaries for all persisted subjects."""
         return self.unit_of_work.financial_proofs.list_subject_summaries()
 
+    def delete_subject(self, subject: str) -> int:
+        """Delete a subject and all associated proof records."""
+        with self.unit_of_work:
+            return self.unit_of_work.financial_proofs.delete_subject(subject)
+
     def get_claim(
         self,
         claim_id: UUID,

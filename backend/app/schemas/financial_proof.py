@@ -226,3 +226,12 @@ class SubjectSummaryResponse(BaseModel):
     ready_count: int
     latest_status: str
     latest_confidence: Decimal
+
+
+class SubjectDeleteResponse(BaseModel):
+    """Result returned after deleting a subject and its persisted proofs."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    subject: str
+    deleted_proofs: int

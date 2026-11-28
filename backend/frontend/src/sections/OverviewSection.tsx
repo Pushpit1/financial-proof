@@ -17,7 +17,7 @@ interface OverviewSectionProps {
   subjects: SubjectSummary[]
   onSelectSubject: (subject: string) => void
   onAddSubject: (subject: string) => void
-  onRemoveSubject: (subject: string) => void
+  onRemoveSubject: (subject: string) => Promise<void> | void
   systemStatus: SystemStatus | null
   onRefreshSystem: () => Promise<void>
   onNavigate: (section: NavSection) => void
@@ -233,12 +233,22 @@ export function OverviewSection({
                       ACTIVE
                     </span>
                   )}
-                  {item.proof_count === 0 && subjects.length > 1 && (
+                  {subjects.length > 1 && (
                     <button
                       type="button"
-                      onClick={() => onRemoveSubject(item.subject)}
-                      title="Remove unused local subject"
-                      className={`p-1 rounded hover:bg-black/10 cursor-pointer ${active ? 'text-white/70 hover:text-white' : 'text-slate-500 hover:text-[#191919]'}`}
+                      onClick={() => {
+                        if (
+                          item.proof_count > 0 &&
+                          !window.confirm(
+                            `Delete subject "${item.subject}" and its ${item.proof_count} persisted proof(s)?`,
+                          )
+                        ) {
+                          return
+                        }
+                        void onRemoveSubject(item.subject)
+                      }}
+                      title="Delete subject"
+                      className={`p-1 rounded hover:bg-black/10 cursor-pointer ${active ? 'text-white/70 hover:text-[#FF6170]' : 'text-slate-500 hover:text-[#FF6170]'}`}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>

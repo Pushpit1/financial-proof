@@ -11,6 +11,7 @@ import {
   X,
   Home,
   Plus,
+  Trash2,
 } from 'lucide-react'
 import type { SubjectSummary, SystemStatus } from '../api/platform'
 import { StatusBadge } from './StatusBadge'
@@ -47,6 +48,7 @@ interface AppShellProps {
   subjects: SubjectSummary[]
   onChangeSubject: (subject: string) => void
   onAddSubject: (subject: string) => void
+  onDeleteSubject: (subject: string) => Promise<void>
   systemStatus: SystemStatus | null
   children: React.ReactNode
 }
@@ -59,6 +61,7 @@ export function AppShell({
   subjects,
   onChangeSubject,
   onAddSubject,
+  onDeleteSubject,
   systemStatus,
   children,
 }: AppShellProps) {
@@ -123,17 +126,39 @@ export function AppShell({
           </button>
         </div>
 
-        <select
-          value={workspaceSubject}
-          onChange={(e) => onChangeSubject(e.target.value)}
-          className="w-full px-2.5 py-1.5 rounded-lg border border-white/20 bg-black/40 text-xs font-mono-tabular text-white focus:outline-none focus:border-[#FF6170]"
-        >
-          {subjects.map((s) => (
-            <option key={s.subject} value={s.subject} className="bg-[#191919] text-white">
-              {s.subject} ({s.proof_count} {s.proof_count === 1 ? 'proof' : 'proofs'})
-            </option>
-          ))}
-        </select>
+        <div className="flex gap-1.5">
+          <select
+            value={workspaceSubject}
+            onChange={(e) => onChangeSubject(e.target.value)}
+            className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-white/20 bg-black/40 text-xs font-mono-tabular text-white focus:outline-none focus:border-[#FF6170]"
+          >
+            {subjects.map((s) => (
+              <option key={s.subject} value={s.subject} className="bg-[#191919] text-white">
+                {s.subject} ({s.proof_count} {s.proof_count === 1 ? 'proof' : 'proofs'})
+              </option>
+            ))}
+          </select>
+          {subjects.length > 1 && (
+            <button
+              type="button"
+              onClick={() => {
+                const cur = subjects.find((s) => s.subject === workspaceSubject)
+                if (
+                  cur &&
+                  cur.proof_count > 0 &&
+                  !window.confirm(`Delete subject "${cur.subject}" and its ${cur.proof_count} persisted proof(s)?`)
+                ) {
+                  return
+                }
+                void onDeleteSubject(workspaceSubject)
+              }}
+              title="Delete active subject"
+              className="px-2 py-1.5 rounded-lg border border-white/20 text-white/70 hover:text-[#FF6170] hover:border-[#FF6170] cursor-pointer"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
 
         {creatingSubject && (
           <form onSubmit={handleAddSubject} className="flex gap-1.5 pt-1">

@@ -2,7 +2,7 @@
 
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import delete, or_, select
 from sqlalchemy.orm import Session
 
 from app.application.ports.financial_proof import (
@@ -116,6 +116,70 @@ class SqlAlchemyFinancialProofRepository(
                 bucket["latest_status"] = status_val
                 bucket["latest_confidence"] = model.overall_confidence
         return list(by_subject.values())
+
+    def delete_subject(self, subject: str) -> int:
+        """Delete all proofs, claims, evidence links, and evaluations for a subject."""
+        proof_ids = list(
+            self.session.scalars(
+                select(FinancialProofModel.id).where(
+                    FinancialProofModel.subject == subject
+                )
+            ).all()
+        )
+        claim_filters = [FinancialClaimModel.subject == subject]
+        if proof_ids:
+            claim_filters.append(FinancialClaimModel.proof_id.in_(proof_ids))
+
+        claim_ids = list(
+            self.session.scalars(
+                select(FinancialClaimModel.id).where(or_(*claim_filters))
+            ).all()
+        )
+        evidence_ids = (
+            list(
+                self.session.scalars(
+                    select(EvidenceModel.id).where(
+                        EvidenceModel.proof_id.in_(proof_ids)
+                    )
+                ).all()
+            )
+            if proof_ids
+            else []
+        )
+
+        link_filters = []
+        if claim_ids:
+            link_filters.append(EvidenceLinkModel.claim_id.in_(claim_ids))
+        if evidence_ids:
+            link_filters.append(EvidenceLinkModel.evidence_id.in_(evidence_ids))
+        if link_filters:
+            self.session.execute(delete(EvidenceLinkModel).where(or_(*link_filters)))
+
+        if proof_ids:
+            self.session.execute(
+                delete(ProofEvaluationModel).where(
+                    ProofEvaluationModel.proof_id.in_(proof_ids)
+                )
+            )
+        if claim_ids:
+            self.session.execute(
+                delete(FinancialClaimModel).where(
+                    FinancialClaimModel.id.in_(claim_ids)
+                )
+            )
+        if evidence_ids:
+            self.session.execute(
+                delete(EvidenceModel).where(EvidenceModel.id.in_(evidence_ids))
+            )
+        if proof_ids:
+            self.session.execute(
+                delete(FinancialProofModel).where(
+                    FinancialProofModel.id.in_(proof_ids)
+                )
+            )
+
+        self.session.flush()
+        return len(proof_ids)
 
     def add_claim(
         self,

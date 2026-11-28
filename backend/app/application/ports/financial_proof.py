@@ -39,6 +39,11 @@ class FinancialProofRepositoryPort(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def delete_subject(self, subject: str) -> int:
+        """Delete a subject and all proofs, claims, and links belonging to it."""
+        raise NotImplementedError
+
+    @abstractmethod
     def add_claim(
         self,
         claim: FinancialClaim,

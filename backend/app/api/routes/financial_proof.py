@@ -26,6 +26,7 @@ from app.schemas.financial_proof import (
     FinancialProofCreateRequest,
     FinancialProofResponse,
     ProofEvaluationResponse,
+    SubjectDeleteResponse,
     SubjectSummaryResponse,
 )
 
@@ -43,6 +44,27 @@ async def list_subjects(
 ) -> list[SubjectSummaryResponse]:
     """List distinct financial proof subjects and their summary counts."""
     return [SubjectSummaryResponse(**item) for item in service.list_subjects()]
+
+
+@router.delete(
+    "/subjects/{subject}",
+    response_model=SubjectDeleteResponse,
+)
+async def delete_subject(
+    subject: str,
+    service: FinancialProofApplicationService = Depends(  # noqa: B008
+        get_financial_proof_service
+    ),
+) -> SubjectDeleteResponse:
+    """Delete a subject and all associated persisted proofs."""
+    clean = subject.strip()
+    if not clean:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="subject must not be blank.",
+        )
+    deleted = service.delete_subject(clean)
+    return SubjectDeleteResponse(subject=clean, deleted_proofs=deleted)
 
 
 @router.get(
