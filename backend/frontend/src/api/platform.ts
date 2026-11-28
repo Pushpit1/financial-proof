@@ -136,6 +136,14 @@ export interface AuthStatus {
   role: string | null
 }
 
+export interface SubjectSummary {
+  subject: string
+  proof_count: number
+  ready_count: number
+  latest_status: string
+  latest_confidence: string
+}
+
 export const platformApi = {
   systemStatus: () => apiClient.get<SystemStatus>('/system/status'),
   listContracts: () => apiClient.get<FinancialContract[]>('/contracts'),
@@ -195,4 +203,5 @@ export const platformApi = {
     apiClient.get<Array<{ id: string; subject: string; status: string; overall_confidence: string }>>(
       `/proofs?subject=${encodeURIComponent(subject)}`,
     ),
+  listSubjects: () => apiClient.get<SubjectSummary[]>('/proofs/subjects'),
 }

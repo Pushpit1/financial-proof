@@ -186,6 +186,10 @@ class FinancialProofApplicationService:
         """Retrieve all financial proofs belonging to a subject."""
         return self.unit_of_work.financial_proofs.list_proofs(subject)
 
+    def list_subjects(self) -> list[dict[str, object]]:
+        """Retrieve aggregated summaries for all persisted subjects."""
+        return self.unit_of_work.financial_proofs.list_subject_summaries()
+
     def get_claim(
         self,
         claim_id: UUID,

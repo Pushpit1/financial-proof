@@ -26,9 +26,23 @@ from app.schemas.financial_proof import (
     FinancialProofCreateRequest,
     FinancialProofResponse,
     ProofEvaluationResponse,
+    SubjectSummaryResponse,
 )
 
 router = APIRouter(prefix="/proofs", tags=["financial-proof"])
+
+
+@router.get(
+    "/subjects",
+    response_model=list[SubjectSummaryResponse],
+)
+async def list_subjects(
+    service: FinancialProofApplicationService = Depends(  # noqa: B008
+        get_financial_proof_service
+    ),
+) -> list[SubjectSummaryResponse]:
+    """List distinct financial proof subjects and their summary counts."""
+    return [SubjectSummaryResponse(**item) for item in service.list_subjects()]
 
 
 @router.get(

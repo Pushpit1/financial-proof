@@ -11,8 +11,9 @@ import {
   X,
   Home,
   KeyRound,
+  Plus,
 } from 'lucide-react'
-import type { SystemStatus } from '../api/platform'
+import type { SubjectSummary, SystemStatus } from '../api/platform'
 import { StatusBadge } from './StatusBadge'
 
 export type NavSection =
@@ -46,7 +47,9 @@ interface AppShellProps {
   onOpenSignIn: () => void
   operatorLabel: string
   workspaceSubject: string
+  subjects: SubjectSummary[]
   onChangeSubject: (subject: string) => void
+  onAddSubject: (subject: string) => void
   systemStatus: SystemStatus | null
   children: React.ReactNode
 }
@@ -58,11 +61,24 @@ export function AppShell({
   onOpenSignIn,
   operatorLabel,
   workspaceSubject,
+  subjects,
   onChangeSubject,
+  onAddSubject,
   systemStatus,
   children,
 }: AppShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [creatingSubject, setCreatingSubject] = useState(false)
+  const [newSubjectName, setNewSubjectName] = useState('')
+
+  const handleAddSubject = (e: React.FormEvent) => {
+    e.preventDefault()
+    const clean = newSubjectName.trim()
+    if (!clean) return
+    onAddSubject(clean)
+    setNewSubjectName('')
+    setCreatingSubject(false)
+  }
 
   const sidebarContent = (
     <div className="flex flex-col h-full bg-[#191919] text-[#EBEBE6] border-r border-white/10">
@@ -96,16 +112,50 @@ export function AppShell({
         </button>
       </div>
 
-      <div className="p-3.5 border-b border-white/10 bg-white/5">
-        <label className="block text-[10px] font-mono-tabular uppercase tracking-wider text-white/55 mb-1.5">
-          Workspace Subject
-        </label>
-        <input
+      {/* Multi-Subject Switcher & Quick Creator */}
+      <div className="p-3.5 border-b border-white/10 bg-white/5 space-y-2">
+        <div className="flex items-center justify-between">
+          <label className="text-[10px] font-mono-tabular uppercase tracking-wider text-white/55">
+            Active Subject ({subjects.length})
+          </label>
+          <button
+            type="button"
+            onClick={() => setCreatingSubject((v) => !v)}
+            className="inline-flex items-center gap-1 text-[10px] font-mono-tabular text-[#FF6170] hover:underline cursor-pointer"
+          >
+            <Plus className="w-3 h-3" />
+            {creatingSubject ? 'Close' : 'New Subject'}
+          </button>
+        </div>
+
+        <select
           value={workspaceSubject}
           onChange={(e) => onChangeSubject(e.target.value)}
-          placeholder="merchant-settlement-q1"
-          className="w-full px-2.5 py-1.5 rounded-lg border border-white/20 bg-black/30 text-xs font-mono-tabular text-white focus:outline-none focus:border-[#FF6170]"
-        />
+          className="w-full px-2.5 py-1.5 rounded-lg border border-white/20 bg-black/40 text-xs font-mono-tabular text-white focus:outline-none focus:border-[#FF6170]"
+        >
+          {subjects.map((s) => (
+            <option key={s.subject} value={s.subject} className="bg-[#191919] text-white">
+              {s.subject} ({s.proof_count} {s.proof_count === 1 ? 'proof' : 'proofs'})
+            </option>
+          ))}
+        </select>
+
+        {creatingSubject && (
+          <form onSubmit={handleAddSubject} className="flex gap-1.5 pt-1">
+            <input
+              value={newSubjectName}
+              onChange={(e) => setNewSubjectName(e.target.value)}
+              placeholder="e.g. payout-batch-q2"
+              className="flex-1 min-w-0 px-2 py-1 rounded border border-white/25 bg-black/40 text-[11px] font-mono-tabular text-white focus:outline-none focus:border-[#FF6170]"
+            />
+            <button
+              type="submit"
+              className="px-2.5 py-1 rounded bg-[#FF6170] text-[#191919] text-[10px] font-bold uppercase cursor-pointer"
+            >
+              Add
+            </button>
+          </form>
+        )}
       </div>
 
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto text-xs">

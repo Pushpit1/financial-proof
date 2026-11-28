@@ -46,7 +46,7 @@ export function SignInModal({ open, initialEmail, onClose, onSignedIn }: SignInM
       >
         <div className="flex items-center justify-between pb-3 border-b border-[#191919]/10">
           <div>
-            <span className="t-pill">OPERATOR ACCESS</span>
+            <span className="t-pill">OPTIONAL OPERATOR ACCESS</span>
             <h3 className="text-xl font-medium mt-1.5 text-[#191919]">Sign in to Financial Proof</h3>
           </div>
           <button
@@ -57,6 +57,10 @@ export function SignInModal({ open, initialEmail, onClose, onSignedIn }: SignInM
             ESC
           </button>
         </div>
+
+        <p className="text-[11px] text-[#191919]/70 bg-[#F5F5F3] border border-[#C5C4B1] rounded-lg px-3 py-2">
+          <strong>Sign-In is optional:</strong> All verification, simulation, contract, and proof workflows run live without authentication. Enter a Bearer token only to test authenticated operator attribution.
+        </p>
 
         <div className="space-y-3 text-xs">
           <div>

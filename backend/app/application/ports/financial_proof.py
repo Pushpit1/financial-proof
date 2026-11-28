@@ -34,6 +34,11 @@ class FinancialProofRepositoryPort(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def list_subject_summaries(self) -> list[dict[str, object]]:
+        """List persisted subjects with aggregated proof counts and status."""
+        raise NotImplementedError
+
+    @abstractmethod
     def add_claim(
         self,
         claim: FinancialClaim,

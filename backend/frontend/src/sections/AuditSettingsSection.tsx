@@ -6,7 +6,7 @@ import { MarginProofCard } from '../components/MarginProofCard'
 import { SectionHeader } from '../components/SectionHeader'
 import { StatusBadge } from '../components/StatusBadge'
 
-const CATEGORIES = ['', 'contract', 'simulation', 'guardian', 'evidence']
+const CATEGORIES = ['', 'contract', 'simulation', 'guardian', 'evidence', 'proof']
 
 export function AuditSettingsSection() {
   const [category, setCategory] = useState('')
@@ -94,9 +94,13 @@ export function AuditSettingsSection() {
             {authStatus && (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono-tabular">
                 <div className="p-2.5 rounded bg-[#F5F5F3] border border-slate-200">
-                  <span className="text-slate-500 block">Auth Enforced</span>
+                  <span className="text-slate-500 block">Interactive Access</span>
                   <span className="font-bold text-[#191919]">
-                    {String(authStatus.auth_configured)}
+                    {authStatus.authenticated
+                      ? 'Signed In (Bearer)'
+                      : authStatus.auth_configured
+                        ? 'Open Demo (Sign-In Optional)'
+                        : 'Open'}
                   </span>
                 </div>
                 <div className="p-2.5 rounded bg-[#F5F5F3] border border-slate-200">

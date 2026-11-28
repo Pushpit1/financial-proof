@@ -91,6 +91,32 @@ class SqlAlchemyFinancialProofRepository(
             for model in self.session.scalars(statement).all()
         ]
 
+    def list_subject_summaries(self) -> list[dict[str, object]]:
+        """Aggregate persisted financial proof subjects with counts and latest status."""
+        statement = select(FinancialProofModel).order_by(
+            FinancialProofModel.subject.asc(),
+            FinancialProofModel.id.asc(),
+        )
+        by_subject: dict[str, dict[str, object]] = {}
+        for model in self.session.scalars(statement).all():
+            bucket = by_subject.get(model.subject)
+            status_val = model.status.value if hasattr(model.status, "value") else str(model.status)
+            if bucket is None:
+                by_subject[model.subject] = {
+                    "subject": model.subject,
+                    "proof_count": 1,
+                    "ready_count": 1 if status_val == "ready" else 0,
+                    "latest_status": status_val,
+                    "latest_confidence": model.overall_confidence,
+                }
+            else:
+                bucket["proof_count"] = int(bucket["proof_count"]) + 1  # type: ignore[arg-type]
+                if status_val == "ready":
+                    bucket["ready_count"] = int(bucket["ready_count"]) + 1  # type: ignore[arg-type]
+                bucket["latest_status"] = status_val
+                bucket["latest_confidence"] = model.overall_confidence
+        return list(by_subject.values())
+
     def add_claim(
         self,
         claim: FinancialClaim,

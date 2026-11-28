@@ -214,3 +214,15 @@ class ProofEvaluationResponse(BaseModel):
     overall_confidence: Decimal
     evaluation_reasons: list[str] = Field(default_factory=list)
     evaluated_at: datetime
+
+
+class SubjectSummaryResponse(BaseModel):
+    """Aggregated summary for a persisted proof subject."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    subject: str
+    proof_count: int
+    ready_count: int
+    latest_status: str
+    latest_confidence: Decimal

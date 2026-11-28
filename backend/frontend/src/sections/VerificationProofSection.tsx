@@ -1,15 +1,27 @@
-import React, { useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { Download, FileCheck2, Scale } from 'lucide-react'
 import { verifySnapshots } from '../api/verification'
 import { createProof, evaluateProof } from '../api/proofs'
-import { platformApi } from '../api/platform'
+import { platformApi, type SubjectSummary } from '../api/platform'
 import type { VerificationResponse } from '../types/verification'
 import type { FinancialProofAggregate } from '../types/proof'
 import { MarginProofCard } from '../components/MarginProofCard'
 import { SectionHeader } from '../components/SectionHeader'
 import { StatusBadge } from '../components/StatusBadge'
 
-export function VerificationProofSection() {
+interface VerificationProofSectionProps {
+  workspaceSubject?: string
+  subjects?: SubjectSummary[]
+  onSelectSubject?: (subject: string) => void
+  onProofChanged?: () => Promise<void> | void
+}
+
+export function VerificationProofSection({
+  workspaceSubject = 'merchant-settlement-q1',
+  subjects = [],
+  onSelectSubject,
+  onProofChanged,
+}: VerificationProofSectionProps) {
   const [beforeNet, setBeforeNet] = useState(500)
   const [afterNet, setAfterNet] = useState(400)
   const [beforeRefunded, setBeforeRefunded] = useState(0)
@@ -19,7 +31,10 @@ export function VerificationProofSection() {
   const [afterViolations, setAfterViolations] = useState('')
   const [verifyResult, setVerifyResult] = useState<VerificationResponse | null>(null)
 
-  const [subject, setSubject] = useState('merchant-settlement-q1')
+  const [subject, setSubject] = useState(workspaceSubject)
+  const [subjectProofs, setSubjectProofs] = useState<
+    Array<{ id: string; subject: string; status: string; overall_confidence: string }>
+  >([])
   const [claimType, setClaimType] = useState('balance')
   const [claimAmount, setClaimAmount] = useState(12500)
   const [currency, setCurrency] = useState('USD')
@@ -30,6 +45,22 @@ export function VerificationProofSection() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+
+  const loadSubjectProofs = useCallback(async (targetSubject: string) => {
+    const clean = targetSubject.trim()
+    if (!clean) return
+    try {
+      const list = await platformApi.listProofsBySubject(clean)
+      setSubjectProofs(list)
+    } catch {
+      setSubjectProofs([])
+    }
+  }, [])
+
+  useEffect(() => {
+    setSubject(workspaceSubject)
+    void loadSubjectProofs(workspaceSubject)
+  }, [workspaceSubject, loadSubjectProofs])
 
   const handleVerifySnapshots = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -126,6 +157,8 @@ export function VerificationProofSection() {
       setMessage(
         `Proof ${evaluated.proof.id.slice(0, 8)} created and evaluated (${evaluated.proof.status}).`,
       )
+      await loadSubjectProofs(subject.trim())
+      await onProofChanged?.()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Proof creation/evaluation failed.')
     } finally {
@@ -304,6 +337,28 @@ export function VerificationProofSection() {
               onChange={(e) => setSubject(e.target.value)}
               className="w-full rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] px-3 py-2 text-xs font-mono-tabular"
             />
+            {subjects.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1.5">
+                {subjects.map((item) => (
+                  <button
+                    key={item.subject}
+                    type="button"
+                    onClick={() => {
+                      setSubject(item.subject)
+                      onSelectSubject?.(item.subject)
+                      void loadSubjectProofs(item.subject)
+                    }}
+                    className={`px-2 py-0.5 rounded text-[10px] font-mono-tabular border cursor-pointer ${
+                      subject === item.subject
+                        ? 'bg-[#191919] text-white border-[#191919]'
+                        : 'bg-[#F5F5F3] text-[#191919] border-[#C5C4B1]'
+                    }`}
+                  >
+                    {item.subject} ({item.proof_count})
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -407,6 +462,39 @@ export function VerificationProofSection() {
                   {exportedReport}
                 </pre>
               )}
+            </div>
+          )}
+
+          {subjectProofs.length > 0 && (
+            <div className="pt-3 border-t border-slate-200 space-y-2 text-xs font-mono-tabular">
+              <div className="text-[11px] font-bold text-[#191919]">
+                PERSISTED FOR SUBJECT ({subjectProofs.length})
+              </div>
+              <div className="space-y-1.5 max-h-44 overflow-y-auto">
+                {subjectProofs.map((sp) => (
+                  <div
+                    key={sp.id}
+                    className="flex items-center justify-between gap-2 p-2 rounded border border-[#C5C4B1] bg-[#F5F5F3]"
+                  >
+                    <span className="truncate">
+                      {sp.id.slice(0, 8)} · conf {Number(sp.overall_confidence).toFixed(2)}
+                    </span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <StatusBadge value={sp.status} />
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const text = await platformApi.exportProofReport(sp.id, 'markdown')
+                          setExportedReport(text)
+                        }}
+                        className="px-1.5 py-0.5 rounded border border-[#C5C4B1] bg-white hover:border-[#191919] text-[10px] cursor-pointer"
+                      >
+                        .MD
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </form>
