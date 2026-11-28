@@ -170,10 +170,10 @@ export function VerificationProofSection() {
       <div className="grid gap-6 lg:grid-cols-12 items-start">
         <form
           onSubmit={handleVerifySnapshots}
-          className="lg:col-span-5 bg-white border border-[#0B1F3A]/20 rounded-xl p-5 distill-card space-y-4"
+          className="lg:col-span-5 bg-white border border-[#C5C4B1] rounded-xl p-5 distill-card space-y-4"
         >
-          <div className="flex items-center gap-2 text-xs font-mono-tabular font-bold text-[#0B1F3A] pb-2.5 border-b border-slate-200">
-            <Scale className="w-4 h-4 text-[#047857]" />
+          <div className="flex items-center gap-2 text-xs font-mono-tabular font-bold text-[#191919] pb-2.5 border-b border-slate-200">
+            <Scale className="w-4 h-4 text-[#FF6170]" />
             <span>REPAIR SNAPSHOT REGRESSION CHECK</span>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -185,7 +185,7 @@ export function VerificationProofSection() {
                 type="number"
                 value={beforeNet}
                 onChange={(e) => setBeforeNet(Number(e.target.value))}
-                className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
+                className="w-full rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] px-3 py-2 text-xs font-mono-tabular"
               />
             </div>
             <div>
@@ -196,7 +196,7 @@ export function VerificationProofSection() {
                 type="number"
                 value={afterNet}
                 onChange={(e) => setAfterNet(Number(e.target.value))}
-                className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
+                className="w-full rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] px-3 py-2 text-xs font-mono-tabular"
               />
             </div>
             <div>
@@ -207,7 +207,7 @@ export function VerificationProofSection() {
                 type="number"
                 value={beforeRefunded}
                 onChange={(e) => setBeforeRefunded(Number(e.target.value))}
-                className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
+                className="w-full rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] px-3 py-2 text-xs font-mono-tabular"
               />
             </div>
             <div>
@@ -218,7 +218,7 @@ export function VerificationProofSection() {
                 type="number"
                 value={afterRefunded}
                 onChange={(e) => setAfterRefunded(Number(e.target.value))}
-                className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
+                className="w-full rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] px-3 py-2 text-xs font-mono-tabular"
               />
             </div>
             <div>
@@ -229,7 +229,7 @@ export function VerificationProofSection() {
                 type="number"
                 value={capturedAmount}
                 onChange={(e) => setCapturedAmount(Number(e.target.value))}
-                className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
+                className="w-full rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] px-3 py-2 text-xs font-mono-tabular"
               />
             </div>
             <div>
@@ -240,7 +240,7 @@ export function VerificationProofSection() {
                 type="text"
                 value={beforeViolations}
                 onChange={(e) => setBeforeViolations(e.target.value)}
-                className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
+                className="w-full rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] px-3 py-2 text-xs font-mono-tabular"
               />
             </div>
             <div className="col-span-2">
@@ -252,23 +252,23 @@ export function VerificationProofSection() {
                 value={afterViolations}
                 onChange={(e) => setAfterViolations(e.target.value)}
                 placeholder="Empty when all violations are resolved"
-                className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
+                className="w-full rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] px-3 py-2 text-xs font-mono-tabular"
               />
             </div>
           </div>
           <button
             type="submit"
             disabled={busy}
-            className="inline-flex items-center gap-2 rounded-md bg-[#0B1F3A] px-4 py-2 text-xs font-medium text-white hover:bg-[#14335c] disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-md bg-[#191919] px-4 py-2 text-xs font-medium text-white hover:bg-[#2D2D2D] disabled:opacity-50"
           >
             <Scale className="w-3.5 h-3.5" />
             Verify Repair
           </button>
 
           {verifyResult && (
-            <div className="rounded-lg border border-[#0B1F3A]/20 bg-[#FAF9F6] p-4 space-y-2 text-xs font-mono-tabular">
+            <div className="rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] p-4 space-y-2 text-xs font-mono-tabular">
               <div className="flex items-center justify-between">
-                <span className="font-bold text-[#0B1F3A]">VERIFICATION VERDICT</span>
+                <span className="font-bold text-[#191919]">VERIFICATION VERDICT</span>
                 <StatusBadge value={verifyResult.result.passed ? 'passed' : 'failed'} />
               </div>
               <p className="text-slate-700">
@@ -290,10 +290,10 @@ export function VerificationProofSection() {
 
         <form
           onSubmit={handleCreateAndEvaluateProof}
-          className="lg:col-span-4 bg-white border border-[#0B1F3A]/20 rounded-xl p-5 distill-card space-y-4"
+          className="lg:col-span-4 bg-white border border-[#C5C4B1] rounded-xl p-5 distill-card space-y-4"
         >
-          <div className="flex items-center gap-2 text-xs font-mono-tabular font-bold text-[#0B1F3A] pb-2.5 border-b border-slate-200">
-            <FileCheck2 className="w-4 h-4 text-[#047857]" />
+          <div className="flex items-center gap-2 text-xs font-mono-tabular font-bold text-[#191919] pb-2.5 border-b border-slate-200">
+            <FileCheck2 className="w-4 h-4 text-[#FF6170]" />
             <span>PROOF BUILDER &amp; EXPORT</span>
           </div>
           <div>
@@ -302,7 +302,7 @@ export function VerificationProofSection() {
               type="text"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
+              className="w-full rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] px-3 py-2 text-xs font-mono-tabular"
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -311,7 +311,7 @@ export function VerificationProofSection() {
               <select
                 value={claimType}
                 onChange={(e) => setClaimType(e.target.value)}
-                className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
+                className="w-full rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] px-3 py-2 text-xs font-mono-tabular"
               >
                 <option value="balance">balance</option>
                 <option value="transaction">transaction</option>
@@ -327,7 +327,7 @@ export function VerificationProofSection() {
               <select
                 value={evidenceType}
                 onChange={(e) => setEvidenceType(e.target.value)}
-                className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
+                className="w-full rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] px-3 py-2 text-xs font-mono-tabular"
               >
                 <option value="accounting_record">accounting_record</option>
                 <option value="bank_statement">bank_statement</option>
@@ -343,7 +343,7 @@ export function VerificationProofSection() {
                 type="number"
                 value={claimAmount}
                 onChange={(e) => setClaimAmount(Number(e.target.value))}
-                className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
+                className="w-full rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] px-3 py-2 text-xs font-mono-tabular"
               />
             </div>
             <div>
@@ -353,7 +353,7 @@ export function VerificationProofSection() {
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value.toUpperCase())}
                 maxLength={3}
-                className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
+                className="w-full rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] px-3 py-2 text-xs font-mono-tabular"
               />
             </div>
           </div>
@@ -365,22 +365,22 @@ export function VerificationProofSection() {
               type="text"
               value={evidenceSource}
               onChange={(e) => setEvidenceSource(e.target.value)}
-              className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
+              className="w-full rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] px-3 py-2 text-xs font-mono-tabular"
             />
           </div>
           <button
             type="submit"
             disabled={busy}
-            className="inline-flex items-center gap-2 rounded-md bg-[#0B1F3A] px-4 py-2 text-xs font-medium text-white hover:bg-[#14335c] disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-md bg-[#191919] px-4 py-2 text-xs font-medium text-white hover:bg-[#2D2D2D] disabled:opacity-50"
           >
             <FileCheck2 className="w-3.5 h-3.5" />
             Create &amp; Evaluate Proof
           </button>
 
           {proofAgg && (
-            <div className="rounded-lg border border-[#0B1F3A]/20 bg-[#FAF9F6] p-4 space-y-3 text-xs font-mono-tabular">
+            <div className="rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] p-4 space-y-3 text-xs font-mono-tabular">
               <div className="flex items-center justify-between">
-                <span className="font-bold text-[#0B1F3A]">
+                <span className="font-bold text-[#191919]">
                   Proof {proofAgg.proof.id.slice(0, 8)}
                 </span>
                 <StatusBadge value={proofAgg.proof.status} />
@@ -395,7 +395,7 @@ export function VerificationProofSection() {
                     key={fmt}
                     type="button"
                     onClick={() => void handleExport(fmt)}
-                    className="inline-flex items-center gap-1.5 rounded border border-[#0B1F3A]/25 bg-white px-2.5 py-1 text-xs font-medium text-[#0B1F3A] hover:bg-slate-50"
+                    className="inline-flex items-center gap-1.5 rounded border border-[#C5C4B1] bg-white px-2.5 py-1 text-xs font-medium text-[#191919] hover:bg-slate-50"
                   >
                     <Download className="w-3.5 h-3.5" />
                     {fmt.toUpperCase()}

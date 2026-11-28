@@ -145,10 +145,10 @@ export function SimulationsSection() {
       <div className="grid gap-6 lg:grid-cols-12 items-start">
         <form
           onSubmit={handleRunSimulation}
-          className="lg:col-span-5 bg-white border border-[#0B1F3A]/20 rounded-xl p-5 distill-card space-y-4"
+          className="lg:col-span-5 bg-white border border-[#C5C4B1] rounded-xl p-5 distill-card space-y-4"
         >
-          <div className="flex items-center gap-2 text-xs font-mono-tabular font-bold text-[#0B1F3A] pb-2.5 border-b border-slate-200">
-            <Play className="w-4 h-4 text-[#047857]" />
+          <div className="flex items-center gap-2 text-xs font-mono-tabular font-bold text-[#191919] pb-2.5 border-b border-slate-200">
+            <Play className="w-4 h-4 text-[#FF6170]" />
             <span>1. DETERMINISTIC BASELINE SIMULATION</span>
           </div>
           <div className="grid grid-cols-3 gap-3">
@@ -158,7 +158,7 @@ export function SimulationsSection() {
                 type="number"
                 value={seed}
                 onChange={(e) => setSeed(Number(e.target.value))}
-                className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
+                className="w-full rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] px-3 py-2 text-xs font-mono-tabular"
               />
             </div>
             <div>
@@ -169,7 +169,7 @@ export function SimulationsSection() {
                 type="number"
                 value={amountMinor}
                 onChange={(e) => setAmountMinor(Number(e.target.value))}
-                className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
+                className="w-full rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] px-3 py-2 text-xs font-mono-tabular"
               />
             </div>
             <div>
@@ -179,23 +179,23 @@ export function SimulationsSection() {
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value.toUpperCase())}
                 maxLength={3}
-                className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
+                className="w-full rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] px-3 py-2 text-xs font-mono-tabular"
               />
             </div>
           </div>
           <button
             type="submit"
             disabled={busy}
-            className="inline-flex items-center gap-2 rounded-md bg-[#0B1F3A] px-4 py-2 text-xs font-medium text-white hover:bg-[#14335c] disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-md bg-[#191919] px-4 py-2 text-xs font-medium text-white hover:bg-[#2D2D2D] disabled:opacity-50"
           >
             <Play className="w-3.5 h-3.5" />
             {busy ? 'Running...' : 'Run Simulation'}
           </button>
 
           {simulation && (
-            <div className="rounded-lg border border-[#0B1F3A]/20 bg-[#FAF9F6] p-4 space-y-2 text-xs">
+            <div className="rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] p-4 space-y-2 text-xs">
               <div className="flex items-center justify-between">
-                <span className="font-mono-tabular font-bold text-[#0B1F3A]">
+                <span className="font-mono-tabular font-bold text-[#191919]">
                   {simulation.id.slice(0, 12)}...
                 </span>
                 <StatusBadge value={simulation.result.final_payment_state} />
@@ -233,8 +233,8 @@ export function SimulationsSection() {
           )}
         </form>
 
-        <div className="lg:col-span-4 bg-white border border-[#0B1F3A]/20 rounded-xl p-5 distill-card space-y-4">
-          <div className="flex items-center gap-2 text-xs font-mono-tabular font-bold text-[#0B1F3A] pb-2.5 border-b border-slate-200">
+        <div className="lg:col-span-4 bg-white border border-[#C5C4B1] rounded-xl p-5 distill-card space-y-4">
+          <div className="flex items-center gap-2 text-xs font-mono-tabular font-bold text-[#191919] pb-2.5 border-b border-slate-200">
             <Zap className="w-4 h-4 text-amber-600" />
             <span>2. FAULT INJECTION &amp; SHRINKING</span>
           </div>
@@ -244,7 +244,7 @@ export function SimulationsSection() {
               <select
                 value={attackType}
                 onChange={(e) => setAttackType(e.target.value)}
-                className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-2 py-2 text-xs font-mono-tabular"
+                className="w-full rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] px-2 py-2 text-xs font-mono-tabular"
               >
                 {ATTACK_TYPES.map((type) => (
                   <option key={type} value={type}>
@@ -260,7 +260,7 @@ export function SimulationsSection() {
                 min={1}
                 value={targetSequence}
                 onChange={(e) => setTargetSequence(Number(e.target.value))}
-                className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-2.5 py-2 text-xs font-mono-tabular"
+                className="w-full rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] px-2.5 py-2 text-xs font-mono-tabular"
               />
             </div>
             <div>
@@ -270,7 +270,7 @@ export function SimulationsSection() {
                 min={1}
                 value={retryCount}
                 onChange={(e) => setRetryCount(Number(e.target.value))}
-                className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-2.5 py-2 text-xs font-mono-tabular"
+                className="w-full rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] px-2.5 py-2 text-xs font-mono-tabular"
               />
             </div>
           </div>
@@ -280,7 +280,7 @@ export function SimulationsSection() {
               type="button"
               disabled={!simulation || busy}
               onClick={() => void handleRunAttack()}
-              className="inline-flex items-center gap-1.5 rounded-md bg-[#0B1F3A] px-3.5 py-2 text-xs font-medium text-white hover:bg-[#14335c] disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-md bg-[#191919] px-3.5 py-2 text-xs font-medium text-white hover:bg-[#2D2D2D] disabled:opacity-50"
             >
               <Bug className="w-3.5 h-3.5" />
               Inject Attack
@@ -289,7 +289,7 @@ export function SimulationsSection() {
               type="button"
               disabled={!simulation || busy}
               onClick={() => void handleShrink()}
-              className="inline-flex items-center gap-1.5 rounded-md border border-[#0B1F3A]/25 bg-white px-3.5 py-2 text-xs font-medium text-[#0B1F3A] hover:bg-slate-50 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-md border border-[#C5C4B1] bg-white px-3.5 py-2 text-xs font-medium text-[#191919] hover:bg-slate-50 disabled:opacity-50"
             >
               <Minimize2 className="w-3.5 h-3.5" />
               Shrink Trace
@@ -297,9 +297,9 @@ export function SimulationsSection() {
           </div>
 
           {adversarial && (
-            <div className="rounded-lg border border-[#0B1F3A]/20 bg-[#FAF9F6] p-3.5 space-y-2 text-xs font-mono-tabular">
+            <div className="rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] p-3.5 space-y-2 text-xs font-mono-tabular">
               <div className="flex items-center justify-between">
-                <span className="font-bold text-[#0B1F3A]">ADVERSARIAL RESULT</span>
+                <span className="font-bold text-[#191919]">ADVERSARIAL RESULT</span>
                 <StatusBadge value={adversarial.failure ? 'failed' : 'passed'} />
               </div>
               <p className="text-slate-700">
@@ -344,8 +344,8 @@ export function SimulationsSection() {
       </div>
 
       {recentSimulations.length > 0 && (
-        <div className="bg-white border border-[#0B1F3A]/20 rounded-xl p-5 distill-card">
-          <h3 className="text-xs font-mono-tabular font-bold text-[#0B1F3A] mb-3">
+        <div className="bg-white border border-[#C5C4B1] rounded-xl p-5 distill-card">
+          <h3 className="text-xs font-mono-tabular font-bold text-[#191919] mb-3">
             SESSION SIMULATIONS ({recentSimulations.length})
           </h3>
           <div className="overflow-x-auto">
@@ -374,7 +374,7 @@ export function SimulationsSection() {
                       <button
                         type="button"
                         onClick={() => setSimulation(s)}
-                        className="text-[#0B1F3A] font-medium hover:underline"
+                        className="text-[#191919] font-medium hover:underline"
                       >
                         Load into injector
                       </button>

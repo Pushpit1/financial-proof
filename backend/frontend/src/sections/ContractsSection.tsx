@@ -117,23 +117,23 @@ export function ContractsSection() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         <form
           onSubmit={handleCompile}
-          className="lg:col-span-5 bg-white border border-[#0B1F3A]/20 rounded-xl p-5 distill-card space-y-4"
+          className="lg:col-span-5 bg-white border border-[#C5C4B1] rounded-xl p-5 distill-card space-y-4"
         >
-          <div className="text-xs font-mono-tabular font-bold text-[#0B1F3A] flex items-center gap-2 pb-2.5 border-b border-slate-200">
-            <FileCode2 className="w-4 h-4 text-[#047857]" /> COMPILE FINANCIAL RULE
+          <div className="text-xs font-mono-tabular font-bold text-[#191919] flex items-center gap-2 pb-2.5 border-b border-slate-200">
+            <FileCode2 className="w-4 h-4 text-[#FF6170]" /> COMPILE FINANCIAL RULE
           </div>
           <textarea
             rows={5}
             value={ruleText}
             onChange={(e) => setRuleText(e.target.value)}
             required
-            className="w-full px-3 py-2 rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] text-sm focus:outline-none focus:border-[#0B1F3A]"
+            className="w-full px-3 py-2 rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] text-sm focus:outline-none focus:border-[#191919]"
           />
           <div className="flex flex-wrap gap-2">
             <button
               type="submit"
               disabled={busy}
-              className="px-4 py-2 rounded-md bg-[#0B1F3A] text-white text-xs font-medium hover:bg-[#14335c] disabled:opacity-50"
+              className="px-4 py-2 rounded-md bg-[#191919] text-white text-xs font-medium hover:bg-[#2D2D2D] disabled:opacity-50"
             >
               Compile Rule
             </button>
@@ -142,7 +142,7 @@ export function ContractsSection() {
                 type="button"
                 disabled={busy}
                 onClick={() => void handlePersist()}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-[#0B1F3A]/25 bg-white text-xs font-medium text-[#0B1F3A] hover:bg-slate-50"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md border border-[#C5C4B1] bg-white text-xs font-medium text-[#191919] hover:bg-slate-50"
               >
                 <Save className="w-3.5 h-3.5" />
                 Save to Database
@@ -151,8 +151,8 @@ export function ContractsSection() {
           </div>
 
           {compiled && (
-            <div className="p-3.5 rounded-lg bg-[#FAF9F6] border border-[#0B1F3A]/20 text-xs space-y-1.5 font-mono-tabular">
-              <div className="font-bold text-[#0B1F3A]">{compiled.name}</div>
+            <div className="p-3.5 rounded-lg bg-[#F5F5F3] border border-[#C5C4B1] text-xs space-y-1.5 font-mono-tabular">
+              <div className="font-bold text-[#191919]">{compiled.name}</div>
               <div>Version: v{compiled.version}</div>
               <div>Min Confidence: {String(compiled.minimum_confidence)}</div>
               <div>Min Claim Ratio: {String(compiled.minimum_supported_claim_ratio)}</div>
@@ -161,8 +161,8 @@ export function ContractsSection() {
           )}
         </form>
 
-        <div className="lg:col-span-4 bg-white border border-[#0B1F3A]/20 rounded-xl overflow-hidden distill-card">
-          <div className="px-5 py-3.5 border-b border-slate-200 text-xs font-mono-tabular font-bold text-[#0B1F3A]">
+        <div className="lg:col-span-4 bg-white border border-[#C5C4B1] rounded-xl overflow-hidden distill-card">
+          <div className="px-5 py-3.5 border-b border-slate-200 text-xs font-mono-tabular font-bold text-[#191919]">
             PERSISTED CONTRACTS ({contracts.length})
           </div>
           {contracts.length === 0 ? (
@@ -171,7 +171,7 @@ export function ContractsSection() {
             </div>
           ) : (
             <table className="w-full text-left text-xs">
-              <thead className="bg-[#FAF9F6] text-slate-500 border-b border-slate-200 font-mono-tabular">
+              <thead className="bg-[#F5F5F3] text-slate-500 border-b border-slate-200 font-mono-tabular">
                 <tr>
                   <th className="py-2.5 px-4 font-medium">Name</th>
                   <th className="py-2.5 px-4 font-medium">Ver</th>
@@ -180,14 +180,14 @@ export function ContractsSection() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {contracts.map((c) => (
-                  <tr key={c.id} className="hover:bg-[#FAF9F6]">
-                    <td className="py-2.5 px-4 font-medium text-[#0B1F3A]">{c.name}</td>
+                  <tr key={c.id} className="hover:bg-[#F5F5F3]">
+                    <td className="py-2.5 px-4 font-medium text-[#191919]">{c.name}</td>
                     <td className="py-2.5 px-4 font-mono-tabular">v{c.version}</td>
                     <td className="py-2.5 px-4 text-right">
                       <button
                         type="button"
                         onClick={() => void handleEvaluate(c.id)}
-                        className="px-2.5 py-1 rounded bg-[#0B1F3A] text-white text-[11px] hover:bg-[#14335c]"
+                        className="px-2.5 py-1 rounded bg-[#191919] text-white text-[11px] hover:bg-[#2D2D2D]"
                       >
                         Evaluate
                       </button>
@@ -199,7 +199,7 @@ export function ContractsSection() {
           )}
 
           {decision && (
-            <div className="m-4 p-3 rounded border border-slate-200 bg-[#FAF9F6] text-xs flex items-center justify-between">
+            <div className="m-4 p-3 rounded border border-slate-200 bg-[#F5F5F3] text-xs flex items-center justify-between">
               <span className="font-mono-tabular">
                 Decision {decision.id.slice(0, 8)} · violations: {decision.violation_count}
               </span>

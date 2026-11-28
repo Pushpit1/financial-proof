@@ -104,7 +104,7 @@ export function OverviewSection({
               void loadOverview()
             }}
             disabled={loading}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md border border-[#0B1F3A]/25 bg-white text-xs font-medium text-[#0B1F3A] hover:bg-slate-50"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md border border-[#C5C4B1] bg-white text-xs font-medium text-[#191919] hover:bg-slate-50"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             Refresh State
@@ -164,10 +164,10 @@ export function OverviewSection({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        <section className="lg:col-span-5 bg-white border border-[#0B1F3A]/20 rounded-xl p-5 distill-card space-y-4">
+        <section className="lg:col-span-5 bg-white border border-[#C5C4B1] rounded-xl p-5 distill-card space-y-4">
           <div className="flex items-center justify-between border-b border-slate-200 pb-3">
             <div>
-              <div className="text-[11px] font-mono-tabular font-bold text-[#0B1F3A]">
+              <div className="text-[11px] font-mono-tabular font-bold text-[#191919]">
                 CANONICAL DETERMINISTIC SEED
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
@@ -177,7 +177,7 @@ export function OverviewSection({
             <button
               type="button"
               onClick={() => void resetDemo()}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#0B1F3A] text-white text-xs font-medium hover:bg-[#14335c]"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#191919] text-white text-xs font-medium hover:bg-[#2D2D2D]"
             >
               <Play className="w-3.5 h-3.5" />
               Reset Seed
@@ -186,21 +186,21 @@ export function OverviewSection({
 
           {demoState ? (
             <div className="grid grid-cols-2 gap-2.5 text-xs font-mono-tabular">
-              <div className="p-2.5 rounded bg-[#FAF9F6] border border-slate-200">
+              <div className="p-2.5 rounded bg-[#F5F5F3] border border-slate-200">
                 <div className="text-slate-500">Seed</div>
-                <div className="font-bold text-[#0B1F3A] mt-0.5">{String(demoState.seed)}</div>
+                <div className="font-bold text-[#191919] mt-0.5">{String(demoState.seed)}</div>
               </div>
-              <div className="p-2.5 rounded bg-[#FAF9F6] border border-slate-200">
+              <div className="p-2.5 rounded bg-[#F5F5F3] border border-slate-200">
                 <div className="text-slate-500">Simulation ID</div>
-                <div className="font-bold text-[#0B1F3A] mt-0.5 truncate">{String(demoState.simulation_id)}</div>
+                <div className="font-bold text-[#191919] mt-0.5 truncate">{String(demoState.simulation_id)}</div>
               </div>
-              <div className="p-2.5 rounded bg-[#FAF9F6] border border-slate-200">
+              <div className="p-2.5 rounded bg-[#F5F5F3] border border-slate-200">
                 <div className="text-slate-500">Contract ID</div>
-                <div className="font-bold text-[#0B1F3A] mt-0.5 truncate">{String(demoState.contract_id)}</div>
+                <div className="font-bold text-[#191919] mt-0.5 truncate">{String(demoState.contract_id)}</div>
               </div>
-              <div className="p-2.5 rounded bg-[#FAF9F6] border border-slate-200">
+              <div className="p-2.5 rounded bg-[#F5F5F3] border border-slate-200">
                 <div className="text-slate-500">Payment ID</div>
-                <div className="font-bold text-[#0B1F3A] mt-0.5 truncate">{String(demoState.payment_id)}</div>
+                <div className="font-bold text-[#191919] mt-0.5 truncate">{String(demoState.payment_id)}</div>
               </div>
             </div>
           ) : (
@@ -211,29 +211,29 @@ export function OverviewSection({
             <button
               type="button"
               onClick={() => onNavigate('simulations')}
-              className="px-3 py-1.5 rounded border border-[#0B1F3A]/25 text-xs font-medium text-[#0B1F3A] hover:bg-slate-50"
+              className="px-3 py-1.5 rounded border border-[#C5C4B1] text-xs font-medium text-[#191919] hover:bg-slate-50"
             >
               Open Simulations →
             </button>
             <button
               type="button"
               onClick={() => onNavigate('analysis')}
-              className="px-3 py-1.5 rounded border border-[#0B1F3A]/25 text-xs font-medium text-[#0B1F3A] hover:bg-slate-50"
+              className="px-3 py-1.5 rounded border border-[#C5C4B1] text-xs font-medium text-[#191919] hover:bg-slate-50"
             >
               Blast Radius &amp; Guardian →
             </button>
           </div>
         </section>
 
-        <section className="lg:col-span-4 bg-white border border-[#0B1F3A]/20 rounded-xl overflow-hidden distill-card">
+        <section className="lg:col-span-4 bg-white border border-[#C5C4B1] rounded-xl overflow-hidden distill-card">
           <div className="px-5 py-3.5 border-b border-slate-200 flex items-center justify-between">
-            <h2 className="text-xs font-mono-tabular font-bold text-[#0B1F3A]">
+            <h2 className="text-xs font-mono-tabular font-bold text-[#191919]">
               RECENT AUDIT STREAM
             </h2>
             <button
               type="button"
               onClick={() => onNavigate('audit')}
-              className="text-xs text-[#0B1F3A] hover:underline font-medium"
+              className="text-xs text-[#191919] hover:underline font-medium"
             >
               View all
             </button>
@@ -251,7 +251,7 @@ export function OverviewSection({
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <StatusBadge value={ev.category} />
-                      <span className="font-mono-tabular font-medium text-[#0B1F3A] truncate">
+                      <span className="font-mono-tabular font-medium text-[#191919] truncate">
                         {ev.action}
                       </span>
                     </div>
@@ -297,12 +297,12 @@ function StatCard({
     <button
       type="button"
       onClick={onClick}
-      className="text-left bg-white border border-[#0B1F3A]/20 rounded-xl p-4 distill-card hover:border-[#0B1F3A] transition-colors"
+      className="text-left bg-white border border-[#C5C4B1] rounded-xl p-4 distill-card hover:border-[#191919] transition-colors"
     >
       <div className="text-[11px] font-mono-tabular uppercase tracking-wider text-slate-500">
         {label}
       </div>
-      <div className="mt-2 text-2xl font-bold font-mono-tabular text-[#0B1F3A]">
+      <div className="mt-2 text-2xl font-bold font-mono-tabular text-[#191919]">
         {value}
       </div>
       <div className="mt-1 text-xs text-slate-500 truncate">{sub}</div>

@@ -14,16 +14,16 @@ export function SectionHeader({
   rightSlot,
 }: SectionHeaderProps) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-4 pb-5 border-b border-slate-200">
-      <div className="space-y-1.5 max-w-3xl">
-        <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[#8e2460]">
-          <span className="w-2 h-2 rounded-full bg-[#ff6b57]" />
+    <div className="flex flex-wrap items-end justify-between gap-4 pb-5 border-b border-[#C5C4B1]">
+      <div className="space-y-2 max-w-3xl">
+        <span className="t-pill bg-white border border-[#C5C4B1]">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#FF6170]" />
           {eyebrow}
-        </div>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[#0a1429]">
+        </span>
+        <h1 className="text-2xl sm:text-3xl font-medium tracking-tight text-[#191919]">
           {title}
         </h1>
-        <p className="text-sm text-slate-600 leading-relaxed">{description}</p>
+        <p className="text-sm text-[#191919]/75 leading-relaxed">{description}</p>
       </div>
       {rightSlot && <div className="shrink-0">{rightSlot}</div>}
     </div>

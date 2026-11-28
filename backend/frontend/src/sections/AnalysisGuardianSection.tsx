@@ -138,9 +138,9 @@ export function AnalysisGuardianSection({
       <div className="grid gap-6 lg:grid-cols-12 items-start">
         <form
           onSubmit={handleBlastRadius}
-          className="lg:col-span-5 bg-white border border-[#0B1F3A]/20 rounded-xl p-5 distill-card space-y-4"
+          className="lg:col-span-5 bg-white border border-[#C5C4B1] rounded-xl p-5 distill-card space-y-4"
         >
-          <div className="flex items-center gap-2 text-xs font-mono-tabular font-bold text-[#0B1F3A] pb-2.5 border-b border-slate-200">
+          <div className="flex items-center gap-2 text-xs font-mono-tabular font-bold text-[#191919] pb-2.5 border-b border-slate-200">
             <TriangleAlert className="w-4 h-4 text-rose-600" />
             <span>FINANCIAL BLAST RADIUS</span>
           </div>
@@ -152,7 +152,7 @@ export function AnalysisGuardianSection({
               type="text"
               value={sourceText}
               onChange={(e) => setSourceText(e.target.value)}
-              className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs"
+              className="w-full rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] px-3 py-2 text-xs"
             />
           </div>
           <div className="grid grid-cols-3 gap-3">
@@ -164,7 +164,7 @@ export function AnalysisGuardianSection({
                 type="text"
                 value={paymentAmount}
                 onChange={(e) => setPaymentAmount(e.target.value)}
-                className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
+                className="w-full rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] px-3 py-2 text-xs font-mono-tabular"
               />
             </div>
             <div>
@@ -175,7 +175,7 @@ export function AnalysisGuardianSection({
                 type="text"
                 value={refundAmount}
                 onChange={(e) => setRefundAmount(e.target.value)}
-                className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
+                className="w-full rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] px-3 py-2 text-xs font-mono-tabular"
               />
             </div>
             <div>
@@ -185,22 +185,22 @@ export function AnalysisGuardianSection({
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value.toUpperCase())}
                 maxLength={3}
-                className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
+                className="w-full rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] px-3 py-2 text-xs font-mono-tabular"
               />
             </div>
           </div>
           <button
             type="submit"
             disabled={busy}
-            className="inline-flex items-center gap-2 rounded-md bg-[#0B1F3A] px-4 py-2 text-xs font-medium text-white hover:bg-[#14335c] disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-md bg-[#191919] px-4 py-2 text-xs font-medium text-white hover:bg-[#2D2D2D] disabled:opacity-50"
           >
             Calculate Exposure
           </button>
 
           {blastResult && (
-            <div className="rounded-lg border border-[#0B1F3A]/20 bg-[#FAF9F6] p-4 space-y-3 text-xs">
+            <div className="rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] p-4 space-y-3 text-xs">
               <div className="flex items-center justify-between">
-                <span className="font-mono-tabular font-bold text-[#0B1F3A]">EXPOSURE VERDICT</span>
+                <span className="font-mono-tabular font-bold text-[#191919]">EXPOSURE VERDICT</span>
                 <StatusBadge value={blastResult.passed ? 'passed' : 'failed'} />
               </div>
               <div className="grid grid-cols-3 gap-2 font-mono-tabular">
@@ -218,14 +218,14 @@ export function AnalysisGuardianSection({
                 </div>
                 <div>
                   <span className="text-slate-500 block">Max</span>
-                  <span className="text-sm font-bold text-[#0B1F3A]">
+                  <span className="text-sm font-bold text-[#191919]">
                     {blastResult.total_maximum_exposure} {blastResult.currency}
                   </span>
                 </div>
               </div>
               {blastResult.exposures.map((exp) => (
                 <div key={exp.id} className="rounded border border-slate-200 bg-white p-2">
-                  <div className="font-mono-tabular font-semibold text-[#0B1F3A]">
+                  <div className="font-mono-tabular font-semibold text-[#191919]">
                     {exp.field || 'contract'}: {exp.amount} {exp.currency}
                   </div>
                   <div className="text-slate-600">{exp.explanation}</div>
@@ -237,11 +237,11 @@ export function AnalysisGuardianSection({
 
         <form
           onSubmit={handleInvestigation}
-          className="lg:col-span-4 bg-white border border-[#0B1F3A]/20 rounded-xl p-5 distill-card space-y-4"
+          className="lg:col-span-4 bg-white border border-[#C5C4B1] rounded-xl p-5 distill-card space-y-4"
         >
           <div className="flex items-center justify-between pb-2.5 border-b border-slate-200">
-            <div className="flex items-center gap-2 text-xs font-mono-tabular font-bold text-[#0B1F3A]">
-              <Bot className="w-4 h-4 text-[#047857]" />
+            <div className="flex items-center gap-2 text-xs font-mono-tabular font-bold text-[#191919]">
+              <Bot className="w-4 h-4 text-[#FF6170]" />
               <span>BOUNDED AI INVESTIGATION</span>
             </div>
             <StatusBadge value="advisory" />
@@ -254,21 +254,21 @@ export function AnalysisGuardianSection({
               rows={3}
               value={violationSummary}
               onChange={(e) => setViolationSummary(e.target.value)}
-              className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs"
+              className="w-full rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] px-3 py-2 text-xs"
             />
           </div>
           <button
             type="submit"
             disabled={busy}
-            className="inline-flex items-center gap-2 rounded-md bg-[#0B1F3A] px-4 py-2 text-xs font-medium text-white hover:bg-[#14335c] disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-md bg-[#191919] px-4 py-2 text-xs font-medium text-white hover:bg-[#2D2D2D] disabled:opacity-50"
           >
             Run Read-Only Investigation
           </button>
 
           {investigation && (
-            <div className="rounded-lg border border-[#0B1F3A]/20 bg-[#FAF9F6] p-4 space-y-3 text-xs">
+            <div className="rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] p-4 space-y-3 text-xs">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="font-mono-tabular font-bold text-[#0B1F3A]">
+                <span className="font-mono-tabular font-bold text-[#191919]">
                   Investigation {investigation.investigation_id.slice(0, 8)}
                 </span>
                 <span className="rounded bg-amber-100 px-2 py-0.5 text-[10px] font-mono-tabular font-semibold text-amber-900">
@@ -277,7 +277,7 @@ export function AnalysisGuardianSection({
               </div>
               <p className="text-slate-800">{investigation.summary}</p>
               <div className="rounded border border-slate-200 bg-white p-2.5">
-                <div className="font-mono-tabular font-bold text-[#0B1F3A] mb-1">Root Cause Hypothesis</div>
+                <div className="font-mono-tabular font-bold text-[#191919] mb-1">Root Cause Hypothesis</div>
                 <p className="text-slate-600">{investigation.root_cause_hypothesis}</p>
               </div>
               <ul className="list-disc pl-4 space-y-1 text-slate-700">
@@ -305,9 +305,9 @@ export function AnalysisGuardianSection({
         </aside>
       </div>
 
-      <div className="bg-white border border-[#0B1F3A]/20 rounded-xl p-5 distill-card space-y-4">
-        <div className="flex items-center gap-2 text-xs font-mono-tabular font-bold text-[#0B1F3A] pb-2.5 border-b border-slate-200">
-          <ShieldCheck className="w-4 h-4 text-[#047857]" />
+      <div className="bg-white border border-[#C5C4B1] rounded-xl p-5 distill-card space-y-4">
+        <div className="flex items-center gap-2 text-xs font-mono-tabular font-bold text-[#191919] pb-2.5 border-b border-slate-200">
+          <ShieldCheck className="w-4 h-4 text-[#FF6170]" />
           <span>RUNTIME GUARDIAN POLICY GATE</span>
         </div>
         <form onSubmit={handleGuardianEvaluate} className="grid gap-3 sm:grid-cols-5 items-end">
@@ -317,7 +317,7 @@ export function AnalysisGuardianSection({
               type="text"
               value={operation}
               onChange={(e) => setOperation(e.target.value)}
-              className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
+              className="w-full rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] px-3 py-2 text-xs font-mono-tabular"
             />
           </div>
           <div>
@@ -326,7 +326,7 @@ export function AnalysisGuardianSection({
               type="text"
               value={actorId}
               onChange={(e) => setActorId(e.target.value)}
-              className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
+              className="w-full rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] px-3 py-2 text-xs font-mono-tabular"
             />
           </div>
           <div>
@@ -337,7 +337,7 @@ export function AnalysisGuardianSection({
               type="number"
               value={amountMinor}
               onChange={(e) => setAmountMinor(Number(e.target.value))}
-              className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
+              className="w-full rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] px-3 py-2 text-xs font-mono-tabular"
             />
           </div>
           <div>
@@ -348,7 +348,7 @@ export function AnalysisGuardianSection({
               type="number"
               value={paymentAmountMinor}
               onChange={(e) => setPaymentAmountMinor(Number(e.target.value))}
-              className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
+              className="w-full rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] px-3 py-2 text-xs font-mono-tabular"
             />
           </div>
           <div className="flex items-center gap-3">
@@ -357,14 +357,14 @@ export function AnalysisGuardianSection({
                 type="checkbox"
                 checked={duplicateDetected}
                 onChange={(e) => setDuplicateDetected(e.target.checked)}
-                className="accent-[#0B1F3A]"
+                className="accent-[#191919]"
               />
               Dup
             </label>
             <button
               type="submit"
               disabled={busy}
-              className="rounded-md bg-[#0B1F3A] px-4 py-2 text-xs font-medium text-white hover:bg-[#14335c] disabled:opacity-50"
+              className="rounded-md bg-[#191919] px-4 py-2 text-xs font-medium text-white hover:bg-[#2D2D2D] disabled:opacity-50"
             >
               Evaluate
             </button>
@@ -372,10 +372,10 @@ export function AnalysisGuardianSection({
         </form>
 
         {guardianRes && (
-          <div className="rounded-lg border border-[#0B1F3A]/20 bg-[#FAF9F6] p-3 flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div className="rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] p-3 flex flex-wrap items-center justify-between gap-2 text-xs">
             <div className="flex items-center gap-2">
               <StatusBadge value={guardianRes.decision} />
-              <span className="font-mono-tabular font-bold text-[#0B1F3A]">
+              <span className="font-mono-tabular font-bold text-[#191919]">
                 {guardianRes.rule}
               </span>
               <span className="text-slate-600">{guardianRes.reason}</span>

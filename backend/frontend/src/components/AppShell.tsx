@@ -10,6 +10,7 @@ import {
   Menu,
   X,
   Home,
+  KeyRound,
 } from 'lucide-react'
 import type { SystemStatus } from '../api/platform'
 import { StatusBadge } from './StatusBadge'
@@ -26,22 +27,24 @@ export type NavSection =
 const NAV_ITEMS: Array<{
   id: NavSection
   label: string
-  group: string
+  code: string
   icon: React.ComponentType<{ className?: string }>
 }> = [
-  { id: 'overview', label: 'Overview & Telemetry', group: 'Workspace', icon: Activity },
-  { id: 'contracts', label: 'Financial Contracts', group: 'Workspace', icon: FileCode2 },
-  { id: 'documents', label: 'Documents & Recon', group: 'Evidence', icon: FileSpreadsheet },
-  { id: 'simulations', label: 'Simulations & Attacks', group: 'Verification', icon: FlaskConical },
-  { id: 'verification', label: 'Proof & Reports', group: 'Verification', icon: ShieldCheck },
-  { id: 'analysis', label: 'Blast Radius, AI & Guardian', group: 'Decisioning', icon: Flame },
-  { id: 'audit', label: 'Audit & Access', group: 'Governance', icon: ScrollText },
+  { id: 'overview', label: 'Overview & Telemetry', code: '1.0', icon: Activity },
+  { id: 'contracts', label: 'Financial Contracts', code: '2.0', icon: FileCode2 },
+  { id: 'documents', label: 'Documents & Recon', code: '3.0', icon: FileSpreadsheet },
+  { id: 'simulations', label: 'Simulations & Attacks', code: '4.0', icon: FlaskConical },
+  { id: 'verification', label: 'Proof & Reports', code: '5.0', icon: ShieldCheck },
+  { id: 'analysis', label: 'Blast Radius & Guardian', code: '6.0', icon: Flame },
+  { id: 'audit', label: 'Audit & Access', code: '7.0', icon: ScrollText },
 ]
 
 interface AppShellProps {
   activeSection: NavSection
   onSelectSection: (section: NavSection) => void
   onOpenLanding: () => void
+  onOpenSignIn: () => void
+  operatorLabel: string
   workspaceSubject: string
   onChangeSubject: (subject: string) => void
   systemStatus: SystemStatus | null
@@ -52,6 +55,8 @@ export function AppShell({
   activeSection,
   onSelectSection,
   onOpenLanding,
+  onOpenSignIn,
+  operatorLabel,
   workspaceSubject,
   onChangeSubject,
   systemStatus,
@@ -60,49 +65,51 @@ export function AppShell({
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const sidebarContent = (
-    <div className="flex flex-col h-full bg-[#0a1429] text-white border-r border-slate-800">
-      <div className="h-16 px-4 flex items-center justify-between border-b border-slate-800">
+    <div className="flex flex-col h-full bg-[#191919] text-[#EBEBE6] border-r border-white/10">
+      <div className="h-16 px-4 flex items-center justify-between border-b border-white/10">
         <button
           type="button"
           onClick={onOpenLanding}
-          className="flex items-center gap-2.5 text-left group"
+          className="flex items-center gap-2.5 text-left group cursor-pointer"
         >
-          <div className="w-8 h-8 rounded-lg alloy-accent-gradient text-[#0a1429] flex items-center justify-center text-xs font-extrabold font-mono-tabular">
-            FP
-          </div>
+          <svg width="24" height="24" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+            <polygon points="14,3 25,22 3,22" stroke="#EBEBE6" strokeWidth="1.8" fill="none" />
+            <polygon points="14,8 21,20 7,20" stroke="#EBEBE6" strokeWidth="1.2" fill="none" opacity="0.6" />
+            <circle cx="14" cy="16" r="2.2" fill="#FF6170" />
+          </svg>
           <div>
-            <div className="text-sm font-bold tracking-tight text-white group-hover:text-[#f5b74b]">
+            <div className="text-sm font-bold tracking-tight text-white group-hover:text-[#FF6170] transition-colors uppercase">
               Financial Proof
             </div>
-            <div className="text-[10px] font-mono-tabular uppercase tracking-wider text-slate-400">
-              Decisioning Platform
+            <div className="text-[10px] font-mono-tabular uppercase tracking-wider text-white/50">
+              Decision Workbench
             </div>
           </div>
         </button>
         <button
           type="button"
           onClick={() => setMobileOpen(false)}
-          className="lg:hidden p-1 text-slate-400"
+          className="lg:hidden p-1 text-white/60 hover:text-white"
           aria-label="Close navigation"
         >
           <X className="w-4 h-4" />
         </button>
       </div>
 
-      <div className="p-3.5 border-b border-slate-800 bg-slate-900/40">
-        <label className="block text-[10px] font-mono-tabular uppercase tracking-wider text-slate-400 mb-1.5">
+      <div className="p-3.5 border-b border-white/10 bg-white/5">
+        <label className="block text-[10px] font-mono-tabular uppercase tracking-wider text-white/55 mb-1.5">
           Workspace Subject
         </label>
         <input
           value={workspaceSubject}
           onChange={(e) => onChangeSubject(e.target.value)}
           placeholder="merchant-settlement-q1"
-          className="w-full px-2.5 py-1.5 rounded-lg border border-slate-700 bg-slate-900 text-xs font-mono-tabular text-white focus:outline-none focus:border-[#ff6b57]"
+          className="w-full px-2.5 py-1.5 rounded-lg border border-white/20 bg-black/30 text-xs font-mono-tabular text-white focus:outline-none focus:border-[#FF6170]"
         />
       </div>
 
-      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-        {NAV_ITEMS.map(({ id, label, icon: Icon }) => {
+      <nav className="flex-1 p-3 space-y-1 overflow-y-auto text-xs">
+        {NAV_ITEMS.map(({ id, label, code, icon: Icon }) => {
           const active = activeSection === id
           return (
             <button
@@ -112,35 +119,53 @@ export function AppShell({
                 onSelectSection(id)
                 setMobileOpen(false)
               }}
-              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-medium transition-colors text-left ${
+              className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg transition-colors text-left cursor-pointer ${
                 active
-                  ? 'bg-white text-[#0a1429] font-semibold shadow-sm'
-                  : 'text-slate-300 hover:bg-slate-800/70 hover:text-white'
+                  ? 'rounded-tl-none bg-white text-[#191919] font-semibold shadow-sm'
+                  : 'text-white/75 hover:bg-white/10 hover:text-white'
               }`}
             >
-              <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-[#ff6b57]' : 'text-slate-400'}`} />
-              <span className="truncate">{label}</span>
+              <span className="flex items-center gap-2.5 min-w-0">
+                <Icon className={`w-4 h-4 shrink-0 ${active ? 'text-[#FF6170]' : 'text-white/50'}`} />
+                <span className="truncate">{label}</span>
+              </span>
+              <span className={`font-mono-tabular text-[10px] ${active ? 'text-[#191919]/65' : 'text-white/40'}`}>
+                {code}
+              </span>
             </button>
           )
         })}
       </nav>
 
-      <div className="p-3.5 border-t border-slate-800 space-y-2.5 text-[11px]">
+      <div className="p-3.5 border-t border-white/10 space-y-2 text-[11px]">
+        <button
+          type="button"
+          onClick={onOpenSignIn}
+          className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-white/20 text-white/90 hover:bg-white/10 text-xs font-medium cursor-pointer"
+        >
+          <span className="flex items-center gap-2 truncate">
+            <KeyRound className="w-3.5 h-3.5 text-[#FF6170] shrink-0" />
+            <span className="truncate">{operatorLabel}</span>
+          </span>
+          <span className="text-[10px] font-mono-tabular text-white/50">AUTH</span>
+        </button>
+
         <button
           type="button"
           onClick={onOpenLanding}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-700 text-slate-200 hover:bg-slate-800 text-xs font-medium"
+          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg border border-white/20 text-white/90 hover:bg-white/10 text-xs font-medium cursor-pointer"
         >
-          <Home className="w-3.5 h-3.5 text-[#f5b74b]" />
-          Platform Homepage
+          <Home className="w-3.5 h-3.5 text-[#E6CA5A]" />
+          Public Website View
         </button>
-        <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 space-y-1.5">
+
+        <div className="p-2.5 rounded-lg bg-white/5 border border-white/10 space-y-1.5">
           <div className="flex items-center justify-between">
-            <span className="font-mono-tabular text-slate-400">PostgreSQL</span>
+            <span className="font-mono-tabular text-white/60">PostgreSQL</span>
             <StatusBadge value={systemStatus?.database ?? 'checking'} />
           </div>
-          <div className="text-[10px] font-mono-tabular text-emerald-400">
-            Deterministic core · AI advisory only
+          <div className="text-[10px] font-mono-tabular text-[#E6CA5A]">
+            Decimal(18,2) · AI Advisory Only
           </div>
         </div>
       </div>
@@ -148,39 +173,40 @@ export function AppShell({
   )
 
   return (
-    <div className="min-h-screen flex bg-[#f8f9fc] text-[#0a1429]">
+    <div className="min-h-screen flex bg-[#F5F5F3] text-[#191919]">
       <aside className="hidden lg:block w-64 shrink-0">{sidebarContent}</aside>
 
       {mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden flex">
           <div className="w-64 h-full">{sidebarContent}</div>
           <div
-            className="flex-1 bg-slate-950/40"
+            className="flex-1 bg-black/45"
             onClick={() => setMobileOpen(false)}
           />
         </div>
       )}
 
       <div className="flex-1 min-w-0 flex flex-col">
-        <header className="h-16 bg-white border-b border-slate-200 px-4 lg:px-6 flex items-center justify-between">
+        <header className="h-14 bg-[#EBEBE6] border-b border-[#C5C4B1] px-4 lg:px-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => setMobileOpen(true)}
-              className="lg:hidden p-1.5 rounded-lg border border-slate-200 text-[#0a1429]"
+              className="lg:hidden p-1.5 rounded-lg border border-[#C5C4B1] bg-white text-[#191919]"
               aria-label="Open navigation"
             >
               <Menu className="w-4 h-4" />
             </button>
-            <div className="text-xs font-mono-tabular text-slate-500">
-              DECISION ENGINE // <span className="text-[#0a1429] font-semibold">{workspaceSubject}</span>
+            <div className="text-xs font-mono-tabular text-[#191919]/65">
+              SUBJECT // <span className="text-[#191919] font-semibold">{workspaceSubject}</span>
             </div>
           </div>
 
           <div className="flex items-center gap-2.5">
             {systemStatus && (
-              <span className="hidden sm:inline-flex items-center gap-1.5 text-xs font-mono-tabular text-slate-500">
+              <span className="hidden sm:inline-flex items-center gap-1.5 text-xs font-mono-tabular text-[#191919]/65">
                 v{systemStatus.version || '2.0'} · {systemStatus.environment}
+                {systemStatus.alembic_revision ? ` · ${systemStatus.alembic_revision}` : ''}
               </span>
             )}
             <StatusBadge value={systemStatus?.database === 'connected' ? 'connected' : 'unreachable'} />
@@ -188,7 +214,7 @@ export function AppShell({
         </header>
 
         {systemStatus?.database === 'unreachable' && (
-          <div className="bg-amber-50 border-b border-amber-200 px-4 sm:px-6 py-2 text-[11px] font-mono-tabular text-amber-900">
+          <div className="bg-[#E6CA5A]/25 border-b border-[#C5C4B1] px-4 sm:px-6 py-2 text-[11px] font-mono-tabular text-[#191919]">
             STATELESS ENGINE MODE: Compilation, simulations, repair verification, reconciliation, blast radius &amp; guardian run live.
           </div>
         )}

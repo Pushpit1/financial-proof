@@ -60,7 +60,7 @@ export function AuditSettingsSection() {
             type="button"
             onClick={() => void refreshAll()}
             disabled={busy}
-            className="inline-flex items-center gap-2 rounded-md border border-[#0B1F3A]/25 bg-white px-3.5 py-2 text-xs font-medium text-[#0B1F3A] hover:bg-slate-50"
+            className="inline-flex items-center gap-2 rounded-md border border-[#C5C4B1] bg-white px-3.5 py-2 text-xs font-medium text-[#191919] hover:bg-slate-50"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${busy ? 'animate-spin' : ''}`} />
             Refresh
@@ -81,10 +81,10 @@ export function AuditSettingsSection() {
 
       <div className="grid gap-6 lg:grid-cols-12 items-start">
         <div className="lg:col-span-9 space-y-6">
-          <div className="bg-white border border-[#0B1F3A]/20 rounded-xl p-5 distill-card space-y-4">
+          <div className="bg-white border border-[#C5C4B1] rounded-xl p-5 distill-card space-y-4">
             <div className="flex items-center justify-between pb-2.5 border-b border-slate-200">
-              <div className="flex items-center gap-2 text-xs font-mono-tabular font-bold text-[#0B1F3A]">
-                <KeyRound className="w-4 h-4 text-[#047857]" />
+              <div className="flex items-center gap-2 text-xs font-mono-tabular font-bold text-[#191919]">
+                <KeyRound className="w-4 h-4 text-[#FF6170]" />
                 <span>API BEARER TOKEN &amp; AUTH STATUS</span>
               </div>
               {authStatus && (
@@ -93,27 +93,27 @@ export function AuditSettingsSection() {
             </div>
             {authStatus && (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono-tabular">
-                <div className="p-2.5 rounded bg-[#FAF9F6] border border-slate-200">
+                <div className="p-2.5 rounded bg-[#F5F5F3] border border-slate-200">
                   <span className="text-slate-500 block">Auth Enforced</span>
-                  <span className="font-bold text-[#0B1F3A]">
+                  <span className="font-bold text-[#191919]">
                     {String(authStatus.auth_configured)}
                   </span>
                 </div>
-                <div className="p-2.5 rounded bg-[#FAF9F6] border border-slate-200">
+                <div className="p-2.5 rounded bg-[#F5F5F3] border border-slate-200">
                   <span className="text-slate-500 block">Authenticated</span>
-                  <span className="font-bold text-[#0B1F3A]">
+                  <span className="font-bold text-[#191919]">
                     {String(authStatus.authenticated)}
                   </span>
                 </div>
-                <div className="p-2.5 rounded bg-[#FAF9F6] border border-slate-200">
+                <div className="p-2.5 rounded bg-[#F5F5F3] border border-slate-200">
                   <span className="text-slate-500 block">Subject</span>
-                  <span className="font-bold text-[#0B1F3A]">
+                  <span className="font-bold text-[#191919]">
                     {authStatus.subject || 'anonymous'}
                   </span>
                 </div>
-                <div className="p-2.5 rounded bg-[#FAF9F6] border border-slate-200">
+                <div className="p-2.5 rounded bg-[#F5F5F3] border border-slate-200">
                   <span className="text-slate-500 block">Role</span>
-                  <span className="font-bold text-[#0B1F3A]">{authStatus.role || '-'}</span>
+                  <span className="font-bold text-[#191919]">{authStatus.role || '-'}</span>
                 </div>
               </div>
             )}
@@ -123,21 +123,21 @@ export function AuditSettingsSection() {
                 value={tokenInput}
                 onChange={(e) => setTokenInput(e.target.value)}
                 placeholder="Optional API Bearer token"
-                className="flex-1 min-w-[240px] rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular"
+                className="flex-1 min-w-[240px] rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] px-3 py-2 text-xs font-mono-tabular"
               />
               <button
                 type="submit"
-                className="rounded-md bg-[#0B1F3A] px-4 py-2 text-xs font-medium text-white hover:bg-[#14335c]"
+                className="rounded-md bg-[#191919] px-4 py-2 text-xs font-medium text-white hover:bg-[#2D2D2D]"
               >
                 Apply &amp; Test Token
               </button>
             </form>
           </div>
 
-          <div className="bg-white border border-[#0B1F3A]/20 rounded-xl p-5 distill-card space-y-4">
+          <div className="bg-white border border-[#C5C4B1] rounded-xl p-5 distill-card space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3 pb-2.5 border-b border-slate-200">
-              <div className="flex items-center gap-2 text-xs font-mono-tabular font-bold text-[#0B1F3A]">
-                <History className="w-4 h-4 text-[#047857]" />
+              <div className="flex items-center gap-2 text-xs font-mono-tabular font-bold text-[#191919]">
+                <History className="w-4 h-4 text-[#FF6170]" />
                 <span>UNIFIED AUDIT STREAM ({events.length})</span>
               </div>
               <div className="flex flex-wrap gap-1.5">
@@ -151,8 +151,8 @@ export function AuditSettingsSection() {
                     }}
                     className={`rounded px-2.5 py-1 text-xs font-mono-tabular border ${
                       category === cat
-                        ? 'bg-[#0B1F3A] text-white border-[#0B1F3A]'
-                        : 'bg-[#FAF9F6] text-[#0B1F3A] border-[#0B1F3A]/25 hover:bg-slate-100'
+                        ? 'bg-[#191919] text-white border-[#191919]'
+                        : 'bg-[#F5F5F3] text-[#191919] border-[#C5C4B1] hover:bg-slate-100'
                     }`}
                   >
                     {cat || 'all'}
@@ -183,7 +183,7 @@ export function AuditSettingsSection() {
                           <StatusBadge value={ev.category} />
                         </td>
                         <td className="py-2 pr-3 font-mono-tabular">{ev.action}</td>
-                        <td className="py-2 pr-3 text-[#0B1F3A]">{ev.summary}</td>
+                        <td className="py-2 pr-3 text-[#191919]">{ev.summary}</td>
                         <td className="py-2 font-mono-tabular text-slate-500">{ev.created_at}</td>
                       </tr>
                     ))}

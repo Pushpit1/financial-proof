@@ -153,10 +153,10 @@ export function DocumentsSection() {
       <div className="grid gap-6 lg:grid-cols-12 items-start">
         <form
           onSubmit={handleUpload}
-          className="lg:col-span-5 bg-white border border-[#0B1F3A]/20 rounded-xl p-5 distill-card space-y-4"
+          className="lg:col-span-5 bg-white border border-[#C5C4B1] rounded-xl p-5 distill-card space-y-4"
         >
-          <div className="flex items-center gap-2 text-xs font-mono-tabular font-bold text-[#0B1F3A] pb-2.5 border-b border-slate-200">
-            <FileUp className="w-4 h-4 text-[#047857]" />
+          <div className="flex items-center gap-2 text-xs font-mono-tabular font-bold text-[#191919] pb-2.5 border-b border-slate-200">
+            <FileUp className="w-4 h-4 text-[#FF6170]" />
             <span>EVIDENCE UPLOAD &amp; EXTRACTION</span>
           </div>
           <div>
@@ -167,7 +167,7 @@ export function DocumentsSection() {
               type="file"
               accept=".csv,.json,.txt,.pdf"
               onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
-              className="block w-full text-xs text-slate-700 file:mr-3 file:rounded file:border file:border-[#0B1F3A]/25 file:bg-[#FAF9F6] file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-[#0B1F3A] hover:file:bg-slate-100"
+              className="block w-full text-xs text-slate-700 file:mr-3 file:rounded file:border file:border-[#C5C4B1] file:bg-[#F5F5F3] file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-[#191919] hover:file:bg-slate-100"
             />
           </div>
           <div>
@@ -179,22 +179,22 @@ export function DocumentsSection() {
               value={proofId}
               onChange={(e) => setProofId(e.target.value)}
               placeholder="UUID of existing FinancialProof"
-              className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular focus:outline-none focus:border-[#0B1F3A]"
+              className="w-full rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] px-3 py-2 text-xs font-mono-tabular focus:outline-none focus:border-[#191919]"
             />
           </div>
           <button
             type="submit"
             disabled={busy}
-            className="inline-flex items-center gap-2 rounded-md bg-[#0B1F3A] px-4 py-2 text-xs font-medium text-white hover:bg-[#14335c] disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-md bg-[#191919] px-4 py-2 text-xs font-medium text-white hover:bg-[#2D2D2D] disabled:opacity-50"
           >
             <FileUp className="w-3.5 h-3.5" />
             {busy ? 'Uploading...' : 'Ingest & Extract'}
           </button>
 
           {uploadResult && (
-            <div className="rounded-lg border border-[#0B1F3A]/20 bg-[#FAF9F6] p-4 space-y-3">
+            <div className="rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] p-4 space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-xs font-bold font-mono-tabular text-[#0B1F3A]">
+                <span className="text-xs font-bold font-mono-tabular text-[#191919]">
                   {uploadResult.filename}
                 </span>
                 <div className="flex items-center gap-2">
@@ -209,13 +209,13 @@ export function DocumentsSection() {
               <dl className="grid grid-cols-2 gap-2 text-xs font-mono-tabular">
                 <div>
                   <dt className="text-slate-500">Extracted Rows</dt>
-                  <dd className="font-bold text-[#0B1F3A]">
+                  <dd className="font-bold text-[#191919]">
                     {uploadResult.extracted_row_count}
                   </dd>
                 </div>
                 <div>
                   <dt className="text-slate-500">Total Amount</dt>
-                  <dd className="font-bold text-[#0B1F3A]">
+                  <dd className="font-bold text-[#191919]">
                     {uploadResult.total_amount}
                   </dd>
                 </div>
@@ -268,10 +268,10 @@ export function DocumentsSection() {
 
         <form
           onSubmit={handleReconcile}
-          className="lg:col-span-4 bg-white border border-[#0B1F3A]/20 rounded-xl p-5 distill-card space-y-4"
+          className="lg:col-span-4 bg-white border border-[#C5C4B1] rounded-xl p-5 distill-card space-y-4"
         >
-          <div className="flex items-center gap-2 text-xs font-mono-tabular font-bold text-[#0B1F3A] pb-2.5 border-b border-slate-200">
-            <GitCompare className="w-4 h-4 text-[#047857]" />
+          <div className="flex items-center gap-2 text-xs font-mono-tabular font-bold text-[#191919] pb-2.5 border-b border-slate-200">
+            <GitCompare className="w-4 h-4 text-[#FF6170]" />
             <span>DETERMINISTIC RECONCILIATION</span>
           </div>
           <div>
@@ -282,7 +282,7 @@ export function DocumentsSection() {
               rows={4}
               value={internalCsv}
               onChange={(e) => setInternalCsv(e.target.value)}
-              className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular focus:outline-none focus:border-[#0B1F3A]"
+              className="w-full rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] px-3 py-2 text-xs font-mono-tabular focus:outline-none focus:border-[#191919]"
             />
           </div>
           <div>
@@ -293,20 +293,20 @@ export function DocumentsSection() {
               rows={4}
               value={providerCsv}
               onChange={(e) => setProviderCsv(e.target.value)}
-              className="w-full rounded-lg border border-[#0B1F3A]/25 bg-[#FAF9F6] px-3 py-2 text-xs font-mono-tabular focus:outline-none focus:border-[#0B1F3A]"
+              className="w-full rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] px-3 py-2 text-xs font-mono-tabular focus:outline-none focus:border-[#191919]"
             />
           </div>
           <button
             type="submit"
             disabled={busy}
-            className="inline-flex items-center gap-2 rounded-md bg-[#0B1F3A] px-4 py-2 text-xs font-medium text-white hover:bg-[#14335c] disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-md bg-[#191919] px-4 py-2 text-xs font-medium text-white hover:bg-[#2D2D2D] disabled:opacity-50"
           >
             <GitCompare className="w-3.5 h-3.5" />
             {busy ? 'Reconciling...' : 'Run Reconciliation'}
           </button>
 
           {reconResult && (
-            <div className="rounded-lg border border-[#0B1F3A]/20 bg-[#FAF9F6] p-4 space-y-3">
+            <div className="rounded-lg border border-[#C5C4B1] bg-[#F5F5F3] p-4 space-y-3">
               <div className="grid grid-cols-3 gap-2 text-xs font-mono-tabular">
                 <div>
                   <span className="text-slate-500 block">Matched</span>
@@ -322,7 +322,7 @@ export function DocumentsSection() {
                 </div>
                 <div>
                   <span className="text-slate-500 block">Exposure</span>
-                  <span className="text-sm font-bold text-[#0B1F3A]">
+                  <span className="text-sm font-bold text-[#191919]">
                     {reconResult.total_exposure}
                   </span>
                 </div>
@@ -370,8 +370,8 @@ export function DocumentsSection() {
         </aside>
       </div>
 
-      <div className="bg-white border border-[#0B1F3A]/20 rounded-xl p-5 distill-card">
-        <h3 className="text-xs font-mono-tabular font-bold text-[#0B1F3A] mb-3">
+      <div className="bg-white border border-[#C5C4B1] rounded-xl p-5 distill-card">
+        <h3 className="text-xs font-mono-tabular font-bold text-[#191919] mb-3">
           PERSISTED EVIDENCE RECORDS ({documents.length})
         </h3>
         {documents.length === 0 ? (
@@ -393,7 +393,7 @@ export function DocumentsSection() {
               <tbody>
                 {documents.map((doc) => (
                   <tr key={doc.id} className="border-b border-slate-100">
-                    <td className="py-2 pr-3 font-medium text-[#0B1F3A]">{doc.source_name}</td>
+                    <td className="py-2 pr-3 font-medium text-[#191919]">{doc.source_name}</td>
                     <td className="py-2 pr-3 font-mono-tabular">{doc.evidence_type}</td>
                     <td className="py-2 pr-3">
                       <StatusBadge value={doc.status} />
