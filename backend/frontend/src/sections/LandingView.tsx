@@ -5,8 +5,6 @@ import { HeroOrbitVisual } from '../components/HeroOrbitVisual'
 
 interface LandingViewProps {
   systemStatus: SystemStatus | null
-  operatorLabel: string
-  onOpenSignIn: () => void
   onEnterWorkspace: (section?: NavSection) => void
 }
 
@@ -181,8 +179,6 @@ const MODULES_DIRECTORY: Array<{
 
 export function LandingView({
   systemStatus,
-  operatorLabel,
-  onOpenSignIn,
   onEnterWorkspace,
 }: LandingViewProps) {
   const [activePipeIdx, setActivePipeIdx] = useState(0)
@@ -286,13 +282,6 @@ export function LandingView({
               />
               {systemStatus?.database === 'connected' ? 'PROD · NEON' : 'CHECKING DB'}
             </span>
-            <button
-              type="button"
-              onClick={onOpenSignIn}
-              className="hidden sm:inline-flex text-xs uppercase tracking-wider font-semibold text-[#191919]/80 hover:text-[#191919] px-3 py-1.5 cursor-pointer"
-            >
-              {operatorLabel === 'OPERATOR: GUEST' ? 'Sign In' : operatorLabel.replace('OPERATOR: ', '')}
-            </button>
             <button
               type="button"
               onClick={() => onEnterWorkspace('overview')}
@@ -680,13 +669,6 @@ export function LandingView({
               >
                 Launch Workbench -&gt;
               </button>
-              <button
-                type="button"
-                onClick={onOpenSignIn}
-                className="alloy-btn !border-white/30 !text-white hover:!bg-white/10"
-              >
-                Operator Sign In
-              </button>
             </div>
           </div>
 
@@ -738,9 +720,6 @@ export function LandingView({
               <div className="flex flex-col gap-1.5 items-start">
                 <button type="button" onClick={() => onEnterWorkspace('audit')} className="hover:text-[#FF6170] cursor-pointer">
                   Unified Audit Stream
-                </button>
-                <button type="button" onClick={onOpenSignIn} className="hover:text-[#FF6170] cursor-pointer">
-                  Operator Authentication
                 </button>
                 <span className="text-white/50 font-mono-tabular pt-1">
                   Alembic {systemStatus?.alembic_revision || 'b1c2d3e4f5a6'}

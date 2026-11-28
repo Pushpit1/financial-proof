@@ -51,53 +51,43 @@ export function OverviewSection({
     setLoading(true)
     setError('')
     setCardErrors({})
+    const errs: string[] = []
 
-    const [demoRes, cRes, pRes, dRes, aRes] = await Promise.allSettled([
-      apiClient.get<{ success: boolean; state: Record<string, unknown> }>('/demo/state'),
-      platformApi.listContracts(),
-      platformApi.listProofsBySubject(workspaceSubject),
-      platformApi.listDocuments(),
-      platformApi.listAudit(),
+    await Promise.all([
+      apiClient
+        .get<{ success: boolean; state: Record<string, unknown> }>('/demo/state')
+        .then((res) => setDemoState(res.state))
+        .catch((err) => errs.push(`Demo: ${err instanceof Error ? err.message : 'failed'}`)),
+      platformApi
+        .listContracts()
+        .then((res) => setContractsCount(res.length))
+        .catch((err) => {
+          setCardErrors((prev) => ({ ...prev, contracts: true }))
+          errs.push(`Contracts: ${err instanceof Error ? err.message : 'failed'}`)
+        }),
+      platformApi
+        .listProofsBySubject(workspaceSubject)
+        .then((res) => setProofsCount(res.length))
+        .catch((err) => {
+          setCardErrors((prev) => ({ ...prev, proofs: true }))
+          errs.push(`Proofs: ${err instanceof Error ? err.message : 'failed'}`)
+        }),
+      platformApi
+        .listDocuments()
+        .then((res) => setDocsCount(res.length))
+        .catch((err) => {
+          setCardErrors((prev) => ({ ...prev, documents: true }))
+          errs.push(`Documents: ${err instanceof Error ? err.message : 'failed'}`)
+        }),
+      platformApi
+        .listAudit()
+        .then((res) => setAudits(res.slice(0, 8)))
+        .catch((err) => {
+          setAudits([])
+          errs.push(`Audit: ${err instanceof Error ? err.message : 'failed'}`)
+        }),
     ])
 
-    const errs: string[] = []
-    const nextCardErrs: { contracts?: boolean; proofs?: boolean; documents?: boolean } = {}
-
-    if (demoRes.status === 'fulfilled') {
-      setDemoState(demoRes.value.state)
-    } else {
-      errs.push(`Demo: ${demoRes.reason instanceof Error ? demoRes.reason.message : 'failed'}`)
-    }
-
-    if (cRes.status === 'fulfilled') {
-      setContractsCount(cRes.value.length)
-    } else {
-      nextCardErrs.contracts = true
-      errs.push(`Contracts: ${cRes.reason instanceof Error ? cRes.reason.message : 'failed'}`)
-    }
-
-    if (pRes.status === 'fulfilled') {
-      setProofsCount(pRes.value.length)
-    } else {
-      nextCardErrs.proofs = true
-      errs.push(`Proofs: ${pRes.reason instanceof Error ? pRes.reason.message : 'failed'}`)
-    }
-
-    if (dRes.status === 'fulfilled') {
-      setDocsCount(dRes.value.length)
-    } else {
-      nextCardErrs.documents = true
-      errs.push(`Documents: ${dRes.reason instanceof Error ? dRes.reason.message : 'failed'}`)
-    }
-
-    if (aRes.status === 'fulfilled') {
-      setAudits(aRes.value.slice(0, 8))
-    } else {
-      setAudits([])
-      errs.push(`Audit: ${aRes.reason instanceof Error ? aRes.reason.message : 'failed'}`)
-    }
-
-    setCardErrors(nextCardErrs)
     if (errs.length > 0) setError(errs.join(' · '))
     setLoading(false)
   }, [workspaceSubject])
@@ -373,7 +363,7 @@ export function OverviewSection({
                 <div className="text-amber-300">AI Override: FORBIDDEN</div>
               </>
             }
-            note="Every platform module separates deterministic financial arithmetic from read-only advisory diagnostics. Open Demo Mode active (sign-in optional)."
+            note="Every platform module separates deterministic financial arithmetic from read-only advisory diagnostics."
           />
         </aside>
       </div>

@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { getAuthToken } from './api/client'
 import { platformApi, type SubjectSummary, type SystemStatus } from './api/platform'
 import { AppShell, type NavSection } from './components/AppShell'
-import { SignInModal } from './components/SignInModal'
 import { LandingView } from './sections/LandingView'
 import { OverviewSection } from './sections/OverviewSection'
 import { ContractsSection } from './sections/ContractsSection'
@@ -36,10 +34,6 @@ export function App() {
   const [customSubjects, setCustomSubjects] = useState<string[]>(loadCustomSubjects)
   const [dbSubjects, setDbSubjects] = useState<SubjectSummary[]>([])
   const [systemStatus, setSystemStatus] = useState<SystemStatus | null>(null)
-  const [signInOpen, setSignInOpen] = useState(false)
-  const [operatorEmail, setOperatorEmail] = useState(() =>
-    getAuthToken() ? 'operator@financialproof.dev' : '',
-  )
 
   const refreshSystem = useCallback(async () => {
     try {
@@ -55,7 +49,7 @@ export function App() {
       const list = await platformApi.listSubjects()
       setDbSubjects(list)
     } catch {
-      // Keep custom subjects even if DB summary endpoint is temporarily unavailable
+      // Keep local subjects if endpoint is unreachable
     }
   }, [])
 
@@ -121,80 +115,57 @@ export function App() {
     [workspaceSubject, subjects],
   )
 
-  const operatorLabel = operatorEmail
-    ? `OPERATOR: ${operatorEmail.split('@')[0].toUpperCase()}`
-    : 'OPEN DEMO (NO SIGN-IN REQ.)'
-
-  return (
-    <>
-      <SignInModal
-        open={signInOpen}
-        initialEmail={operatorEmail}
-        onClose={() => setSignInOpen(false)}
-        onSignedIn={(email) => {
-          setOperatorEmail(email)
-          setView('workspace')
-          void refreshSystem()
-        }}
-      />
-
-      {view === 'landing' ? (
-        <LandingView
-          systemStatus={systemStatus}
-          operatorLabel={operatorLabel}
-          onOpenSignIn={() => setSignInOpen(true)}
-          onEnterWorkspace={(section = 'overview') => {
-            setActiveSection(section)
-            setView('workspace')
-          }}
-        />
-      ) : (
-        <AppShell
-          activeSection={activeSection}
-          onSelectSection={setActiveSection}
-          onOpenLanding={() => setView('landing')}
-          onOpenSignIn={() => setSignInOpen(true)}
-          operatorLabel={operatorLabel}
+  return view === 'landing' ? (
+    <LandingView
+      systemStatus={systemStatus}
+      onEnterWorkspace={(section = 'overview') => {
+        setActiveSection(section)
+        setView('workspace')
+      }}
+    />
+  ) : (
+    <AppShell
+      activeSection={activeSection}
+      onSelectSection={setActiveSection}
+      onOpenLanding={() => setView('landing')}
+      workspaceSubject={workspaceSubject}
+      subjects={subjects}
+      onChangeSubject={setWorkspaceSubject}
+      onAddSubject={addSubject}
+      systemStatus={systemStatus}
+    >
+      {activeSection === 'overview' && (
+        <OverviewSection
           workspaceSubject={workspaceSubject}
           subjects={subjects}
-          onChangeSubject={setWorkspaceSubject}
+          onSelectSubject={setWorkspaceSubject}
           onAddSubject={addSubject}
+          onRemoveSubject={removeCustomSubject}
           systemStatus={systemStatus}
-        >
-          {activeSection === 'overview' && (
-            <OverviewSection
-              workspaceSubject={workspaceSubject}
-              subjects={subjects}
-              onSelectSubject={setWorkspaceSubject}
-              onAddSubject={addSubject}
-              onRemoveSubject={removeCustomSubject}
-              systemStatus={systemStatus}
-              onRefreshSystem={async () => {
-                await Promise.all([refreshSystem(), refreshSubjects()])
-              }}
-              onNavigate={setActiveSection}
-            />
-          )}
-          {activeSection === 'contracts' && <ContractsSection />}
-          {activeSection === 'documents' && <DocumentsSection />}
-          {activeSection === 'simulations' && <SimulationsSection />}
-          {activeSection === 'verification' && (
-            <VerificationProofSection
-              workspaceSubject={workspaceSubject}
-              subjects={subjects}
-              onSelectSubject={setWorkspaceSubject}
-              onProofChanged={refreshSubjects}
-            />
-          )}
-          {activeSection === 'analysis' && (
-            <AnalysisGuardianSection
-              persistResults={systemStatus?.database === 'connected'}
-            />
-          )}
-          {activeSection === 'audit' && <AuditSettingsSection />}
-        </AppShell>
+          onRefreshSystem={async () => {
+            await Promise.all([refreshSystem(), refreshSubjects()])
+          }}
+          onNavigate={setActiveSection}
+        />
       )}
-    </>
+      {activeSection === 'contracts' && <ContractsSection />}
+      {activeSection === 'documents' && <DocumentsSection />}
+      {activeSection === 'simulations' && <SimulationsSection />}
+      {activeSection === 'verification' && (
+        <VerificationProofSection
+          workspaceSubject={workspaceSubject}
+          subjects={subjects}
+          onSelectSubject={setWorkspaceSubject}
+          onProofChanged={refreshSubjects}
+        />
+      )}
+      {activeSection === 'analysis' && (
+        <AnalysisGuardianSection
+          persistResults={systemStatus?.database === 'connected'}
+        />
+      )}
+      {activeSection === 'audit' && <AuditSettingsSection />}
+    </AppShell>
   )
 }
 

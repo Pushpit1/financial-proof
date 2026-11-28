@@ -10,7 +10,6 @@ import {
   Menu,
   X,
   Home,
-  KeyRound,
   Plus,
 } from 'lucide-react'
 import type { SubjectSummary, SystemStatus } from '../api/platform'
@@ -37,15 +36,13 @@ const NAV_ITEMS: Array<{
   { id: 'simulations', label: 'Simulations & Attacks', code: '4.0', icon: FlaskConical },
   { id: 'verification', label: 'Proof & Reports', code: '5.0', icon: ShieldCheck },
   { id: 'analysis', label: 'Blast Radius & Guardian', code: '6.0', icon: Flame },
-  { id: 'audit', label: 'Audit & Access', code: '7.0', icon: ScrollText },
+  { id: 'audit', label: 'Unified Audit Stream', code: '7.0', icon: ScrollText },
 ]
 
 interface AppShellProps {
   activeSection: NavSection
   onSelectSection: (section: NavSection) => void
   onOpenLanding: () => void
-  onOpenSignIn: () => void
-  operatorLabel: string
   workspaceSubject: string
   subjects: SubjectSummary[]
   onChangeSubject: (subject: string) => void
@@ -58,8 +55,6 @@ export function AppShell({
   activeSection,
   onSelectSection,
   onOpenLanding,
-  onOpenSignIn,
-  operatorLabel,
   workspaceSubject,
   subjects,
   onChangeSubject,
@@ -188,18 +183,6 @@ export function AppShell({
       </nav>
 
       <div className="p-3.5 border-t border-white/10 space-y-2 text-[11px]">
-        <button
-          type="button"
-          onClick={onOpenSignIn}
-          className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-white/20 text-white/90 hover:bg-white/10 text-xs font-medium cursor-pointer"
-        >
-          <span className="flex items-center gap-2 truncate">
-            <KeyRound className="w-3.5 h-3.5 text-[#FF6170] shrink-0" />
-            <span className="truncate">{operatorLabel}</span>
-          </span>
-          <span className="text-[10px] font-mono-tabular text-white/50">AUTH</span>
-        </button>
-
         <button
           type="button"
           onClick={onOpenLanding}
